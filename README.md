@@ -38,15 +38,40 @@ Spring MVC는 자료가 정말 많지만 Batch는 너무 없어서 정리도 할
     * DB & JPA
         * JpaItemReader
         * JpaPagingItemReader
-        * JpaCursorItemReader
-        * QuerydslPagingItemReader & QuerydslCursorItemReader
+        * IbatisReader는 Spring Batch 4.0에 오면서 삭제됨
     * File
         * FlatFileItemReader
     * Read Multiple DataSources
+    * Item Stream Interface
+        * ItemStream? 
+        * 페이징과의 차이점
+        * JpaCursorItemReader
+    * QuerydslPagingItemReader & QuerydslCursorItemReader
 * Writer
+    * Simple Writer 소개
+        * chunk 차이
+        * chunk와 page size 다를때 주의사항 소개
     * DB & JPA
+        * JDBC writer
+        * JPA Writer
     * Write Multiple DataSources
 * Processor
+    * Simple Processor
+    * Processor에서 Filter 처리
+    * Processor에서 Validate
+        * ```Validator```
+        * ```Validator.setFilter(true)``` 로 실패시 건너가기
+    * Composite
+        * 여러개의 Processor를 조합하고싶을때
+        * ```CompositeItemProcessor```
+        * ```List<ItemProcessor<Pay,Pay>> delegates```
+    * Processor는 Java8의 Stream 과 유사한 개념으로 보면 좋음
+* Error
+    * Restart
+    * Retry
+    * Skip
+    * Listeners
+* runid
 * 테스트 코드
 * Batch 스케줄링은 어떻게? (젠킨스)
 
