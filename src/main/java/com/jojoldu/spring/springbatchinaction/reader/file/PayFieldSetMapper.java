@@ -1,5 +1,6 @@
 package com.jojoldu.spring.springbatchinaction.reader.file;
 
+import com.jojoldu.spring.springbatchinaction.reader.Pay;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.FieldSet;
 import org.springframework.validation.BindException;
