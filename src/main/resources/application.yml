@@ -1,1 +1,1 @@
-spring.batch.job.names: ${job.name:NONE}
+#spring.batch.job.names: ${job.name:NONE}
