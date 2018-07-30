@@ -1,8 +1,8 @@
 package com.jojoldu.spring.springbatchinaction.job;
 
-import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -25,13 +25,23 @@ public class SimpleJobConfiguration {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
 
-
     @Bean
     public Job simpleJob() {
         return jobBuilderFactory.get("simpleJob")
                 .start(step1())
                 .next(step2())
                 .next(step3())
+                .build();
+    }
+
+    @Bean
+    public Job conditionalJob() {
+        return jobBuilderFactory.get("conditionalJob")
+                .start(step1())
+                    .on(BatchStatus.COMPLETED.name()).to(step2())
+                    .on(BatchStatus.FAILED.name()).to(step3())
+                .from(step2()).on(BatchStatus.COMPLETED.name()).fail()
+                .from(step3()).end()
                 .build();
     }
 

@@ -13,8 +13,10 @@ Spring MVC는 자료가 정말 많지만 Batch는 너무 없어서 정리도 할
 * Simple Batch Job
     * 잡실행 결과 리뷰
     * Job, JobInstance, JobExecution 등등 BATCH_JOB 스키마
+        * BatchExecution 테이블 내용물 리뷰
+    * BatchStatus 소개
 * 테스트 코드
 * 여러개 Job 중 원하는 Job 만 수행하려면?
 * Batch 실행은 어떻게? (젠킨스)
- 
+
 
