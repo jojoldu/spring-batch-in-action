@@ -4,7 +4,6 @@ Spring Batch In Action이 2011년 이후 개정판이 나오지도 않고, 한�
 커머스나 기타 서비스 시스템이 커질수록 배치 작업이 늘어나는데, 주먹구구식으로 Spring Batch 사용하는 경우가 많음  
 Spring MVC는 자료가 정말 많지만 Batch는 너무 없어서 정리도 할겸 시작.  
 
-> 잘되면 책낼수 있지 않을까?  
 
 ## 목차
 
@@ -39,6 +38,7 @@ Spring MVC는 자료가 정말 많지만 Batch는 너무 없어서 정리도 할
         * JpaItemReader
         * JpaPagingItemReader
         * IbatisReader는 Spring Batch 4.0에 오면서 삭제됨
+        * 같은 테이블을 조회 & 수정해야 한다면? ([참고](https://stackoverflow.com/questions/26509971/spring-batch-jpapagingitemreader-why-some-rows-are-not-read))
     * File
         * FlatFileItemReader
     * Read Multiple DataSources
