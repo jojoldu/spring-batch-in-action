@@ -303,5 +303,22 @@ MySQL에서도 정상적으로 배치가 실행되었습니다!
 
 ### 2-3-2. Spring Batch 메타테이블 리뷰
 
+자 그럼 테이블을 하나씩 살펴보겠습니다.  
+먼저 볼 것은 ```BATCH_JOB_INSTANCE``` 입니다.
+
+![meta1](./images/2/meta1.png)
+
+* ```JOB_INSTANCE_ID```
+    * ```BATCH_JOB_INSTANCE``` 의 PK
+
+![meta2](./images/2/meta2.png)
+
+![jobschema](./images/2/jobschema.png)
 
 
+## 2-5. Spring Batch Test 코드는?
+
+[저의 이전 Spring Batch 글들](http://jojoldu.tistory.com/search/batch)을 보시면 아시겠지만, 저는 Spring Batch 예제를 항상 테스트 코드로 작성했습니다.  
+그러다보니 실제 **develop/production 환경에서 Spring Batch를 사용하시는 분들이 Batch Job Intstance Context 문제로 어려움을 겪는걸 많이 봤습니다**.  
+그래서 H2를 이용한 테스트 코드는 최대한 나중에 보여드리겠습니다.  
+초반부에는 MySQL을 이용하면서 Spring Batch에 최대한 적응하시도록 진행하겠습니다.
