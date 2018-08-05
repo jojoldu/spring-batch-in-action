@@ -164,9 +164,10 @@ Job안에 여러 Step이 있다는건 쉽게 이해되지만, Step이 품고 있
 
 처음으로 Spring Batch 프로그램을 작성해보았습니다!  
 아주 간단한 실습을 진행해봤는데요.  
-이제 조금 이론적인 내용을 한번 보겠습니다.
+이 내용은 너무나 간단합니다.  
+조금 더 어려운 내용으로 한번 가보겠습니다.
 
-## 2-3. Spring Batch 메타 테이블 엿보기
+## 2-3. MySQL 환경에서 Spring Batch 실행해보기
 
 이전 과정에서 굉장히 간단하게 Spring Batch가 수행되었습니다.  
 **Spring Batch는 어플리케이션 코드만 작성하면 되는구나**! 라고 생각하실수 있으실텐데요.  
@@ -202,7 +203,7 @@ Spring Batch의 메타 데이터는 다음과 같은 내용들을 담고 있습�
 
 그럼 MySQL을 이용하여 Spring Batch를 실행해보겠습니다.  
   
-### 2-3-1. MySQL 환경에서 Spring Batch 실행해보기
+### 2-3-1. MySQL에 연결하기
 
 본인의 PC에 MySQL을 설치하시고, Spring Batch가 MySQL을 사용하도록 설정을 추가해보겠습니다.  
   
@@ -247,6 +248,9 @@ spring:
 위 설정에서 각각의 ```spring.profiles```는 **profile이 local이면 H2를, mysql로 두면 MySQL을 사용**한다는 것을 의미합니다.  
   
 설정이 다 되셨으면 한번 실행해보겠습니다.  
+
+### 2-3-2. MySQL 환경으로 실행하기
+
 아직까지 MySQL에 메타 테이블을 생성해두진 않았습니다.  
 그럼 앞에서 설명한대로 Batch가 실패해야겠죠?  
   
@@ -300,116 +304,3 @@ IntelliJ와 동일한 UX, 단축키를 지원해서 별도로 사용법을 익�
 와우!  
 MySQL에서도 정상적으로 배치가 실행되었습니다!  
 자 그러면 도대체 이 메타 테이블에 어떤 정보들이 담겨있는지 하나씩 보겠습니다.
-
-### 2-3-2. Spring Batch 메타테이블 리뷰
-
-먼저 볼 것은 ```BATCH_JOB_INSTANCE``` 입니다.
-
-![meta1](./images/2/meta1.png)
-
-* ```JOB_INSTANCE_ID```
-    * ```BATCH_JOB_INSTANCE``` 테이블의 PK
-* ```JOB_NAME```
-    * 수행한 Batch Job Name
-
-방금 실행했던 simpleJob이 있는 것을 볼 수 있습니다.  
-BATCH_JOB_INSTANCE 테이블은 **Job Parameter에 따라 생성되는 테이블**입니다.  
-이 Job Parameter가 생소할텐데요.  
-간단하게 말씀드리면, **Spring Batch가 실행될때 외부에서 받을 수 있는 파라미터**입니다.  
-  
-예를 들어, 특정 날짜를 Job Parameter로 넘기면 Spring Batch에서는 받은 날짜의 데이터를 조회/가공/입력 등의 작업을 할 수 있습니다.  
-
-같은 Batch Job 이라도 Job Parameter가 다르면 ```Batch_JOB_INSTANCE```에는 기록되며, **Job Parameter가 같다면 기록되지 않습니다**.  
-  
-한번 확인해볼까요?  
-simpleJob 코드를 아래와 같이 수정합니다.
-
-![simpleJob10](./images/2/simpleJob10.png)
-
-```java
-@Slf4j // log 사용을 위한 lombok 어노테이션
-@RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
-@Configuration
-public class SimpleJobConfiguration {
-    private final JobBuilderFactory jobBuilderFactory;
-    private final StepBuilderFactory stepBuilderFactory;
-
-    @Bean
-    public Job simpleJob() {
-        return jobBuilderFactory.get("simpleJob")
-                .start(simpleStep1(null))
-                .build();
-    }
-
-    @Bean
-    @JobScope
-    public Step simpleStep1(@Value("#{jobParameters[requestDate]}") String requestDate) {
-        return stepBuilderFactory.get("simpleStep1")
-                .tasklet((contribution, chunkContext) -> {
-                    log.info(">>>>> This is Step1");
-                    log.info(">>>>> requestDate = {}", requestDate);
-                    return RepeatStatus.FINISHED;
-                })
-                .build();
-    }
-}
-```
-
-빨간색 표기된 코드만 추가되었으니 그대로 변경하시면 됩니다.
-
-> Batch Job Parameter는 이후 챕터에서 좀 더 자세히 소개드리겠습니다.  
-지금은 메타 테이블에 대한 이해를 위한 샘플 코드이니 **이렇게 하면 Job Parameter를 사용할 수 있다 정도로만** 이해하시면 됩니다. :)
-
-자 그럼 이제 Job Parameter를 넣어서 Batch 를 실행해보겠습니다.  
-좀 전과 마찬가지로 본인의 IDE 실행환경 탭을 클릭해서 설정창으로 갑니다.
-
-![simpleJob11](./images/2/simpleJob11.png)
-
-아래와 같이 **Program arguments**에 ```requestDate=20180805``` 를 입력합니다.
-
-![simpleJob12](./images/2/simpleJob12.png)
-
-저장 하시고, 다시 실행을 해봅니다.  
-그러면!  
-Job Parameter가 아주 잘 전달되어 로그가 찍힌것을 볼 수 있습니다.
-
-![simpleJob13](./images/2/simpleJob13.png)
-
-BATCH_JOB_INSTANCE을 다시 볼까요?
-
-![meta1-1](./images/2/meta1-1.png)
-
-새로운 Job Instance가 추가되었습니다!  
-자 그럼 진짜 Job Parameter 가 같으면 새로 생성되지 않는지 볼까요?  
-같은 파라미터로 다시 한번 IDE에서 Batch 를 실행해봅니다.
-
-![meta1-2](./images/2/meta1-2.png)
-
-JobInstanceAlreadyCompleteException 라는 Exception과 함께 에러 메세지가 있습니다.  
-
-```
-A job instance already exists and is complete for parameters={requestDate=20180805}.  If you want to run this job again, change the parameters.
-```
-
-같은 파라미터로는 Job을 실행시킬수 없다고 하죠?  
-파라미터를 변경해서 실행해보겠습니다.  
-이번에는 ```requestDate=20180806``` 으로 합니다.
-
-![simpleJob14](./images/2/simpleJob14.png)
-
-정상적으로 수행되었고, ```BATCH_JOB_INSTANCE``` 테이블에도 정상적으로 추가 생성되었습니다!
-
-![meta1-3](./images/2/meta1-3.png)
-
-![meta2](./images/2/meta2.png)
-
-![jobschema](./images/2/jobschema.png)
-
-
-## 2-5. Spring Batch Test 코드는?
-
-저의 이전 [Spring Batch 글](http://jojoldu.tistory.com/search/batch)을 보시면 아시겠지만, 저는 Spring Batch 예제를 항상 테스트 코드로 작성했습니다.  
-그러다보니 **develop/production 환경에서 Spring Batch를 사용하시는 분들이 Batch Job Intstance Context 문제로 어려움을 겪는걸 많이 봤습니다**.  
-Spring Batch에 적응하시기 전까지는 H2를 이용한 테스트 코드는 자제하시길 추천합니다.  
-그래서 H2를 이용한 테스트 코드는 최대한 나중에 보여드리겠습니다.  
-초반부에는 MySQL을 이용하면서 Spring Batch에 최대한 적응하시도록 진행하겠습니다.
