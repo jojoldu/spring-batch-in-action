@@ -360,8 +360,46 @@ public class SimpleJobConfiguration {
 > Batch Job Parameter는 이후 챕터에서 좀 더 자세히 소개드리겠습니다.  
 지금은 메타 테이블에 대한 이해를 위한 샘플 코드이니 **이렇게 하면 Job Parameter를 사용할 수 있다 정도로만** 이해하시면 됩니다. :)
 
+자 그럼 이제 Job Parameter를 넣어서 Batch 를 실행해보겠습니다.  
+좀 전과 마찬가지로 본인의 IDE 실행환경 탭을 클릭해서 설정창으로 갑니다.
 
 ![simpleJob11](./images/2/simpleJob11.png)
+
+아래와 같이 **Program arguments**에 ```requestDate=20180805``` 를 입력합니다.
+
+![simpleJob12](./images/2/simpleJob12.png)
+
+저장 하시고, 다시 실행을 해봅니다.  
+그러면!  
+Job Parameter가 아주 잘 전달되어 로그가 찍힌것을 볼 수 있습니다.
+
+![simpleJob13](./images/2/simpleJob13.png)
+
+BATCH_JOB_INSTANCE을 다시 볼까요?
+
+![meta1-1](./images/2/meta1-1.png)
+
+새로운 Job Instance가 추가되었습니다!  
+자 그럼 진짜 Job Parameter 가 같으면 새로 생성되지 않는지 볼까요?  
+같은 파라미터로 다시 한번 IDE에서 Batch 를 실행해봅니다.
+
+![meta1-2](./images/2/meta1-2.png)
+
+JobInstanceAlreadyCompleteException 라는 Exception과 함께 에러 메세지가 있습니다.  
+
+```
+A job instance already exists and is complete for parameters={requestDate=20180805}.  If you want to run this job again, change the parameters.
+```
+
+같은 파라미터로는 Job을 실행시킬수 없다고 하죠?  
+파라미터를 변경해서 실행해보겠습니다.  
+이번에는 ```requestDate=20180806``` 으로 합니다.
+
+![simpleJob14](./images/2/simpleJob14.png)
+
+정상적으로 수행되었고, ```BATCH_JOB_INSTANCE``` 테이블에도 정상적으로 추가 생성되었습니다!
+
+![meta1-3](./images/2/meta1-3.png)
 
 ![meta2](./images/2/meta2.png)
 
