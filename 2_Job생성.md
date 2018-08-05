@@ -303,13 +303,65 @@ MySQL에서도 정상적으로 배치가 실행되었습니다!
 
 ### 2-3-2. Spring Batch 메타테이블 리뷰
 
-자 그럼 테이블을 하나씩 살펴보겠습니다.  
 먼저 볼 것은 ```BATCH_JOB_INSTANCE``` 입니다.
 
 ![meta1](./images/2/meta1.png)
 
 * ```JOB_INSTANCE_ID```
-    * ```BATCH_JOB_INSTANCE``` 의 PK
+    * ```BATCH_JOB_INSTANCE``` 테이블의 PK
+* ```JOB_NAME```
+    * 수행한 Batch Job Name
+
+방금 실행했던 simpleJob이 있는 것을 볼 수 있습니다.  
+BATCH_JOB_INSTANCE 테이블은 **Job Parameter에 따라 생성되는 테이블**입니다.  
+이 Job Parameter가 생소할텐데요.  
+간단하게 말씀드리면, **Spring Batch가 실행될때 외부에서 받을 수 있는 파라미터**입니다.  
+  
+예를 들어, 특정 날짜를 Job Parameter로 넘기면 Spring Batch에서는 받은 날짜의 데이터를 조회/가공/입력 등의 작업을 할 수 있습니다.  
+
+같은 Batch Job 이라도 Job Parameter가 다르면 ```Batch_JOB_INSTANCE```에는 기록되며, **Job Parameter가 같다면 기록되지 않습니다**.  
+  
+한번 확인해볼까요?  
+simpleJob 코드를 아래와 같이 수정합니다.
+
+![simpleJob10](./images/2/simpleJob10.png)
+
+```java
+@Slf4j // log 사용을 위한 lombok 어노테이션
+@RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
+@Configuration
+public class SimpleJobConfiguration {
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+
+    @Bean
+    public Job simpleJob() {
+        return jobBuilderFactory.get("simpleJob")
+                .start(simpleStep1(null))
+                .build();
+    }
+
+    @Bean
+    @JobScope
+    public Step simpleStep1(@Value("#{jobParameters[requestDate]}") String requestDate) {
+        return stepBuilderFactory.get("simpleStep1")
+                .tasklet((contribution, chunkContext) -> {
+                    log.info(">>>>> This is Step1");
+                    log.info(">>>>> requestDate = {}", requestDate);
+                    return RepeatStatus.FINISHED;
+                })
+                .build();
+    }
+}
+```
+
+빨간색 표기된 코드만 추가되었으니 그대로 변경하시면 됩니다.
+
+> Batch Job Parameter는 이후 챕터에서 좀 더 자세히 소개드리겠습니다.  
+지금은 메타 테이블에 대한 이해를 위한 샘플 코드이니 **이렇게 하면 Job Parameter를 사용할 수 있다 정도로만** 이해하시면 됩니다. :)
+
+
+![simpleJob11](./images/2/simpleJob11.png)
 
 ![meta2](./images/2/meta2.png)
 
@@ -318,7 +370,8 @@ MySQL에서도 정상적으로 배치가 실행되었습니다!
 
 ## 2-5. Spring Batch Test 코드는?
 
-[저의 이전 Spring Batch 글들](http://jojoldu.tistory.com/search/batch)을 보시면 아시겠지만, 저는 Spring Batch 예제를 항상 테스트 코드로 작성했습니다.  
-그러다보니 실제 **develop/production 환경에서 Spring Batch를 사용하시는 분들이 Batch Job Intstance Context 문제로 어려움을 겪는걸 많이 봤습니다**.  
+저의 이전 [Spring Batch 글](http://jojoldu.tistory.com/search/batch)을 보시면 아시겠지만, 저는 Spring Batch 예제를 항상 테스트 코드로 작성했습니다.  
+그러다보니 **develop/production 환경에서 Spring Batch를 사용하시는 분들이 Batch Job Intstance Context 문제로 어려움을 겪는걸 많이 봤습니다**.  
+Spring Batch에 적응하시기 전까지는 H2를 이용한 테스트 코드는 자제하시길 추천합니다.  
 그래서 H2를 이용한 테스트 코드는 최대한 나중에 보여드리겠습니다.  
 초반부에는 MySQL을 이용하면서 Spring Batch에 최대한 적응하시도록 진행하겠습니다.
