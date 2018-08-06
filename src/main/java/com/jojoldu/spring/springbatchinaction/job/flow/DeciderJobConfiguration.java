@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.job;
+package com.jojoldu.spring.springbatchinaction.job.flow;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

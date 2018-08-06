@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.job;
+package com.jojoldu.spring.springbatchinaction.job.flow;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,28 +20,17 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-public class ConditionalJobConfiguration {
+public class StepNextJobConfiguration {
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
 
     @Bean
-    public Job simpleJob() {
-        return jobBuilderFactory.get("simpleJob")
+    public Job stepNextJob() {
+        return jobBuilderFactory.get("stepNextJob")
                 .start(step1())
                 .next(step2())
                 .next(step3())
-                .build();
-    }
-
-    @Bean
-    public Job conditionalJob() {
-        return jobBuilderFactory.get("conditionalJob")
-                .start(step1())
-                    .on(BatchStatus.COMPLETED.name()).to(step2())
-                    .on(BatchStatus.FAILED.name()).to(step3())
-                .from(step2()).on(BatchStatus.COMPLETED.name()).fail()
-                .from(step3()).end()
                 .build();
     }
 

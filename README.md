@@ -26,7 +26,7 @@ Spring MVC는 자료가 정말 많지만 Batch는 너무 없어서 정리도 할
         * ```spring.batch.job.names``` 소개
         * ```${job.name:NONE}``` 없을 경우 아무것도 실행하지 않고, 있으면 해당 Job만 실행 
 * JobParameter
-    * ```@StepScope```, ```@Value```
+    * ```@JobScope```, ```@StepScope```, ```@Value```
     * Build => batch.jar 를 실행 => console에 출력되는 파라미터 확인
     * Job Parameter 중복으로 오류나는것도 확인
     * 테스트 코드로 build 없이 수행하는것 확인
@@ -68,6 +68,7 @@ Spring MVC는 자료가 정말 많지만 Batch는 너무 없어서 정리도 할
     * Processor는 Java8의 Stream 과 유사한 개념으로 보면 좋음
 * Error
     * Restart
+        * ```restartable=false```?
     * Retry
     * Skip
     * Listeners
