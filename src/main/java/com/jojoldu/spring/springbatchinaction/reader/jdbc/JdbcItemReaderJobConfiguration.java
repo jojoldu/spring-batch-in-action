@@ -41,6 +41,7 @@ public class JdbcItemReaderJobConfiguration {
                 .dataSource(dataSource)
                 .rowMapper(new PayRowMapper())
                 .queryProvider(createQueryProvider())
+                .name("jdbcPagingItemReader")
                 .build();
     }
 
