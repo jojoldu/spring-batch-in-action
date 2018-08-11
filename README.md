@@ -23,7 +23,14 @@ Spring MVC는 자료가 정말 많지만 Batch는 너무 없어서 정리도 할
 * Batch Step 소개
     * chunk 지향
     * chunk 지향을 코드로
-    * reader processor writer 소개
+    * reader processor writer 간략 소개
+* JobParameter
+    * ```@JobScope```, ```@StepScope```, ```@Value```
+    * Build => batch.jar 를 실행 => console에 출력되는 파라미터 확인
+    * Job Parameter 중복으로 오류나는것도 확인
+    * 테스트 코드로 build 없이 수행하는것 확인
+    * [StepScope](https://docs.spring.io/spring-batch/3.0.x/reference/html/configureStep.html)
+    * [JobScope](https://docs.spring.io/spring-batch/3.0.x/reference/html/configureStep.html)
 * Reader
     * custom reader 생성시 ```read()``` 메소드 오버라이딩 주의 사항
         * ```this.data.hasNext()``` 가 false일 경우 무조건 null 반환하도록
@@ -61,13 +68,10 @@ Spring MVC는 자료가 정말 많지만 Batch는 너무 없어서 정리도 할
         * ```CompositeItemProcessor```
         * ```List<ItemProcessor<Pay,Pay>> delegates```
     * Processor는 Java8의 Stream 과 유사한 개념으로 보면 좋음
-* JobParameter
-    * ```@JobScope```, ```@StepScope```, ```@Value```
-    * Build => batch.jar 를 실행 => console에 출력되는 파라미터 확인
-    * Job Parameter 중복으로 오류나는것도 확인
-    * 테스트 코드로 build 없이 수행하는것 확인
-    * [StepScope](https://docs.spring.io/spring-batch/3.0.x/reference/html/configureStep.html)
-    * [JobScope](https://docs.spring.io/spring-batch/3.0.x/reference/html/configureStep.html)
+* Transactions
+    * [기본](https://blog.codecentric.de/en/2012/03/transactions-in-spring-batch-part-1-the-basics/)
+    * [Restart, Cursor 기반 Reader, Listeners](https://blog.codecentric.de/en/2012/03/transactions-in-spring-batch-part-2-restart-cursor-based-reading-and-listeners/)
+    * [Skip And Retry](https://blog.codecentric.de/en/2012/03/transactions-in-spring-batch-part-3-skip-and-retry/)
 * Error
     * Restart
         * ```restartable=false```?
