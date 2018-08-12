@@ -2,7 +2,10 @@ package com.jojoldu.spring.springbatchinaction.job.flow;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.*;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
@@ -10,6 +13,8 @@ import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Random;
 
 /**
  * Created by jojoldu@gmail.com on 30/07/2018
@@ -23,6 +28,21 @@ import org.springframework.context.annotation.Configuration;
 public class DeciderJobConfiguration {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
+
+    @Bean
+    public Job deciderJob() {
+        return jobBuilderFactory.get("deciderJob")
+                .start(startStep())
+                .next(decider()) // 홀수 | 짝수 구분
+                .from(decider()) // decider의 상태가
+                    .on("ODD") // ODD라면
+                    .to(oddStep()) // oddStep로 간다.
+                .from(decider()) // decider의 상태가
+                    .on("EVEN") // ODD라면
+                    .to(evenStep()) // evenStep로 간다.
+                .end() // builder 종료
+                .build();
+    }
 
     @Bean
     public Step startStep() {
@@ -55,51 +75,20 @@ public class DeciderJobConfiguration {
     }
 
     @Bean
-    public Step evenStep2() {
-        return stepBuilderFactory.get("evenStep2")
-                .tasklet((contribution, chunkContext) -> {
-                    log.info(">>>>> 짝수2입니다.");
-                    return RepeatStatus.FINISHED;
-                })
-                .build();
-    }
-
-    @Bean
-    public Step oddStep2() {
-        return stepBuilderFactory.get("oddStep2")
-                .tasklet((contribution, chunkContext) -> {
-                    log.info(">>>>> 홀수2입니다.");
-                    return RepeatStatus.FINISHED;
-                })
-                .build();
-    }
-
-    @Bean
     public JobExecutionDecider decider() {
         return new OddDecider();
     }
 
-    @Bean
-    public Job deciderJob() {
-        return jobBuilderFactory.get("deciderJob")
-                .start(startStep())
-                .next(decider()) // 현재 count가 홀수 | 짝수 구분
-                .from(decider()).on("ODD").to(oddStep()) // decider가 홀수를 반환하면 oddStep
-                .from(decider()).on("EVEN").to(evenStep()) // decider가 짝수를 반환하면 evenStep
-                .from(oddStep()).on("*").to(decider())  // oddStep이 실행되면 다시 decider 수행
-                .from(decider()).on("ODD").to(oddStep2())
-                .from(decider()).on("EVEN").to(evenStep2())
-                .end()
-                .build();
-    }
-
     public static class OddDecider implements JobExecutionDecider {
-        private int count = 0;
 
         @Override
         public FlowExecutionStatus decide(JobExecution jobExecution, StepExecution stepExecution) {
-            count ++;
-            if(count % 2 == 0) {
+            Random rand = new Random();
+
+            int randomNumber = rand.nextInt(50) + 1;
+            log.info("랜덤숫자: {}", randomNumber);
+
+            if(randomNumber % 2 == 0) {
                 return new FlowExecutionStatus("EVEN");
             } else {
                 return new FlowExecutionStatus("ODD");
