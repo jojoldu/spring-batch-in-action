@@ -26,15 +26,20 @@ public class StepNextConditionalJobConfiguration {
     private final StepBuilderFactory stepBuilderFactory;
 
     @Bean
-    public Job conditionalJob() {
+    public Job stepNextConditionalJob() {
         return jobBuilderFactory.get("stepNextConditionalJob")
                 .start(conditionalJobStep1())
-                .on(ExitStatus.COMPLETED.getExitCode()).to(conditionalJobStep2())
-                .on(ExitStatus.FAILED.getExitCode()).to(conditionalJobStep3())
-                .from(conditionalJobStep2())
-                .on(ExitStatus.COMPLETED.getExitCode()).to(conditionalJobStep3())
-                .on("*").fail()
-                .from(conditionalJobStep3()).end()
+                .on("FAILED") // FAILED 일 경우
+                .to(conditionalJobStep3()) // step3으로 이동한다.
+                .on("*") // step3의 결과 관계 없이
+                .end() // step3으로 이동하면 Flow가 종료한다.
+                .from(conditionalJobStep1()) // step1로부터
+                .on("*") // FAILED 외에 모든 경우
+                .to(conditionalJobStep2()) // step2로 이동한다.
+                .next(conditionalJobStep3()) // step2가 정상 종료되면 step3으로 이동한다.
+                .on("*") // step3의 결과 관계 없이
+                .end() // step3으로 이동하면 Flow가 종료한다.
+                .end() // Job 종료
                 .build();
     }
 
@@ -43,7 +48,12 @@ public class StepNextConditionalJobConfiguration {
         return stepBuilderFactory.get("step1")
                 .tasklet((contribution, chunkContext) -> {
                     log.info(">>>>> This is stepNextConditionalJob Step1");
-//                    throw new IllegalArgumentException("Step1에서 에러 발생!");
+                    /**
+                     ExitStatus를 FAILED로 지정한다.
+                     해당 status를 보고 flow가 진행된다.
+                     **/
+                    contribution.setExitStatus(ExitStatus.FAILED);
+
                     return RepeatStatus.FINISHED;
                 })
                 .build();
