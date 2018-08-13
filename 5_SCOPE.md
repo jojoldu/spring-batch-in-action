@@ -1,13 +1,61 @@
-# StepScope & JobScope
+# 5. Spring Batch Scope & Job Parameter
 
-## Spring Batch Late Binding (늦은 할당)
+이번 시간에는 Spring Batch의 Scope에 대해서 배워보겠습니다.  
+여기서 말하는 Scope란 ```@StepScope```, ```@JobScope```를 얘기하는데요.  
+무의식적으로 사용하는 이 어노테이션들이 실제로 어떤 일들을 하는지 알아보겠습니다.  
+그리고 이 둘과 떨어질 수 없는 **Job Parameter**도 함께 배워보겠습니다.
 
-여기에서 값 null을 가진 메소드 리더를 호출합니다.
-이제는 프록시 만 만들어지기 때문에 실제 리더 객체는 나중에 만들어지며 그 때 표현식이 pathToFile 값을 주입하는 데 사용되므로 괜찮습니다.
+## @StepScope & @JobScope 소개
 
-조금 이상하게 보일지라도 독자적인 구성 방법을 알고 싶다면이 메서드로 뛰어 들기 만하면됩니다.
+Spring Batch는 ```@StepScope```와 ```@JobScope``` 라는 아주 특별한 Bean Scope를 지원합니다.  
 
-## JobParameter vs Spring Properties
+> Bean Scope란 **Bean의 생명주기**를 얘기합니다.  
+예를 들어 Bean Scope의 기본값인 singleton의 경우 해당 웹 어플리케이션에서 **유일하게 존재**합니다.  
+이외에도 Request 요청당 생성되는 Request등 다양한 Scope가 있습니다.
+
+
+## Bean Scope
+
+@JobScope와 @StepScope가 ```proxyMode = ScopedProxyMode.TARGET_CLASS```를 사용하기 때문에 주의하실 점이 있습니다.  
+그 부분은 이미 포스팅한적이 있어 링크로 대체합니다.  
+꼭 보셔야합니다. 
+
+* [@JobScope & @StepScope 사용시 주의 사항](http://jojoldu.tistory.com/132)
+  
+
+## Late Binding (늦은 할당)
+
+Spring Batch의 
+
+```java
+
+@Slf4j
+@RequiredArgsConstructor
+@RestController
+public class JobLauncherController {
+  
+    private final JobLauncher jobLauncher;
+    private final Job job;
+     
+    @GetMapping("/launchjob")
+    public String handle(@RequestParam("fileName") String fileName) throws Exception {
+  
+        try {
+            JobParameters jobParameters = new JobParametersBuilder()
+                                    .addString("input.file.name", fileName)
+                                    .addLong("time", System.currentTimeMillis())
+                                    .toJobParameters();
+            jobLauncher.run(job, jobParameters);
+        } catch (Exception e) {
+            log.info(e.getMessage());
+        }
+  
+        return "Done";
+    }
+}
+```
+
+## JobParameter vs 시스템 변수
 
 JobParameter
 
@@ -23,7 +71,9 @@ public FlatFileItemReader<Partner> reader(
 }
 ```
 
-Spring Properties
+시스템 변수
+
+> 여기에서 얘기하는 시스템 변수는 application.properties와 ```-D``` 옵션으로 실행하는 변수까지 포함합니다.
 
 ```java
 @Bean
@@ -63,8 +113,8 @@ public FlatFileItemReader<Partner> reader() {
 두번째 예제는 Bean의 범위가 ```singleton``` 입니다.
  
 두번째의 경우 Bean의 인스턴스는 **서버에서 하나만 존재**합니다.  
-첫번째의 경우 Bean을 요청하는 모든 Step에서 새 인스턴스가 생성 될 것입니다.  
-(다르게 범위가 지정된 bean에 bean을 주입 할 수 있도록 단일 범위의 프록시가 있습니다.).
+첫번째의 경우 Bean을 요청하는 **모든 Step에서 새 인스턴스가 생성** 될 것입니다.  
+(다르게 범위가 지정된 bean에 bean을 주입 할 수 있도록 단일 범위의 프록시가 있습니다.)
 
 마지막으로, ```@StepScope``` 단계를 ExecutionContext거치지 않고도 단계에서 객체를 삽입 할 수 ChunkContext있으므로 코드와 테스트 작성이이 단순해집니다.
 
