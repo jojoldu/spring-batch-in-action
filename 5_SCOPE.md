@@ -1,7 +1,7 @@
 # 5. Spring Batch Scope & Job Parameter
 
 이번 시간에는 Spring Batch의 Scope에 대해서 배워보겠습니다.  
-여기서 말하는 Scope란 ```@StepScope```, ```@JobScope```를 얘기하는데요.  
+여기서 말하는 Scope란 ```@StepScope```, ```@JobScope```를 얘기합니다.  
 무의식적으로 사용하는 이 어노테이션들이 실제로 어떤 일들을 하는지 알아보겠습니다.  
 그리고 이 둘과 떨어질 수 없는 **Job Parameter**도 함께 배워보겠습니다.
 
@@ -11,8 +11,7 @@ Spring Batch의 경우 외부 혹은 내부에서 파라미터를 받아 여러 
 이 파라미터를 **Job Parameter**라고 합니다.  
 Job Parameter를 사용하기 위해선 항상 Spring Batch 전용 Scope를 선언해야만 하는데요.  
 크게 ```@StepScope```와 ```@JobScope``` 2가지가 있습니다.  
-사용법은 간단합니다.  
-아래 코드와 같이 SpEL로 선언해서 사용하시면 됩니다.
+사용법은 간단한데, 아래 코드와 같이 SpEL로 선언해서 사용하시면 됩니다.
 
 ```java
 @Value("#{jobParameters[파라미터명]}")

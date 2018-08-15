@@ -1,5 +1,6 @@
 package com.jojoldu.spring.springbatchinaction.job;
 
+import com.jojoldu.spring.springbatchinaction.TestJobLauncher;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,12 +32,13 @@ public class JobParameterTest {
     @Qualifier("simpleJob")
     private Job job;
 
+    @Autowired
+    private TestJobLauncher testJobLauncher;
+
     @Test
     public void JobParameter생성시점() throws Exception {
         //given
-        JobLauncherTestUtils jobLauncherTestUtils = new JobLauncherTestUtils();
-        jobLauncherTestUtils.setJob(job);
-
+        JobLauncherTestUtils jobLauncherTestUtils = testJobLauncher.getJobLauncherTestUtils(job);
         JobParametersBuilder builder = new JobParametersBuilder();
         builder.addString("requestDate", "20180815");
 
@@ -46,4 +48,6 @@ public class JobParameterTest {
         //then
         Assert.assertThat(jobExecution.getStatus(), is(BatchStatus.COMPLETED));
     }
+
+
 }
