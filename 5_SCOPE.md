@@ -11,13 +11,14 @@ Spring Batch의 경우 외부 혹은 내부에서 파라미터를 받아 여러 
 이 파라미터를 **Job Parameter**라고 합니다.  
 Job Parameter를 사용하기 위해선 항상 Spring Batch 전용 Scope를 선언해야만 하는데요.  
 크게 ```@StepScope```와 ```@JobScope``` 2가지가 있습니다.  
-사용법은 간단한데, 아래 코드와 같이 SpEL로 선언해서 사용하시면 됩니다.
+사용법은 간단한데, 아래와 같이 SpEL로 선언해서 사용하시면 됩니다.
 
 ```java
 @Value("#{jobParameters[파라미터명]}")
 ```
 
-> jobParameters 외에도 ```jobExecutionContext```, ```stepExecutionContext``` 등 Spring Batch 메타 데이터도 SpEL로 사용할 수 있습니다.  
+> ```jobParameters``` 외에도 ```jobExecutionContext```, ```stepExecutionContext``` 등도 SpEL로 사용할 수 있습니다.  
+@JobScope에선 ```stepExecutionContext```는 사용할 수 없고, ```jobParameters```와 ```jobExecutionContext```만 사용할 수 있습니다.  
 
 각각의 Scope에서 사용하는 샘플 코드는 아래와 같습니다.  
   
@@ -35,7 +36,7 @@ Job Parameter를 사용하기 위해선 항상 Spring Batch 전용 Scope를 선�
 아쉽지만 ```LocalDate```와 ```LocalDateTime```이 없어 ```String``` 으로 받아 타입변환을 해서 사용해야만 합니다.  
   
 보시면 호출하는 쪽에서 ```null``` 를 할당하고 있는데요.  
-이는 **Job Parameter의 할당이 어플리케이션 실행시에 하지 않기 때문**입니다.   
+이는 **Job Parameter의 할당이 어플리케이션 실행시에 하지 않기 때문에** 가능합니다.  
 자 이게 무슨 이야기인지 좀 더 자세히 들어가보겠습니다.
 
 ## 5-2. @StepScope & @JobScope 소개
@@ -46,7 +47,7 @@ Spring Batch는 ```@StepScope```와 ```@JobScope``` 라는 아주 특별한 Bean
 
 ![stepscope1](./images/5/stepscope1.png)
 
-Spring Batch가 Spring 컨테이너를 사용하여 지정된 **Step의 실행시점에 해당 컴포넌트를 Spring Bean으로 생성**합니다.  
+Spring Batch가 Spring 컨테이너를 통해 지정된 **Step의 실행시점에 해당 컴포넌트를 Spring Bean으로 생성**합니다.  
 마찬가지로 ```@JobScpoe```는 **Job 실행시점**에 Bean이 생성 됩니다.  
 즉, **Bean의 생성 시점을 지정된 Scope가 실행되는 시점으로 지연**시킵니다.  
 
@@ -57,49 +58,48 @@ request scope가 request가 왔을때 생성되고, response를 반환하면 삭
   
 첫째로, **JobParameter의 Late Binding**이 가능합니다.  
 Job Parameter가 StepContext 또는 JobExecutionContext 레벨에서 할당시킬 수 있습니다.  
-즉, 꼭 Application이 실행되는 시점 외에 **메소드가 실행되는 시점에 Job Parameter를 할당**시킬 수 있습니다.  
+꼭 Application이 실행되는 시점이 아니더라도 메소드와 같은 **비지니스 로직 처리 단계에서 Job Parameter를 할당**시킬 수 있습니다.  
 이 부분은 아래에서 좀 더 자세하게 예제와 함께 설명드리겠습니다.  
   
 두번째로, 동일한 컴포넌트를 병렬 혹은 동시에 사용할때 유용합니다.  
 Step 안에 Tasklet이 있고, 이 Tasklet은 멤버 변수와 이 멤버 변수를 변경하는 로직이 있다고 가정해봅시다.  
-이 경우 ```@StepScope``` 없이 Step을 병렬로 실행시키게 되면 **서로 다른 쓰레드에서 하나의 Tasklet을 두고 마구잡이로 상태를 변경**하려고 할것입니다.  
+이 경우 ```@StepScope``` 없이 Step을 병렬로 실행시키게 되면 **서로 다른 Step에서 하나의 Tasklet을 두고 마구잡이로 상태를 변경**하려고 할것입니다.  
 하지만 ```@StepScope```가 있다면 **각각의 Step에서 별도의 Tasklet을 생성하고 관리하기 때문에 서로의 상태를 침범할 일이 없습니다**.  
   
-자 그럼 Late Binding이 뭘까요?
 
-## 5-3. Late Binding (늦은 할당)
+## 5-3. Job Parameter 오해 
 
-Spring Batch를 CommandLineRunner로만 실행해보신 분들은 아닐 수 있지만, 웹 서버에서 Batch를 실행하시거나, 테스트 코드를 통해 Batch를 실행해보신 분들은 Late Binding에 대해 어렴풋이 사용하고 계셨을 수 있습니다.  
+Job Parameters는 ```@Value```를 통해서 가능합니다.  
+그러다보니 여러가지 오해가 있을 수 있는데요.  
+Job Parameters는 Step이나, Tasklet, Reader 등 Batch 컴포넌트 Bean의 생성 시점에 호출할 수 있습니다만, 정확히는 **Scope Bean을 생성할때만 가능**합니다.  
+즉, **```@StepScope```, ```@JobScope``` Bean을 생성할때만 Job Parameters가 생성**되기 때문에 사용할 수 있습니다.  
   
+예를 들어 아래와 같이 메소드를 통해 Bean을 생성하지 않고, 클래스에서 직접 Bean 생성을 해보겠습니다.  
+Job과 Step의 코드에서 ```@Bean```과 ```@Value("#{jobParameters[파라미터명]}")```를 제거하고 ```SimpleJobTasklet```을 생성자 DI로 받도록 합니다.
 
+> ```@Autowired```를 쓰셔도 됩니다.
 
-```java
+![jobparameter1](./images/5/jobparameter1.png)
 
-@Slf4j
-@RequiredArgsConstructor
-@RestController
-public class JobLauncherController {
+그리고 ```SimpleJobTasklet```은 아래와 같이 ```@Component```와 ```@StepScope```로 Step Scope를 가진 Bean으로 생성합니다.  
+이 상태에서 ```@Value("#{jobParameters[파라미터명]}```를 Tasklet의 멤버변수로 할당합니다.
+
+![jobparameter2](./images/5/jobparameter2.png)
+
+이렇게 메소드의 파라미터로 JobParameter를 할당받지 않고, 클래스의 멤버 변수로 JobParameter를 할당 받도록 해도
+
+![jobparameter3](./images/5/jobparameter3.png)
+
+정상적으로 JobParameter를 받아 사용할 수 있습니다.  
+이는 **SimpleJobTasklet Bean이 ```@StepScope```로 생성**되었기 때문입니다.  
   
-    private final JobLauncher jobLauncher;
-    private final Job job;
-     
-    @GetMapping("/launchjob")
-    public String handle(@RequestParam("fileName") String fileName) throws Exception {
+반면에, 이 SimpleJobTasklet Bean을 일반 singleton Bean으로 생성할 경우 아래와 같이 ```'jobParameters' cannot be found``` 에러가 발생합니다.
+
+![jobparameter4](./images/5/jobparameter4.png)
+
+즉, Bean을 메소드나 클래스 어느 것을 통해서 생성해도 무방하나 Bean의 Scope는 Step이나 Job이어야 한다는 것을 알 수 있습니다.  
   
-        try {
-            JobParameters jobParameters = new JobParametersBuilder()
-                                    .addString("input.file.name", fileName)
-                                    .addLong("time", System.currentTimeMillis())
-                                    .toJobParameters();
-            jobLauncher.run(job, jobParameters);
-        } catch (Exception e) {
-            log.info(e.getMessage());
-        }
-  
-        return "Done";
-    }
-}
-```
+JobParameters를 사용하기 위해선 꼭 **```@StepScope```, ```@JobScope```로 Bean을 생성**해야한다는 것을 잊지마세요.
 
 ## 5-4. JobParameter vs 시스템 변수
 
@@ -164,13 +164,47 @@ public FlatFileItemReader<Partner> reader() {
 만약 실행해야한다면 **전역 상태 (시스템 변수 혹은 환경 변수)를 동적으로 계속해서 변경시킬 수 있도록** Spring Batch를 구성해야합니다.  
 동시에 여러 Job을 실행하려는 경우 또는 테스트 코드로 Job을 실행해야할때 문제가 발생할 수 있습니다.  
   
-셋째, Bean의 범위가 서로 다릅니다.  
-첫번째 예제는 Bean의 범위가 ```Step``` 입니다.  
-두번째 예제는 Bean의 범위가 ```singleton``` 입니다.
- 
-첫번째의 경우 Bean을 요청하는 **모든 Step에서 새 인스턴스가 생성** 됩니다.  
-두번째의 경우 Bean의 인스턴스는 **어플리케이션에서 하나만 존재**합니다.  
+특히 Job Parameter를 못쓰는 점은 큰 단점인데요.  
+Job Parameter를 못쓴다는 것은 위에서도 언급한 **Late Binding을 못하게 된다**는 의미입니다.  
+  
+예를 들어 웹 서버가 있고, 이 웹서버에서 Batch를 수행한다고 가정해봅시다.  
+외부에서 넘겨주는 파라미터에 따라 Batch가 다르게 작동해야한다면, 이를 시스템 변수로 풀어내는 것은 너무나 어렵습니다.  
+하지만 아래와 같이 Job Parameter를 이용한다면 아주 쉽게 해결할 수 있습니다.
 
+```java
+@Slf4j
+@RequiredArgsConstructor
+@RestController
+public class JobLauncherController {
+  
+    private final JobLauncher jobLauncher;
+    private final Job job;
+     
+    @GetMapping("/launchjob")
+    public String handle(@RequestParam("fileName") String fileName) throws Exception {
+  
+        try {
+            JobParameters jobParameters = new JobParametersBuilder()
+                                    .addString("input.file.name", fileName)
+                                    .addLong("time", System.currentTimeMillis())
+                                    .toJobParameters();
+            jobLauncher.run(job, jobParameters);
+        } catch (Exception e) {
+            log.info(e.getMessage());
+        }
+  
+        return "Done";
+    }
+}
+```
+
+결국 ```jobLauncher.run```를 통해 Job을 실행하는 시점에 넘겨준 Job Parameter를 각각의 Batch 컴포넌트들이 사용하면 되니 변경이 심한 경우에도 쉽게 대응할 수 있습니다.  
+  
+
+
+> 웹서버에서 Batch를 관리하는 것은 **권장하지 않습니다**  
+위 코드는 예제를 위한 코드입니다.  
+실제 운영 환경에서 Spring Batch를 어떻게 관리해야하는지는 시리즈 후반부에 소개드리겠습니다.
 
 ## 5-5. 주의 사항
 
