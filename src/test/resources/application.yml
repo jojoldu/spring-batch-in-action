@@ -1,0 +1,30 @@
+spring:
+  profiles:
+    active: local
+
+spring.batch.job.names: ${job.name:NONE}
+
+---
+spring:
+  profiles: local
+  datasource:
+    hikari:
+      jdbc-url: jdbc:h2:mem:testdb;
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver
+
+---
+spring:
+  profiles: mysql
+  datasource:
+    url: jdbc:h2:mem://localhost/~/jojoldu;MVCC=TRUE
+    username: jojoldu
+    password: jojoldu1
+    driver-class-name: com.mysql.jdbc.Driver
+
+#    hikari:
+#      jdbc-url: jdbc:mysql://localhost:3306/spring_batch
+#      username: jojoldu
+#      password: jojoldu1
+#      driver-class-name: com.mysql.jdbc.Driver
