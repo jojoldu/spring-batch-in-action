@@ -30,12 +30,12 @@ Job Parameter를 사용하기 위해선 항상 Spring Batch 전용 Scope를 선�
 
 ![sample-stepscope](./images/5/sample-stepscope.png)
 
-**@JobScope는 Step 선언문에서** 사용가능하고, **@StepScope는 Taskler이나 ItemReader, ItemWriter, ItemProcessor**에서 사용할 수 있습니다.  
+**@JobScope는 Step 선언문에서** 사용 가능하고, **@StepScope는 Taskler이나 ItemReader, ItemWriter, ItemProcessor**에서 사용할 수 있습니다.  
   
 현재 Job Parameter의 타입으로 사용할 수 있는 것은 ```Double```, ```Long```, ```Date```, ```String``` 이 있습니다.  
 아쉽지만 ```LocalDate```와 ```LocalDateTime```이 없어 ```String``` 으로 받아 타입변환을 해서 사용해야만 합니다.  
   
-보시면 호출하는 쪽에서 ```null``` 를 할당하고 있는데요.  
+예제 코드를 보시면 호출하는 쪽에서 ```null``` 를 할당하고 있는데요.  
 이는 **Job Parameter의 할당이 어플리케이션 실행시에 하지 않기 때문에** 가능합니다.  
 자 이게 무슨 이야기인지 좀 더 자세히 들어가보겠습니다.
 
@@ -58,7 +58,7 @@ request scope가 request가 왔을때 생성되고, response를 반환하면 삭
   
 첫째로, **JobParameter의 Late Binding**이 가능합니다.  
 Job Parameter가 StepContext 또는 JobExecutionContext 레벨에서 할당시킬 수 있습니다.  
-꼭 Application이 실행되는 시점이 아니더라도 메소드와 같은 **비지니스 로직 처리 단계에서 Job Parameter를 할당**시킬 수 있습니다.  
+꼭 Application이 실행되는 시점이 아니더라도 Controller나 Service와 같은 **비지니스 로직 처리 단계에서 Job Parameter를 할당**시킬 수 있습니다.  
 이 부분은 아래에서 좀 더 자세하게 예제와 함께 설명드리겠습니다.  
   
 두번째로, 동일한 컴포넌트를 병렬 혹은 동시에 사용할때 유용합니다.  
@@ -75,18 +75,18 @@ Job Parameters는 Step이나, Tasklet, Reader 등 Batch 컴포넌트 Bean의 생
 즉, **```@StepScope```, ```@JobScope``` Bean을 생성할때만 Job Parameters가 생성**되기 때문에 사용할 수 있습니다.  
   
 예를 들어 아래와 같이 메소드를 통해 Bean을 생성하지 않고, 클래스에서 직접 Bean 생성을 해보겠습니다.  
-Job과 Step의 코드에서 ```@Bean```과 ```@Value("#{jobParameters[파라미터명]}")```를 제거하고 ```SimpleJobTasklet```을 생성자 DI로 받도록 합니다.
+Job과 Step의 코드에서 ```@Bean```과 ```@Value("#{jobParameters[파라미터명]}")```를 **제거**하고 ```SimpleJobTasklet```을 생성자 DI로 받도록 합니다.
 
 > ```@Autowired```를 쓰셔도 됩니다.
 
 ![jobparameter1](./images/5/jobparameter1.png)
 
-그리고 ```SimpleJobTasklet```은 아래와 같이 ```@Component```와 ```@StepScope```로 Step Scope를 가진 Bean으로 생성합니다.  
+그리고 ```SimpleJobTasklet```은 아래와 같이 ```@Component```와 ```@StepScope```로 **Scope가 Step인 Bean**으로 생성합니다.  
 이 상태에서 ```@Value("#{jobParameters[파라미터명]}```를 Tasklet의 멤버변수로 할당합니다.
 
 ![jobparameter2](./images/5/jobparameter2.png)
 
-이렇게 메소드의 파라미터로 JobParameter를 할당받지 않고, 클래스의 멤버 변수로 JobParameter를 할당 받도록 해도
+이렇게 **메소드의 파라미터로 JobParameter를 할당받지 않고, 클래스의 멤버 변수로 JobParameter를 할당** 받도록 해도 실행해보시면!
 
 ![jobparameter3](./images/5/jobparameter3.png)
 
@@ -198,9 +198,23 @@ public class JobLauncherController {
 }
 ```
 
-결국 ```jobLauncher.run```를 통해 Job을 실행하는 시점에 넘겨준 Job Parameter를 각각의 Batch 컴포넌트들이 사용하면 되니 변경이 심한 경우에도 쉽게 대응할 수 있습니다.  
-  
+예제를 보시면 Controller에서 Request Parameter로 받은 값을 Job Parameter로 생성합니다.
 
+```java
+JobParameters jobParameters = new JobParametersBuilder()
+                        .addString("input.file.name", fileName)
+                        .addLong("time", System.currentTimeMillis())
+                        .toJobParameters();
+```
+
+그리고 생성한 Job Parameter로 Job을 수행합니다.
+
+```java
+jobLauncher.run(job, jobParameters);
+```
+
+즉, 개발자가 원하는 어느 타이밍이든 Job Parameter를 생성하고 Job을 수행할 수 있음을 알 수 있습니다.  
+Job Parameter를 각각의 Batch 컴포넌트들이 사용하면 되니 **변경이 심한 경우에도 쉽게 대응**할 수 있습니다.  
 
 > 웹서버에서 Batch를 관리하는 것은 **권장하지 않습니다**  
 위 코드는 예제를 위한 코드입니다.  
@@ -215,3 +229,8 @@ public class JobLauncherController {
 이 proxyMode로 인해서 문제가 발생할 수 있습니다.  
 어떤 문제가 있고, 어떻게 해결하면 될지는 이전에 작성된 [@StepScope 사용시 주의 사항](http://jojoldu.tistory.com/132)을 꼭! 참고해보세요.
 
+> ```@JobScope```도 마찬가지입니다.
+
+자 이번시간을 통해서 Spring Batch의 Scope에 대해서 어느정도 이해가 되셨나요?  
+Spring Batch에 있어서 Chunk 만큼 중요한 개념이니 꼭 숙지하고 넘어가셔야만 합니다.  
+그럼 다음 편에서 뵙겠습니다.
