@@ -12,19 +12,22 @@ Spring Batch에서의 Chunk란 데이터 덩어리로 작업 할 때 **각 커�
 여기서 트랜잭션이라는게 중요한데요.  
 Chunk 단위로 트랜잭션을 수행하기 때문에 **실패할 경우엔 해당 Chunk 만큼만 롤백**이 되고, 이전에 커밋된 트랜잭션 범위까지는 반영이 된다는 것입니다.  
   
-
+![chunk-process](./images/6/chunk-process.png)
 
 Chunk 지향 처리를 Java 코드로 표현하면 아래처럼 될 것 같습니다.
 
 ```java
 
-List items = new Arraylist();
-for(int i = 0; i < chunkSize; i++){
-    Object item = itemReader.read()
-    Object processedItem = itemProcessor.process(item);
-    items.add(processedItem);
+for(int i=0; i<totalSize; i+=chunkSize){ // chunkSize 단위로 묶어서 처리
+    List items = new Arraylist();
+    for(int j = 0; j < chunkSize; j++){
+        Object item = itemReader.read()
+        Object processedItem = itemProcessor.process(item);
+        items.add(processedItem);
+    }
+    itemWriter.write(items);
 }
-itemWriter.write(items);
+
 ```
 
 > 개인적인 생각이지만 [Spring Batch 공식 문서의 그림과 예제코드](https://docs.spring.io/spring-batch/4.0.x/reference/html/index-single.html#chunkOrientedProcessing)는 오해의 소지가 있다고 생각합니다.  
