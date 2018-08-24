@@ -1,7 +1,7 @@
 # 6. Chunk 지향 처리
  
 Spring Batch를 쓰는 가장 큰 이유로 Chunk를 얘기합니다.  
-이번 시간에는 Chunk가 무엇인지 한번 살펴보겠습니다.
+이번 시간에는 바로 그 Chunk가 무엇인지 한번 살펴보겠습니다.
 
 ## 6-1. Chunk?
 
@@ -19,7 +19,7 @@ Chunk 지향 처리가 결국 Chunk 단위로 데이터를 처리한다는 의�
 > [공식 문서의 그림](https://docs.spring.io/spring-batch/4.0.x/reference/html/index-single.html#chunkOrientedProcessing)은 **개별 item이 처리되는 것만** 다루고 있습니다.
 위 그림은 Chunk 단위까지 다루고 있어 조금 다르니 주의해주세요.
 
-Reader에서 데이터를 하나 읽어와 Processor에서 가공 후, 별도의 공간에 모은뒤, **Chunk 단위만큼 쌓이게 되면 Writer에 전달**하고 Writer는 일괄 저장합니다.  
+Reader에서 데이터를 하나 읽어와 Processor에서 가공 후, 가공된 데이터들을 별도의 공간에 모은뒤, **Chunk 단위만큼 쌓이게 되면 Writer에 전달**하고 Writer는 일괄 저장합니다.  
   
 Reader와 Processor에서는 1건씩 다뤄지고, Writer에선 Chunk 단위로 처리된다는 것만 기억하시면 됩니다.  
   
@@ -36,32 +36,41 @@ for(int i=0; i<totalSize; i+=chunkSize){ // chunkSize 단위로 묶어서 처리
     }
     itemWriter.write(items);
 }
-
 ```
 
-여기서 Spring Batch를 한번 써보신 분들은 제 이야기에 한가지 의문이 들 수 있습니다.  
-
-* Reader에서 하나씩 읽는게 맞나?
-* **Reader에서 대량으로 읽고** Processor에 하나씩 전달하는게 아니였나?
-
-자 그럼 어느게 맞는지 Spring Batch 내부 코드를 확인해보겠습니다.
+자 그럼 이제 Chunk 지향 처리가 어떻게 되고 있는지 실제 Spring Batch 내부 코드를 보면서 알아보겠습니다.
 
 ## 6-2. ChunkOrientedTasklet 엿보기
 
-Chunk 지향 처리의 전체 로직을 다루는 것이 ```ChunkOrientedTasklet``` 입니다.  
+Chunk 지향 처리의 전체 로직을 다루는 것은 ```ChunkOrientedTasklet``` 클래스입니다.  
+
+> 클래스 이름만 봐도 이게 메인이겠구나 싶은게 느껴시죠?
 
 ![tasklet1](./images/6/tasklet1.png)
 
-여기서 실제로 보셔야하는 곳은 ```execute()``` 입니다.
+여기서 자세히 보셔야할 곳은 ```execute()``` 입니다.  
+Chunk 단위로 작업하기 위한 전체 코드가 이곳에 있다고 보시면 되는데요.  
+내부 코드는 아래와 같습니다.
 
 ![tasklet2](./images/6/tasklet2.png)
 
 * ```chunkProvider.provide()```로 Reader에서 Chunk size만큼 데이터를 가져옵니다.
 * ```chunkProcessor.process()``` 에서 Reader로 받은 데이터를 가공(Processor)하고 저장(Writer)합니다.
 
+자 데이터를 가져오는 ```chunkProvider.provide()```를 가보시면 어떻게 데이터를 가져오는지 알 수 있습니다.
+
 ![tasklet3](./images/6/tasklet3.png)
 
-ChunkSize만큼 ```inputs```가 쌓일때까지 계속 해서 ItemReader.read를 호출하여 데이터를 읽어옵니다.
+ChunkSize만큼 ```inputs```이 쌓일때까지 ```read()```를 호출합니다.  
+이 ```read()``` 는 내부를 보시면 실제로는 ```ItemReader.read```를 호출합니다.  
+
+![tasklet4](./images/6/tasklet4.png)
+
+![tasklet5](./images/6/tasklet5.png)
+
+즉, ```ItemReader.read```에서 1건씩 데이터를 조회해 Chunk size만큼 데이터를 쌓는 것이 ```provide()```가 하는 일입니다.  
+  
+자 그럼 이렇게 쌓아준 데이터를 어떻게 가공하고 저장하는지 한번 확인해보겠습니다.
 
 ## 6-3. SimpleChunkProcessor 엿보기
 
@@ -116,8 +125,12 @@ Page Size를 초과하는 경우는 예를 들면 Page Size가 10인데, 이번�
 
 ![read2](./images/6/read2.png)
 
-doReadPage에서는 Reader에서 지정한 Page Size만큼 ```offset```, ```limit``` 쿼리를 생성하여 조회를 하고 그만큼을 ```results```에 저장합니다.
+doReadPage에서는 Reader에서 지정한 Page Size만큼 ```offset```, ```limit``` 쿼리를 생성하여 조회합니다.  
+조회된 결과는 ```results```에 저장합니다.
 
 ![read3](./images/6/read3.png)
+
+이렇게 저장된 ```results```에서 ```read()``` 가 호출될때마다 하나씩 꺼내서 전달합니다.  
+
 
 JPA를 쓰지 않더라도 PageSize와 ChunkSize는 일치시키는게 마음편하니 맞추시길 추천합니다.
