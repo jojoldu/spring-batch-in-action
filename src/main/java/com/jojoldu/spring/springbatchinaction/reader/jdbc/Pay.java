@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.reader;
+package com.jojoldu.spring.springbatchinaction.reader.jdbc;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

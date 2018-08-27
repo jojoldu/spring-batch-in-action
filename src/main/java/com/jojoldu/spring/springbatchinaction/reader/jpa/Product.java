@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.jpa;
+package com.jojoldu.spring.springbatchinaction.reader.jpa;
 
 /**
  * Created by jojoldu@gmail.com on 20/08/2018
@@ -9,44 +9,38 @@ package com.jojoldu.spring.springbatchinaction.jpa;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import java.util.ArrayList;
-import java.util.List;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-public class Store {
+public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
+    private long price;
 
-    @OneToMany(mappedBy = "store", cascade = CascadeType.ALL)
-    private List<Product> products = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "product_id")
+    private Store store;
 
-    public Store(String name) {
+    public Product(String name, long price) {
         this.name = name;
+        this.price = price;
     }
 
-    public void addProduct(@NonNull Product product){
-        product.changeStore(this);
-        this.products.add(product);
+    public void changeStore(Store store) {
+        this.store = store;
     }
-
-    public long sumProductsPrice(){
-        return products.stream()
-                .mapToLong(Product::getPrice)
-                .sum();
-    }
-
 }

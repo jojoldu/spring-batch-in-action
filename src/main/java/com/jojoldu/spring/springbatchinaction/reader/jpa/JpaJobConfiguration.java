@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.jpa;
+package com.jojoldu.spring.springbatchinaction.reader.jpa;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

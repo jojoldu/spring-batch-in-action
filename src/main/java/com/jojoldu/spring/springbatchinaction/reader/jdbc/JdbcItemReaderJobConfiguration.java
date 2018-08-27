@@ -1,7 +1,5 @@
 package com.jojoldu.spring.springbatchinaction.reader.jdbc;
 
-import com.jojoldu.spring.springbatchinaction.reader.Pay;
-import com.jojoldu.spring.springbatchinaction.reader.PayRowMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -14,6 +12,7 @@ import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuild
 import org.springframework.batch.item.database.support.MySqlPagingQueryProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
 import javax.sql.DataSource;
 import java.util.HashMap;
@@ -32,14 +31,35 @@ public class JdbcItemReaderJobConfiguration {
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
-    private final DataSource dataSource;
+    private final DataSource dataSource; // DataSource DI
+
+    private static final int chunkSize = 10;
+
+    @Bean
+    public Job jdbcItemReaderJob() {
+        return jobBuilderFactory.get("jdbcItemReaderJob")
+                .start(jdbcItemReaderStep())
+                .build();
+    }
+
+    @Bean
+    public Step jdbcItemReaderStep() {
+        return stepBuilderFactory.get("step1")
+                .<Pay, Pay>chunk(chunkSize)
+                .reader(jdbcPagingItemReader())
+                .writer(list -> {
+                    for (Pay pay: list) {
+                        log.info("Current Pay={}", pay);
+                    }
+                }).build();
+    }
 
     @Bean
     public JdbcPagingItemReader<Pay> jdbcPagingItemReader() {
         return new JdbcPagingItemReaderBuilder<Pay>()
-                .fetchSize(10)
+                .fetchSize(chunkSize)
                 .dataSource(dataSource)
-                .rowMapper(new PayRowMapper())
+                .rowMapper(new BeanPropertyRowMapper<>(Pay.class))
                 .queryProvider(createQueryProvider())
                 .name("jdbcPagingItemReader")
                 .build();
@@ -56,25 +76,6 @@ public class JdbcItemReaderJobConfiguration {
         queryProvider.setSortKeys(sortKeys);
 
         return queryProvider;
-    }
-
-    @Bean
-    public Step jdbcItemReaderStep() {
-        return stepBuilderFactory.get("step1")
-                .<Pay, Pay>chunk(10)
-                .reader(jdbcPagingItemReader())
-                .writer(list -> {
-                    for (Pay pay: list) {
-                        log.info("Current Pay={}", pay);
-                    }
-                }).build();
-    }
-
-    @Bean
-    public Job jdbcItemReaderJob() {
-        return jobBuilderFactory.get("jdbcItemReaderJob")
-                .start(jdbcItemReaderStep())
-                .build();
     }
 
 

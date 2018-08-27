@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.jpa;
+package com.jojoldu.spring.springbatchinaction.reader.jpa;
 
 /**
  * Created by jojoldu@gmail.com on 20/08/2018

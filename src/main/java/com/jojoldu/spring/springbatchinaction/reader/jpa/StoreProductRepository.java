@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.jpa;
+package com.jojoldu.spring.springbatchinaction.reader.jpa;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -8,5 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * Github : https://github.com/jojoldu
  */
 
-public interface StoreRepository extends JpaRepository<Store, Long> {
+public interface StoreProductRepository extends JpaRepository <StoreProduct, Long> {
 }

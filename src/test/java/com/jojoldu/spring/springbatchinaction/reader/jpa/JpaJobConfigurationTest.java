@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.jpa;
+package com.jojoldu.spring.springbatchinaction.reader.jpa;
 
 import com.jojoldu.spring.springbatchinaction.TestJobLauncher;
 import org.junit.Assert;
