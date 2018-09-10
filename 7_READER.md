@@ -90,23 +90,46 @@ Spring Batch는 이 문제를 해결하기 위해 2가지 해결책을 제공합
 
 ## 7-3. CursorItemReader
 
-Cursor라고 하면 생소하실 분들도 계실 수 있습니다.  
-JSP나 Servlet으로 게시판을 작성해보신 분들은 ```ResultSet``` 인터페이스를 기억하실 것 같습니다.  
+Database로 대규모의 데이터를 순차적으로 처리할때 가장 보편적으로 사용되는게 Cursor입니다.  
+
+당연히 Databse Batch에서도 이를 사용하고 있습니다.  
+
+쉽게 생각하시면 Database와 어플리케이션 사이에 통로를 하나 연결하고 하나씩 빨아들인다고 생각하시면 됩니다.
+JSP나 Servlet으로 게시판을 작성해보신 분들은 ```ResultSet```을 사용해서 ```next()```로 하나씩 데이터를 가져왔던 것을 기억하시면 됩니다.  
 
 ### 7-3-1. JdbcCursorItemReader
+
+```sql
+create table pay (
+  id         bigint not null auto_increment,
+  amount     bigint,
+  txName     varchar(255),
+  txDateTime datetime,
+  primary key (id)
+) engine = InnoDB;
+
+insert into pay (amount, txName, txDateTime) VALUES (1000, 'trade1', '2018-09-10 00:00:00');
+insert into pay (amount, txName, txDateTime) VALUES (2000, 'trade2', '2018-09-10 00:00:00');
+insert into pay (amount, txName, txDateTime) VALUES (3000, 'trade3', '2018-09-10 00:00:00');
+insert into pay (amount, txName, txDateTime) VALUES (4000, 'trade4', '2018-09-10 00:00:00');
+```
 
 ### 7-3-2. HibernateCursorItemReader
 
 ### CursorItemReader의 주의 사항
 
-CursorItemReader를 사용하실때는 Database와 SocketTimeout과 QueryTimeout이 충분히 큰 값으로 설정해야만 합니다.  
-Cursor는 결국 Batch가 끝날때까지 사용되기 때문에 Database와 Batch의 Connection이 먼저 끊어질수 있습니다.  
+CursorItemReader를 사용하실때는 Database와 SocketTimeout을 충분히 큰 값으로 설정해야만 합니다.  
+Cursor는 하나의 Connection으로 Batch가 끝날때까지 사용되기 때문에 Batch가 끝나기전에 Database와 어플리케이션의 Connection이 먼저 끊어질수 있습니다.  
   
-그래서 오히려 조회 시간이 오래 걸리는 경우에는 PagingItemReader를 사용하시는게 낫습니다.  
-Paging의 경우 Chunk 단위로 쿼리를 실행/종료 하기 때문에 아무리 많은 데이터라도 타임아웃과 부하 없이 수행될 수 있습니다.
+그래서 **Batch 수행 시간이 오래 걸리는 경우에는 PagingItemReader를 사용하시는게 낫습니다**.  
+Paging의 경우 Chunk 단위로 쿼리를 실행/종료하고 Connection도 맺고 끊기 때문에 아무리 많은 데이터라도 타임아웃과 부하 없이 수행될 수 있습니다.
 
 
 ## 7-4. PagingItemReader
+
+### 7-4-1. JdbcPagingItemReader
+
+### 7-4-2. JpaPagingItemReader
 
 ### PagingItemReader 주의 사항
 

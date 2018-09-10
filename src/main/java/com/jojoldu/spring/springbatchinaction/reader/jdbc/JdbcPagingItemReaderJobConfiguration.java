@@ -27,7 +27,7 @@ import java.util.Map;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-public class JdbcItemReaderJobConfiguration {
+public class JdbcPagingItemReaderJobConfiguration {
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
@@ -36,8 +36,8 @@ public class JdbcItemReaderJobConfiguration {
     private static final int chunkSize = 10;
 
     @Bean
-    public Job jdbcItemReaderJob() {
-        return jobBuilderFactory.get("jdbcItemReaderJob")
+    public Job jdbcPagingItemReaderJob() {
+        return jobBuilderFactory.get("jdbcPagingItemReaderJob")
                 .start(jdbcItemReaderStep())
                 .build();
     }
