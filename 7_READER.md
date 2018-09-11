@@ -71,9 +71,27 @@ ItemStream의 3개 메소드는 다음과 같은 역할을 합니다.
 
 ## 7-2. Database Reader
 
-데이터베이스에 대한 배치 처리는 다른 어플리케이션과 달리 큰 문제점이 있습니다.  
-만약 100만 row를 반환하는 쿼리를 수행해야 한다면 일반적인 어플리케이션 구조에서는 100만 row가 다 모일때까지 메모리에 계속해서 보관해야만 합니다.  
-Spring Batch는 이 문제를 해결하기 위해 2가지 해결책을 제공합니다.
+Spring 프레임워크의 강점 중 하나는 **개발자가 비즈니스 관련 세부 사항에만 집중할 수 있도록 JDBC와 같은 문제점을 추상화**한 것입니다.  
+
+> 보통 이를 보고 서비스 추상화라고 합니다.
+
+이런 전통에서, Spring Batch 개발자들은 Spring 프레임워크의 JDBC 기능을 확장했습니다.  
+일반적으로 배치 작업은 많은 양의 데이터를 처리해야 합니다.  
+
+> 보통 실시간 처리가 어려운 대용량 데이터나 대규모 데이터일 경우에 배치 어플리케이션을 작업합니다.
+
+수백만개의 데이터를 조회하는 쿼리가 있는 경우에 해당 데이터를 모두 한 번에 메모리에 불러오는걸 원하는 개발자는 없을 것입니다.  
+그러나 Spring의 JdbcTemplate은 분할 처리를 지원하지 않기 때문에 (쿼리 결과를 그대로 반환하니) 개발자가 직접 ```limit```, ```offset```을 사용하는 등의 작업이 필요합니다.  
+Spring Batch는 이런 문제점을 해결하기 위해 2개의 Reader 타입을 지원합니다.  
+Cursor는 실제로 JDBC ResultSet의 기본 기능입니다.  
+ResultSet이 open 될 때마다 ```next()``` 메소드가 호출 되어 데이터베이스의 데이터가 반환 됩니다.  
+이를 통해 필요에 따라 데이터베이스에서 데이터를 스트리밍 할 수 있습니다.  
+  
+반면 페이징은 좀 더 많은 작업을 필요로 합니다.  
+페이징 개념은 페이지라는 Chunk로 데이터베이스에서 데이터를 검색한다는 것입니다.  
+각 페이지를 읽을 때 데이터베이스에서 새 페이지를 읽습니다.  
+
+
 
 * Cursor 기반 ItemReader 구현체
     * JdbcCursorItemReader
@@ -81,28 +99,30 @@ Spring Batch는 이 문제를 해결하기 위해 2가지 해결책을 제공합
     * StoredProcedureItemReader
 * Paging 기반 ItemReader 구현체
     * JdbcPagingItemReader
+    * HibernatePagingItemReader
     * JpaPagingItemReader
   
-> IbatisReader는 삭제되었습니다.  
-혹시나 필요하신 분들은 JdbcReader류를 사용하시길 권장드립니다.
+> IbatisReader는 공식 지원에서 삭제되었습니다.  
+현재 [MyBatis 프로젝트](http://www.mybatis.org/spring/ko/batch.html)에서 MyBatisWriter를 만들어서 진행하고 있으니 참고해보세요.  
 
 모든 ItemReader의 예제를 다루기에는 양이 많으니 여기서는 각 Reader의 대표격인 JdbcCursorItemReader와 JdbcPagingItemReader, JpaPagingItemReader를 예제와 함께 소개드리겠습니다.
 
 > 여기서 다루지 않은 예제는 [공식 문서](https://docs.spring.io/spring-batch/4.0.x/reference/html/readersAndWriters.html#database)에서 아주 상세하게 예제 코드가 나와있으니 참고해보세요.  
 
-
 ## 7-3. CursorItemReader
 
 Database로 대규모의 데이터를 순차적으로 처리할때 가장 보편적으로 사용되는게 Cursor입니다.  
 
-당연히 Databse를 사용하는 Batch에서도 이를 사용하고 있습니다.  
+당연히 Database를 사용하는 Batch에서도 이를 사용하고 있습니다.  
 
 쉽게 생각하시면 Database와 어플리케이션 사이에 통로를 하나 연결하고 하나씩 빨아들인다고 생각하시면 됩니다.
 JSP나 Servlet으로 게시판을 작성해보신 분들은 ```ResultSet```을 사용해서 ```next()```로 하나씩 데이터를 가져왔던 것을 기억하시면 됩니다.  
 
 ### 7-3-1. JdbcCursorItemReader
 
-가장 먼저 JdbcCursorItemReader 를 만들어 보겠습니다.
+가장 먼저 JdbcCursorItemReader 를 소개 드리겠습니다.  
+JdbcCursorItemReader는 Cursor 기반의 JDBC Reader 구현체입니다.  
+
 
 ```java
 @Slf4j
@@ -153,11 +173,20 @@ public class JdbcCursorItemReaderJobConfiguration {
 }
 ```
 
-reader는 이전과 달리 단독으로 수행될수 없고, 항상 Writer가 있어야 하기 때문에 간단한 출력 Writer를 하나 추가했습니다.
+reader는 Tasklet이 아니기 때문에 reader만으로는 수행될수 없고, 간단한 출력 Writer를 하나 추가했습니다.
 
-> **processor는 필수가 아닙니다.**
+> **processor는 필수가 아닙니다.**  
+위 예제처럼 reader에서 읽은 데이터에 대해 크게 변경 로직이 없다면 processor를 제외하고 writer만 구현하시면 됩니다.
 
 Job설정이나 Step설정은 이미 앞선 포스팅에서 많이 소개드렸으니 Reader부만 설명 드리겠습니다.
+
+특히 ```JdbcTemplate``` 과 인터페이스가 동일하기 때문에 사용법이 크게 다르지 않습니다.  
+위의 예제를 ```jdbcTemplate```으로 구현하면 아래처럼 됩니다.
+
+```java
+JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+List customerCredits = jdbcTemplate.query("SELECT id, amount, txName, txDateTime FROM pay", new BeanPropertyRowMapper<>(Pay.class));
+```
 
 
 
@@ -173,18 +202,12 @@ Job설정이나 Step설정은 이미 앞선 포스팅에서 많이 소개드렸�
 | setUseSharedExtendedConnection |       |
 
 
-JdbcCursorItemReader는 JdbcTemplate과 키 인터페이스를 공유하므로 JdbcTemplate을 사용하여이 데이터를 읽는 방법의 예를 보면서 ItemReader와 대조하는 것이 유용합니다.  
-이 예의 목적 상, CUSTOMER 데이터베이스에 1,000 개의 행이 있다고 가정하십시오. 첫 번째 예제에서는 JdbcTemplate을 사용합니다.
-
-```java
-JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-List customerCredits = jdbcTemplate.query("SELECT id, amount, txName, txDateTime FROM pay", new BeanPropertyRowMapper<>(Pay.class));
-```
-
 위 코드를 실행 한 후 customerCredits 목록에는 1,000 개의 CustomerCredit 객체가 포함됩니다.  
 쿼리 메서드에서 DataSource로부터 연결을 가져오고, 제공된 SQL을 실행하고, ResultSet의 각 행에 대해 mapRow 메서드를 호출합니다. 다음 예제와 같이 JdbcCursorItemReader의 접근 방식과 대조하십시오.
 
-이전를 실행 한 후 카운터는 1,000입니다. 위 코드가 반환 된 customerCredit을 목록에 넣은 경우 결과는 JdbcTemplate 예제와 완전히 동일합니다. 그러나 ItemReader의 가장 큰 장점은 항목을 '스트리밍'할 수 있다는 것입니다. read 메소드는 한 번 호출 할 수 있고 ItemWriter로 항목을 쓸 수 있으며 다음 항목을 read로 가져올 수 있습니다. 이를 통해 항목 읽기 및 쓰기가 '덩어리 (chunks)'로 수행되고 주기적으로 커밋되며 이는 고성능 일괄 처리의 핵심입니다. 또한, 스프링 배치 단계에 주입하기 위해 매우 쉽게 구성됩니다.
+이전를 실행 한 후 카운터는 1,000입니다. 위 코드가 반환 된 customerCredit을 목록에 넣은 경우 결과는 JdbcTemplate 예제와 완전히 동일합니다. 그러나 ItemReader의 가장 큰 장점은 항목을 '스트리밍'할 수 있다는 것입니다.  
+read 메소드는 한 번 호출 할 수 있고 ItemWriter로 항목을 쓸 수 있으며 다음 항목을 read로 가져올 수 있습니다.  
+이를 통해 항목 읽기 및 쓰기가 '덩어리 (chunks)'로 수행되고 주기적으로 커밋되며 이는 고성능 일괄 처리의 핵심입니다. 또한, 스프링 배치 단계에 주입하기 위해 매우 쉽게 구성됩니다.
 
 ```sql
 create table pay (
@@ -214,7 +237,7 @@ Paging의 경우 한 페이지를 읽을때마다 Connection을 맺고 끊기 �
 
 ## 7-4. PagingItemReader
 
-데이터베이스 커서를 사용하는 대신 여러 쿼리를 실행하여 각 쿼리가 결과의 일부를 가져 오는 방법도 있습니다.  
+데이터베이스 Cursor를 사용하는 대신 여러 쿼리를 실행하여 각 쿼리가 결과의 일부를 가져 오는 방법도 있습니다.  
 이 부분을 페이지라고합니다.  
 각 쿼리는 시작 행 번호와 페이지에서 반환 할 행 수를 지정해야합니다.
 
@@ -233,7 +256,7 @@ SqlPagingQueryProviderFactoryBean은 select 절과 from 절을 지정해야합�
   
 Reader가 open되면 호출 당 하나의 항목을 다른 ItemReader와 동일한 기본 방식으로 다시 읽습니다. 페이징은 추가 행이 필요할 때 뒤에서 발생합니다.
 
-다음 예제 구성은 이전에 표시된 커서 기반 ItemReaders와 유사한 '고객 신용'예제를 사용합니다.
+다음 예제 구성은 이전에 표시된 Cursor 기반 ItemReaders와 유사한 '고객 신용'예제를 사용합니다.
 
 
 이 구성된 ItemReader는 반드시 지정해야하는 RowMapper를 사용하여 CustomerCredit 객체를 반환합니다.  
