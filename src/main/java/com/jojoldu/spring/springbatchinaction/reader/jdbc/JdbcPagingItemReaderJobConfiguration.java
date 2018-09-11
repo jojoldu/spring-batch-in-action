@@ -6,6 +6,7 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.Order;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
@@ -38,20 +39,16 @@ public class JdbcPagingItemReaderJobConfiguration {
     @Bean
     public Job jdbcPagingItemReaderJob() {
         return jobBuilderFactory.get("jdbcPagingItemReaderJob")
-                .start(jdbcItemReaderStep())
+                .start(jdbcPagingItemReaderStep())
                 .build();
     }
 
     @Bean
-    public Step jdbcItemReaderStep() {
-        return stepBuilderFactory.get("step1")
+    public Step jdbcPagingItemReaderStep() {
+        return stepBuilderFactory.get("jdbcPagingItemReaderStep")
                 .<Pay, Pay>chunk(chunkSize)
                 .reader(jdbcPagingItemReader())
-                .writer(list -> {
-                    for (Pay pay: list) {
-                        log.info("Current Pay={}", pay);
-                    }
-                }).build();
+                .writer(jdbcPagingItemWriter()).build();
     }
 
     @Bean
@@ -63,6 +60,14 @@ public class JdbcPagingItemReaderJobConfiguration {
                 .queryProvider(createQueryProvider())
                 .name("jdbcPagingItemReader")
                 .build();
+    }
+
+    private ItemWriter<Pay> jdbcPagingItemWriter() {
+        return list -> {
+            for (Pay pay: list) {
+                log.info("Current Pay={}", pay);
+            }
+        };
     }
 
     private MySqlPagingQueryProvider createQueryProvider() {

@@ -6,6 +6,7 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
@@ -34,20 +35,17 @@ public class JdbcCursorItemReaderJobConfiguration {
     @Bean
     public Job jdbcCursorItemReaderJob() {
         return jobBuilderFactory.get("jdbcCursorItemReaderJob")
-                .start(jdbcItemReaderStep())
+                .start(jdbcCursorItemReaderStep())
                 .build();
     }
 
     @Bean
-    public Step jdbcItemReaderStep() {
-        return stepBuilderFactory.get("step1")
+    public Step jdbcCursorItemReaderStep() {
+        return stepBuilderFactory.get("jdbcCursorItemReaderStep")
                 .<Pay, Pay>chunk(chunkSize)
                 .reader(jdbcCursorItemReader())
-                .writer(list -> {
-                    for (Pay pay: list) {
-                        log.info("Current Pay={}", pay);
-                    }
-                }).build();
+                .writer(jdbcCursorItemWriter())
+                .build();
     }
 
     @Bean
@@ -61,4 +59,14 @@ public class JdbcCursorItemReaderJobConfiguration {
                 .build();
     }
 
+    /**
+     * reader에서 넘어온 데이터를 하나씩 출력하는 writer
+     */
+    private ItemWriter<Pay> jdbcCursorItemWriter() {
+        return list -> {
+            for (Pay pay: list) {
+                log.info("Current Pay={}", pay);
+            }
+        };
+    }
 }
