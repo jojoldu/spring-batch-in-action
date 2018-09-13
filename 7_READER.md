@@ -222,6 +222,10 @@ reader는 Tasklet이 아니기 때문에 reader만으로는 수행될수 없고,
 
 JdbcCursorItemReader의 설정값들은 다음과 같은 역할을 합니다
 
+* chunk
+    * ```<Pay, Pay>``` 에서 **첫번째 Pay는 Reader에서 반환할 타입**이며, **두번째 Pay는 Writer에 파라미터로 넘어올 타입**을 얘기합니다.
+    * ```chunkSize```로 인자값을 넣은 경우는 Reader & Writer가 묶일 Chunk 트랜잭션 범위입니다.
+        * Chunk에 대한 자세한 이야기는 [쳅터 6](https://jojoldu.tistory.com/331)을 참고해보세요.
 * fetchSize
     * Database에서 한번에 가져올 데이터 양을 나타냅니다.
     * Paging과는 다른 것이, Paging은 실제 쿼리를 ```limit```, ```offset```을 이용해서 분할 처리하는 반면, Cursor는 쿼리는 분할 처리 없이 실행되나 내부적으로 가져오는 데이터는 FetchSize만큼 가져와 ```read()```를 통해서 하나씩 가져옵니다.
@@ -270,9 +274,17 @@ insert into pay (amount, txName, txDateTime) VALUES (3000, 'trade3', '2018-09-10
 insert into pay (amount, txName, txDateTime) VALUES (4000, 'trade4', '2018-09-10 00:00:00');
 ```
 
+자 그럼 한번 배치를 실행해보겠습니다.  
+먼저 Reader에서 어떻게 쿼리가 생성되고 실행되는지 확인하기 위해 Log Level을 변경해보겠습니다.  
+src/main/resources/application.yml와 src/test/resources/application.yml 에 아래의 코드를 추가합니다.
 
-자 그럼 한번 배치를 실행해보겠습니다.
-그러면!
+```yml
+logging.level.org.springframework.batch: DEBUG
+```
+
+![loglevel](./images/7/loglevel.png)
+
+그리고 배치를 실행해보시면!
 
 ![jdbccursoritemreader_result](./images/7/jdbccursoritemreader_result.png)
 
@@ -292,33 +304,114 @@ Paging의 경우 한 페이지를 읽을때마다 Connection을 맺고 끊기 �
 
 데이터베이스 Cursor를 사용하는 대신 여러 쿼리를 실행하여 각 쿼리가 결과의 일부를 가져 오는 방법도 있습니다.  
 이런 처리 방법을 Paging 이라고합니다.  
-각 쿼리는 시작 행 번호 (```offset```) 와 페이지에서 반환 할 행 수 (```limit```)를 지정해야합니다.
+게시판의 페이징을 구현해보신 분들은 아시겠지만 페이징을 한다는 것은 각 쿼리에 시작 행 번호 (```offset```) 와 페이지에서 반환 할 행 수 (```limit```)를 지정해야함을 의미 합니다.  
+Spring Batch에서는 ```offset```과 ```limit```을 PageSize에 맞게 적절하게 자동으로 생성해 줍니다.  
+다만 각 쿼리는 개별적으로 실행한다는 점을 유의해야합니다.  
+일반적으로 각 페이지마다 새로운 쿼리를 실행하므로 **페이징시 결과를 정렬하는 것이 중요합니다**.  
+데이터 결과의 순서가 보장될 수 있도록 order by가 권장됩니다.  
+(이건 아래에서 자세하게 소개 드리겠습니다)  
+  
+가장 먼저 JdbcPagingItemReader를 알아보겠습니다.
 
 ### 7-4-1. JdbcPagingItemReader
 
-Paging ItemReader의 한 구현은 JdbcPagingItemReader입니다.  
-JdbcPagingItemReader에는 페이지를 구성하는 행을 검색하는 데 사용되는 SQL 쿼리를 제공하는 PagingQueryProvider가 필요합니다.  
+JdbcPagingItemRedaer는 JdbcCursorItemReader와 같은 JdbcTemplate 인터페이스를 이용한 PagingItemReader입니다.  
+코드는 아래와 같습니다.
 
-각 데이터베이스에는 Paging 지원을 제공하는 자체 전략이 있으므로 지원되는 각 데이터베이스 유형마다 다른 PagingQueryProvider를 사용해야합니다.  
-또한 사용중인 데이터베이스를 자동 검색하고 적절한 PagingQueryProvider 구현을 결정하는 SqlPagingQueryProviderFactoryBean이 있습니다.  
-이렇게하면 구성이 간단해지므로 권장되는 최상의 방법입니다.  
+```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class JdbcPagingItemReaderJobConfiguration {
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final DataSource dataSource; // DataSource DI
+
+    private static final int chunkSize = 10;
+
+    @Bean
+    public Job jdbcPagingItemReaderJob() throws Exception {
+        return jobBuilderFactory.get("jdbcPagingItemReaderJob")
+                .start(jdbcPagingItemReaderStep())
+                .build();
+    }
+
+    @Bean
+    public Step jdbcPagingItemReaderStep() throws Exception {
+        return stepBuilderFactory.get("jdbcPagingItemReaderStep")
+                .<Pay, Pay>chunk(chunkSize)
+                .reader(jdbcPagingItemReader())
+                .writer(jdbcPagingItemWriter())
+                .build();
+    }
+
+    @Bean
+    public JdbcPagingItemReader<Pay> jdbcPagingItemReader() throws Exception {
+        Map<String, Object> parameterValues = new HashMap<>();
+        parameterValues.put("amount", 2000);
+
+        return new JdbcPagingItemReaderBuilder<Pay>()
+                .fetchSize(chunkSize)
+                .dataSource(dataSource)
+                .rowMapper(new BeanPropertyRowMapper<>(Pay.class))
+                .queryProvider(createQueryProvider())
+                .parameterValues(parameterValues)
+                .name("jdbcPagingItemReader")
+                .build();
+    }
+
+    private ItemWriter<Pay> jdbcPagingItemWriter() {
+        return list -> {
+            for (Pay pay: list) {
+                log.info("Current Pay={}", pay);
+            }
+        };
+    }
+
+    @Bean
+    public PagingQueryProvider createQueryProvider() throws Exception {
+        SqlPagingQueryProviderFactoryBean queryProvider = new SqlPagingQueryProviderFactoryBean();
+        queryProvider.setDataSource(dataSource); // Database에 맞는 PagingQueryProvider를 선택하기 위해 
+        queryProvider.setSelectClause("id, amount, txName, txDateTime");
+        queryProvider.setFromClause("from pay");
+        queryProvider.setWhereClause("where amount >= :amount");
+
+        Map<String, Order> sortKeys = new HashMap<>(1);
+        sortKeys.put("id", Order.ASCENDING);
+
+        queryProvider.setSortKeys(sortKeys);
+
+        return queryProvider.getObject();
+    }
+}
+```
+
+코드를 보시면 JdbcCursorItemReader와 설정이 크게 다른것이 하나 있는데요.  
+바로 쿼리 (```createQueryProvider()```)입니다.  
+JdbcCursorItemReader를 사용할 때는 단순히 ```String``` 타입으로 쿼리를 생성했지만, PagingItemReader에서는 PagingQueryProvider를 통해 쿼리를 생성합니다.  
+이렇게 하는데는 큰 이유가 있습니다.  
   
-SqlPagingQueryProviderFactoryBean은 select 절과 from 절을 지정해야합니다.  
-선택적인 where 절을 제공 할 수도 있습니다.  
-이 절과 필수 sortKey는 SQL 문을 작성하는 데 사용됩니다.  
+각 데이터베이스에는 Paging 지원을 제공하는 자체적인 전략들이 있습니다.  
+때문에 각 데이터베이스에 맞는 Provider를 구현해서 사용해야만 합니다.  
+
+![pagingprovider](./images/7/pagingprovider.png)
+
+(각 데이터베이스의 Paging 전략에 맞춘 Provider)  
   
-Reader가 open되면 호출 당 하나의 항목을 다른 ItemReader와 동일한 기본 방식으로 다시 읽습니다. Paging은 추가 행이 필요할 때 뒤에서 발생합니다.
-
-다음 예제 구성은 이전에 표시된 Cursor 기반 ItemReaders와 유사한 '고객 신용'예제를 사용합니다.
-
-
-이 구성된 ItemReader는 반드시 지정해야하는 RowMapper를 사용하여 CustomerCredit 객체를 반환합니다.  
-'pageSize'속성은 쿼리가 실행될 때마다 데이터베이스에서 읽은 엔티티의 수를 결정합니다.
-
+하지만 이렇게 되면 데이터베이스마다 Provider 코드를 바꿔야하니 불편함이 많습니다.  
+그래서 Spring Batch에서는 **SqlPagingQueryProviderFactoryBean을 통해 Datasource 설정값을 보고 위 이미지에서 작성된 Provider중 하나를 자동으로 선택**하도록 합니다.  
+  
+이렇게 하면 코드 변경 사항이 적어서 Spring Batch에서 공식 지원하는 방법입니다.  
+  
+이외 다른 설정들의 값은 거의 
 'parameterValues'속성은 쿼리에 대한 매개 변수 값의 Map을 지정하는 데 사용할 수 있습니다.  
 where 절에서 명명 된 매개 변수를 사용하는 경우 각 항목의 키는 명명 된 매개 변수의 이름과 일치해야합니다.  
 
 > 예전이였다면 ```?``` 로 파라미터 위치를 지정하고 1부터 시작하여 각 파라미터 값을 할당시키는 방식으로 진행했습니다.
+
+![jdbcpaging_result](./images/7/jdbcpaging_result.png)
+
 
 ### 7-4-2. JpaPagingItemReader
 
@@ -336,8 +429,8 @@ Paging은 추가 엔티티가 필요할 때 뒤에서 발생합니다.
 
 ### PagingItemReader 주의 사항
 
-* 정렬 (```Order```) 가 무조건 포함되어 있어야 합니다.
-    * [paging시 주의사항](https://jojoldu.tistory.com/166)
+정렬 (```Order```) 가 무조건 포함되어 있어야 합니다.  
+관련해서는 이전에 자세하게 정리한 [포스팅](https://jojoldu.tistory.com/166)이 있으니 참고하시면 좋습니다.  
 
 
 
