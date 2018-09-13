@@ -9,8 +9,9 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.Order;
+import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
-import org.springframework.batch.item.database.support.MySqlPagingQueryProvider;
+import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -37,27 +38,32 @@ public class JdbcPagingItemReaderJobConfiguration {
     private static final int chunkSize = 10;
 
     @Bean
-    public Job jdbcPagingItemReaderJob() {
+    public Job jdbcPagingItemReaderJob() throws Exception {
         return jobBuilderFactory.get("jdbcPagingItemReaderJob")
                 .start(jdbcPagingItemReaderStep())
                 .build();
     }
 
     @Bean
-    public Step jdbcPagingItemReaderStep() {
+    public Step jdbcPagingItemReaderStep() throws Exception {
         return stepBuilderFactory.get("jdbcPagingItemReaderStep")
                 .<Pay, Pay>chunk(chunkSize)
                 .reader(jdbcPagingItemReader())
-                .writer(jdbcPagingItemWriter()).build();
+                .writer(jdbcPagingItemWriter())
+                .build();
     }
 
     @Bean
-    public JdbcPagingItemReader<Pay> jdbcPagingItemReader() {
+    public JdbcPagingItemReader<Pay> jdbcPagingItemReader() throws Exception {
+        Map<String, Object> parameterValues = new HashMap<>();
+        parameterValues.put("amount", 2000);
+
         return new JdbcPagingItemReaderBuilder<Pay>()
                 .fetchSize(chunkSize)
                 .dataSource(dataSource)
                 .rowMapper(new BeanPropertyRowMapper<>(Pay.class))
                 .queryProvider(createQueryProvider())
+                .parameterValues(parameterValues)
                 .name("jdbcPagingItemReader")
                 .build();
     }
@@ -70,18 +76,19 @@ public class JdbcPagingItemReaderJobConfiguration {
         };
     }
 
-    private MySqlPagingQueryProvider createQueryProvider() {
-        MySqlPagingQueryProvider queryProvider = new MySqlPagingQueryProvider();
+    @Bean
+    public PagingQueryProvider createQueryProvider() throws Exception {
+        SqlPagingQueryProviderFactoryBean queryProvider = new SqlPagingQueryProviderFactoryBean();
+        queryProvider.setDataSource(dataSource); // Database에 맞는 PagingQueryProvider를 선택하기 위해
         queryProvider.setSelectClause("id, amount, txName, txDateTime");
         queryProvider.setFromClause("from pay");
+        queryProvider.setWhereClause("where amount >= :amount");
 
         Map<String, Order> sortKeys = new HashMap<>(1);
         sortKeys.put("id", Order.ASCENDING);
 
         queryProvider.setSortKeys(sortKeys);
 
-        return queryProvider;
+        return queryProvider.getObject();
     }
-
-
 }
