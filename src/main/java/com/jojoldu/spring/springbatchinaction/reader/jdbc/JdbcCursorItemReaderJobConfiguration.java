@@ -54,7 +54,7 @@ public class JdbcCursorItemReaderJobConfiguration {
                 .fetchSize(chunkSize)
                 .dataSource(dataSource)
                 .rowMapper(new BeanPropertyRowMapper<>(Pay.class))
-                .sql("SELECT id, amount, txName, txDateTime FROM pay")
+                .sql("SELECT id, amount, tx_name, tx_date_time FROM pay")
                 .name("jdbcCursorItemReader")
                 .build();
     }

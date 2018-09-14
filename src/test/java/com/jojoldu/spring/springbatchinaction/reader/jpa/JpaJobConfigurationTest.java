@@ -27,7 +27,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class JpaJobConfigurationTest {
 
     @Autowired
-    @Qualifier("jpaJob")
+    @Qualifier("jpaPagingItemReaderJob")
     private Job job;
 
     @Autowired
