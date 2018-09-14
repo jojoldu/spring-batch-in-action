@@ -85,11 +85,11 @@ Spring 프레임워크의 강점 중 하나는 **개발자가 비즈니스 로�
 그러나 Spring의 JdbcTemplate은 분할 처리를 지원하지 않기 때문에 (쿼리 결과를 그대로 반환하니) 개발자가 직접 ```limit```, ```offset```을 사용하는 등의 작업이 필요합니다.  
 Spring Batch는 이런 문제점을 해결하기 위해 2개의 Reader 타입을 지원합니다.  
 Cursor는 실제로 JDBC ResultSet의 기본 기능입니다.  
-ResultSet이 open 될 때마다 ```next()``` 메소드가 호출 되어 데이터베이스의 데이터가 반환 됩니다.  
-이를 통해 필요에 따라 **데이터베이스에서 데이터를 Streaming** 할 수 있습니다.  
+ResultSet이 open 될 때마다 ```next()``` 메소드가 호출 되어 Database의 데이터가 반환 됩니다.  
+이를 통해 필요에 따라 **Database에서 데이터를 Streaming** 할 수 있습니다.  
   
 반면 Paging은 좀 더 많은 작업을 필요로 합니다.  
-Paging 개념은 페이지라는 Chunk로 데이터베이스에서 데이터를 검색한다는 것입니다.  
+Paging 개념은 페이지라는 Chunk로 Database에서 데이터를 검색한다는 것입니다.  
 즉, **페이지 단위로 한번에 데이터를 조회**해오는 방식입니다.
 
 Cursor와 Paging을 그림으로 비교하면 다음과 같습니다.
@@ -99,7 +99,7 @@ Cursor와 Paging을 그림으로 비교하면 다음과 같습니다.
 > Paging에서 10Row는 PageSize를 얘기합니다.  
 10 외에 다른 값도 가능하며 여기선 예시로 10개로 두었습니다.
 
-Cursor 방식은 데이터베이스와 커넥션을 맺은 후, Cursor를 한칸씩 옮기면서 지속적으로 데이터를 빨아옵니다.  
+Cursor 방식은 Database와 커넥션을 맺은 후, Cursor를 한칸씩 옮기면서 지속적으로 데이터를 빨아옵니다.  
 반면 Paging 방식에서는 한번에 10개 (혹은 개발자가 지정한 PageSize)만큼 데이터를 가져옵니다.  
   
 2개 방식의 구현체는 다음과 같습니다.
@@ -197,7 +197,7 @@ public class JdbcCursorItemReaderJobConfiguration {
                 .fetchSize(chunkSize)
                 .dataSource(dataSource)
                 .rowMapper(new BeanPropertyRowMapper<>(Pay.class))
-                .sql("SELECT id, amount, txName, txDateTime FROM pay")
+                .sql("SELECT id, amount, tx_name, tx_date_time FROM pay")
                 .name("jdbcCursorItemReader")
                 .build();
     }
@@ -246,7 +246,7 @@ JdbcCursorItemReader의 설정값들은 다음과 같은 역할을 합니다
 
 ```java
 JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-List<Pay> payList = jdbcTemplate.query("SELECT id, amount, txName, txDateTime FROM pay", new BeanPropertyRowMapper<>(Pay.class));
+List<Pay> payList = jdbcTemplate.query("SELECT id, amount, tx_name, tx_date_time FROM pay", new BeanPropertyRowMapper<>(Pay.class));
 ```
 
 거의 차이가 없죠?  
@@ -263,15 +263,15 @@ List<Pay> payList = jdbcTemplate.query("SELECT id, amount, txName, txDateTime FR
 create table pay (
   id         bigint not null auto_increment,
   amount     bigint,
-  txName     varchar(255),
-  txDateTime datetime,
+  tx_name     varchar(255),
+  tx_date_time datetime,
   primary key (id)
 ) engine = InnoDB;
 
-insert into pay (amount, txName, txDateTime) VALUES (1000, 'trade1', '2018-09-10 00:00:00');
-insert into pay (amount, txName, txDateTime) VALUES (2000, 'trade2', '2018-09-10 00:00:00');
-insert into pay (amount, txName, txDateTime) VALUES (3000, 'trade3', '2018-09-10 00:00:00');
-insert into pay (amount, txName, txDateTime) VALUES (4000, 'trade4', '2018-09-10 00:00:00');
+insert into pay (amount, tx_name, tx_date_time) VALUES (1000, 'trade1', '2018-09-10 00:00:00');
+insert into pay (amount, tx_name, tx_date_time) VALUES (2000, 'trade2', '2018-09-10 00:00:00');
+insert into pay (amount, tx_name, tx_date_time) VALUES (3000, 'trade3', '2018-09-10 00:00:00');
+insert into pay (amount, tx_name, tx_date_time) VALUES (4000, 'trade4', '2018-09-10 00:00:00');
 ```
 
 자 그럼 한번 배치를 실행해보겠습니다.  
@@ -302,12 +302,12 @@ Paging의 경우 한 페이지를 읽을때마다 Connection을 맺고 끊기 �
 
 ## 7-4. PagingItemReader
 
-데이터베이스 Cursor를 사용하는 대신 여러 쿼리를 실행하여 각 쿼리가 결과의 일부를 가져 오는 방법도 있습니다.  
+Database Cursor를 사용하는 대신 여러 쿼리를 실행하여 각 쿼리가 결과의 일부를 가져 오는 방법도 있습니다.  
 이런 처리 방법을 Paging 이라고합니다.  
 게시판의 페이징을 구현해보신 분들은 아시겠지만 페이징을 한다는 것은 각 쿼리에 시작 행 번호 (```offset```) 와 페이지에서 반환 할 행 수 (```limit```)를 지정해야함을 의미 합니다.  
-Spring Batch에서는 ```offset```과 ```limit```을 PageSize에 맞게 적절하게 자동으로 생성해 줍니다.  
+Spring Batch에서는 ```offset```과 ```limit```을 **PageSize에 맞게 자동으로 생성해 줍니다**.  
 다만 각 쿼리는 개별적으로 실행한다는 점을 유의해야합니다.  
-일반적으로 각 페이지마다 새로운 쿼리를 실행하므로 **페이징시 결과를 정렬하는 것이 중요합니다**.  
+각 페이지마다 새로운 쿼리를 실행하므로 **페이징시 결과를 정렬하는 것이 중요합니다**.  
 데이터 결과의 순서가 보장될 수 있도록 order by가 권장됩니다.  
 (이건 아래에서 자세하게 소개 드리겠습니다)  
   
@@ -373,7 +373,7 @@ public class JdbcPagingItemReaderJobConfiguration {
     public PagingQueryProvider createQueryProvider() throws Exception {
         SqlPagingQueryProviderFactoryBean queryProvider = new SqlPagingQueryProviderFactoryBean();
         queryProvider.setDataSource(dataSource); // Database에 맞는 PagingQueryProvider를 선택하기 위해 
-        queryProvider.setSelectClause("id, amount, txName, txDateTime");
+        queryProvider.setSelectClause("id, amount, tx_name, tx_date_time");
         queryProvider.setFromClause("from pay");
         queryProvider.setWhereClause("where amount >= :amount");
 
@@ -392,40 +392,107 @@ public class JdbcPagingItemReaderJobConfiguration {
 JdbcCursorItemReader를 사용할 때는 단순히 ```String``` 타입으로 쿼리를 생성했지만, PagingItemReader에서는 PagingQueryProvider를 통해 쿼리를 생성합니다.  
 이렇게 하는데는 큰 이유가 있습니다.  
   
-각 데이터베이스에는 Paging 지원을 제공하는 자체적인 전략들이 있습니다.  
-때문에 각 데이터베이스에 맞는 Provider를 구현해서 사용해야만 합니다.  
+**각 Database에는 Paging을 지원하는 자체적인 전략들이 있습니다**.  
+때문에 Spring Batch에는 각 Database의 Paging 전략에 맞춰 구현되어야만 합니다.  
+그래서 아래와 같이 각 Database에 맞는 Provider들이 존재하는데요.  
 
 ![pagingprovider](./images/7/pagingprovider.png)
 
-(각 데이터베이스의 Paging 전략에 맞춘 Provider)  
+(각 Database의 Paging 전략에 맞춘 Provider)  
   
-하지만 이렇게 되면 데이터베이스마다 Provider 코드를 바꿔야하니 불편함이 많습니다.  
+하지만 이렇게 되면 Database마다 Provider 코드를 바꿔야하니 불편함이 많습니다.  
+(로컬은 H2로 사용하면서 개발/운영은 MySQL을 사용하면 Provider를 하나로 고정시킬수가 없겠죠?)  
+  
 그래서 Spring Batch에서는 **SqlPagingQueryProviderFactoryBean을 통해 Datasource 설정값을 보고 위 이미지에서 작성된 Provider중 하나를 자동으로 선택**하도록 합니다.  
   
 이렇게 하면 코드 변경 사항이 적어서 Spring Batch에서 공식 지원하는 방법입니다.  
   
-이외 다른 설정들의 값은 거의 
-'parameterValues'속성은 쿼리에 대한 매개 변수 값의 Map을 지정하는 데 사용할 수 있습니다.  
-where 절에서 명명 된 매개 변수를 사용하는 경우 각 항목의 키는 명명 된 매개 변수의 이름과 일치해야합니다.  
+이외 다른 설정들의 값은 JdbcCursorItemReader와 크게 다르지 않습니다.  
 
-> 예전이였다면 ```?``` 로 파라미터 위치를 지정하고 1부터 시작하여 각 파라미터 값을 할당시키는 방식으로 진행했습니다.
+* parameterValues
+    * 쿼리에 대한 매개 변수 값의 Map을 지정합니다.
+    * ```queryProvider.setWhereClause``` 을 보시면 어떻게 변수를 사용하는지 자세히 알 수 있습니다.
+    * where 절에서 선언된 파라미터 변수명과 parameterValues에서 선언된 파라미터 변수명이 일치해야만 합니다.  
+
+> 예전이였다면 ```?``` 로 파라미터 위치를 지정하고 1부터 시작하여 각 파라미터 값을 할당시키는 방식으로 진행했는데, 그에 비해서 굉장히 명시적이고 실수할 여지가 줄어들었습니다.
+
+자 이렇게 설정 후 Batch를 한번 실행해보겠습니다.
 
 ![jdbcpaging_result](./images/7/jdbcpaging_result.png)
 
+쿼리 로그를 보시면 ```LIMIT 10```이 들어간 것을 알 수 있습니다.  
+작성한 코드에서 Limit 선언은 없는데, 사용된 쿼리에선 추가되었습니다.  
+이는 위에서 언급했듯이 JdbcPagingItemReader에서 선언된 fetchSize에 맞게 자동으로 쿼리에 추가해줬기 때문입니다.  
+만약 조회할 데이터가 10개 이상이였다면 ```offset```으로 적절하게 다음 fetchSize만큼을 가져올 수 있습니다.
 
 ### 7-4-2. JpaPagingItemReader
 
-PagingItemReader의 또 다른 구현체는 JpaPagingItemReader입니다.  
-JPA에는 Hibernate StatelessSession과 유사한 개념이 없기 때문에 JPA 스펙이 제공하는 다른 기능을 사용해야합니다.  
-각 페이지를 읽은 후에는 엔티티가 분리되고 지속성 컨텍스트가 지워지므로 페이지가 처리되면 엔티티가 GC 됩니다.  
+최근 들어 국내의 많은 회사들이 점점 JPA를 사용하고 있습니다.  
+ORM으로 더이상 데이터를 단순한 값으로만 보는게 아닌, 객체로 볼 수 있게 되었습니다.  
+Spring Batch 역시 JPA를 지원하기 위해 JpaPagingItemReader를 공식적으로 지원하고 있습니다.  
 
-JpaPagingItemReader를 사용하면 JPQL 문을 선언하고 EntityManagerFactory를 전달할 수 있습니다.  
-그런 다음 호출 당 한 항목을 다른 ItemReader와 동일한 기본 방식으로 다시 읽습니다.  
-Paging은 추가 엔티티가 필요할 때 뒤에서 발생합니다.  
-다음 예제 구성은 앞에서 설명한 jdbcReader와 동일한 예제를 사용합니다.
+> 현재 Querydsl, Jooq 등을 통한 ItemReader 구현체는 공식 지원하지 않습니다.
+CustomItemReader 구현체를 만드셔야만 합니다.  
+이건 다른 글을 통해서 소개 드리겠습니다.   
+당장 필요하신 분들은 [공식 문서](https://docs.spring.io/spring-batch/4.0.x/reference/html/readersAndWriters.html#customReader)를 참고해보세요
 
-이 ItemReader는 ```CustomerCredit``` 객체가 올바른 JPA 어노테이션 또는 ORM 매핑 파일을 가지고 있다고 가정하고 위의 JdbcPagingItemReader에 대해 설명한 것과 동일한 방식으로 CustomerCredit 객체를 반환합니다.  
-'pageSize'속성은 각 쿼리 실행에 대해 데이터베이스에서 읽은 엔티티 수를 결정합니다.
+JPA는 Hibernate와 많은 유사점을 가지고 있습니다만, 한가지 다른 것이 있다면 Hibernate 에선 Cursor가 지원되지만 **JPA에는 Cursor 기반 Database 접근을 지원하지 않습니다**.  
+  
+자 그럼 코드를 한번 살펴보겠습니다.
+
+```java
+@Slf4j // log 사용을 위한 lombok 어노테이션
+@RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
+@Configuration
+public class JpaPagingItemReaderJobConfiguration {
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory entityManagerFactory;
+
+    private int chunkSize = 10;
+
+    @Bean
+    public Job jpaPagingItemReaderJob() {
+        return jobBuilderFactory.get("jpaPagingItemReaderJob")
+                .start(jpaPagingItemReaderStep())
+                .build();
+    }
+
+    @Bean
+    public Step jpaPagingItemReaderStep() {
+        return stepBuilderFactory.get("jpaPagingItemReaderStep")
+                .<Pay, Pay>chunk(chunkSize)
+                .reader(jpaPagingItemReader())
+                .writer(jpaPagingItemWriter())
+                .build();
+    }
+
+    @Bean
+    public JpaPagingItemReader<Pay> jpaPagingItemReader() {
+        return new JpaPagingItemReaderBuilder<Pay>()
+                .name("jpaPagingItemReader")
+                .entityManagerFactory(entityManagerFactory)
+                .pageSize(chunkSize)
+                .queryString("SELECT p FROM Pay p WHERE amount >= 2000")
+                .build();
+    }
+
+    private ItemWriter<Pay> jpaPagingItemWriter() {
+        return list -> {
+            for (Pay pay: list) {
+                log.info("Current Pay={}", pay);
+            }
+        };
+    }
+}
+```
+
+**EntityManagerFactory를 지정하는 것 외에** JdbcPagingItemReader와 크게 다른 점은 없습니다.  
+자 그럼 이 코드를 한번 실행해보시면!
+
+![jpapaging_result](./images/7/jpapaging_result.png)
+
+정상적으로 배치가 수행된 것을 확인할 수 있습니다.
 
 ### PagingItemReader 주의 사항
 
@@ -433,19 +500,20 @@ Paging은 추가 엔티티가 필요할 때 뒤에서 발생합니다.
 관련해서는 이전에 자세하게 정리한 [포스팅](https://jojoldu.tistory.com/166)이 있으니 참고하시면 좋습니다.  
 
 
+## 7-4. ItemReader 주의 사항
 
-* 같은 테이블을 조회 & 수정해야 한다면? ([참고](https://stackoverflow.com/questions/26509971/spring-batch-jpapagingitemreader-why-some-rows-are-not-read))
+* JpaRepository를 ListItemReader, QueueItemReader에 사용하면 안됩니다. 
+    * 간혹 JPA의 조회 쿼리를 쉽게 구현하기 위해 JpaRepository를 이용해서 ```new ListItemReader<>(jpaRepository.findByAge(age))``` 로 Reader를 구현하는 분들을 종종 봅니다.
+    * 이렇게 할 경우 Spring Batch의 장점인 페이징 & Cursor 구현이 없어 대규모 데이터 처리가 불가능합니다. (물론 Chunk 단위 트랜잭션은 됩니다.)
+    * 만약 정말 JpaRepository를 써야 하신다면 ```RepositoryItemReader```를 사용하시는 것을 추천합니다.
+        * [예제 코드](https://stackoverflow.com/a/43986718)
+        * Paging을 기본적으로 지원합니다.
+* Hibernate, JPA 등 영속성 컨텍스트가 필요한 Reader 사용시 fetchSize와 ChunkSize는 같은 값을 유지해야 합니다.
+    * [Spring Batch 영속성 컨텍스트 문제](https://jojoldu.tistory.com/146)
 
+## 마무리
 
-
-
-## 7-4. Custom Item Reader
-
-* 마지막에 null을 반환해야 종료가 됨
-
-
-## 7-5. ItemReader 주의 사항
-
-* 절대 절대 JpaRepository로 ItemReader 커스텀하게 쓰지말것
-    * 
-* 
+ItemReader는 Spring Batch를 구현하는데 있어 정말 중요한 구현체 입니다.  
+어디서 데이터를 읽어오고, 어떤 방식으로 읽느냐에 따라 Batch의 성능을 크게 좌지우지 합니다.  
+다음 시간에는 Writer를 소개 드리겠습니다.  
+감사합니다.
