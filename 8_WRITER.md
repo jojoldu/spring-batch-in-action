@@ -3,8 +3,10 @@
 앞서 Reader에 대해서 배웠습니다.  
 Writer는 Reader, Prcessor와 함께 ChunkOrientedTasklet을 구성하는 3 요소입니다.  
 여기서 Processor가 아닌 Writer를 우선 선택한 이유가 궁금 하실수 있습니다.  
+  
 이유는 **Processor는 선택**이기 때문입니다.  
 Reader와 Writer는 ChunkOrientedTasklet에서 필수 요소입니다.  
+  
 하지만 Processor는 없어도 ChunkOrientedTasklet는 구성할 수 있습니다.  
 그래서 Writer를 먼저 다뤄보겠습니다.  
   
@@ -19,7 +21,7 @@ Spring Batch가 처음 나왔을 때, ItemWriter는 ItemReader와 마찬가지�
 
 ![itemwriter1](./images/8/itemwriter1.png)
 
-쳅터 7을 보신 분들은 아시겠지만, Reader의 ```read()```는 Item 하나를 반환하는 반면, Writer의 ```write()```는 인자로 Item List를 받습니다.  
+[쳅터 7](https://jojoldu.tistory.com/336)을 보신 분들은 아시겠지만, Reader의 ```read()```는 Item 하나를 반환하는 반면, Writer의 ```write()```는 인자로 Item List를 받습니다.  
 
 이를 그림으로 표현하면 아래와 같습니다.
 
@@ -38,8 +40,10 @@ Reader와 마찬가지로, 모든 내용을 다루기는 어렵기 때문에 Dat
 
 ## 8-2. Database Writer
 
-데이터베이스에 쓰는 것은 파일 기반 출력과는 다른 제약 조건 집합을 제공합니다.  
-첫째, 데이터베이스는 파일과 달리 트랜잭션 리소스입니다. 이 때문에 파일 기반 처리와 같이 분할하지 않고 실제 쓰기를 트랜잭션의 일부로 포함시킬 수 있습니다. 또한 데이터베이스에 액세스하는 방법에는 여러 가지 옵션이 있습니다.  
+Java 세계에서는 JDBC 또는 ORM을 사용하여 관계형 데이터베이스에 접근합니다.  
+Spring Batch는 JDBC와 ORM 모두 Writer를 제공합니다.  
+
+
 
 
 Writer는 Chunk단위의 마지막 요소입니다.  
@@ -62,6 +66,10 @@ Writer가 받은 모든 Item이 처리 된 후, Spring Batch는 현재 트랜잭
 * JdbcItemWriter
 * HibernateItemWriter
 * JpaItemWriter
+
+## 8-3. JdbcItemWriter
+
+![jdbcwrite](./images/8/jdbcwrite.png)
 
 ## Custom ItemWriter
 
