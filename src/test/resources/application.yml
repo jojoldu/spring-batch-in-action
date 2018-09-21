@@ -1,9 +1,10 @@
 spring:
   profiles:
     active: local
+  jpa:
+    show-sql: true
 
 spring.batch.job.names: ${job.name:NONE}
-
 ---
 spring:
   profiles: local

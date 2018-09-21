@@ -1,5 +1,6 @@
-package com.jojoldu.spring.springbatchinaction.reader.jdbc;
+package com.jojoldu.spring.springbatchinaction.persistwriter;
 
+import com.jojoldu.spring.springbatchinaction.reader.jdbc.Pay;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,7 +24,7 @@ import java.time.format.DateTimeFormatter;
 @Setter
 @NoArgsConstructor
 @Entity
-public class Pay {
+public class PayCopy {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss");
 
     @Id
@@ -33,22 +34,9 @@ public class Pay {
     private String txName;
     private LocalDateTime txDateTime;
 
-    public Pay(Long amount, String txName, String txDateTime) {
-        this.amount = amount;
-        this.txName = txName;
-        this.txDateTime = LocalDateTime.parse(txDateTime, FORMATTER);
-    }
-
-    public Pay(Long amount, String txName, LocalDateTime txDateTime) {
-        this.amount = amount;
-        this.txName = txName;
-        this.txDateTime = txDateTime;
-    }
-
-    public Pay(Long id, Long amount, String txName, String txDateTime) {
-        this.id = id;
-        this.amount = amount;
-        this.txName = txName;
-        this.txDateTime = LocalDateTime.parse(txDateTime, FORMATTER);
+    public PayCopy(Pay pay) {
+        this.amount = pay.getAmount();
+        this.txName = pay.getTxName();
+        this.txDateTime = pay.getTxDateTime();
     }
 }

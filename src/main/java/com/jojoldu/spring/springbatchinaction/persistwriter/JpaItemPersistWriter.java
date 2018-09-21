@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction;
+package com.jojoldu.spring.springbatchinaction.persistwriter;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
