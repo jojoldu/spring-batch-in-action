@@ -33,15 +33,6 @@ public class JpaItemPersistWriter<T> implements ItemWriter<T>, InitializingBean 
     }
 
     /**
-     * Set the EntityManager to be used internally.
-     *
-     * @param entityManagerFactory the entityManagerFactory to set
-     */
-    public void setEntityManagerFactory(EntityManagerFactory entityManagerFactory) {
-        this.entityManagerFactory = entityManagerFactory;
-    }
-
-    /**
      * Check mandatory properties - there must be an entityManagerFactory.
      */
     @Override
@@ -70,7 +61,7 @@ public class JpaItemPersistWriter<T> implements ItemWriter<T>, InitializingBean 
      * Do perform the actual write operation. This can be overridden in a
      * subclass if necessary.
      *
-     * @param entityInformation
+     * @param entityInformation the entityInformation to use for the check new entity
      * @param entityManager     the EntityManager to use for the operation
      * @param items             the list of items to use for the write
      */
