@@ -1,7 +1,6 @@
 package com.jojoldu.spring.springbatchinaction.writer;
 
 import com.jojoldu.spring.springbatchinaction.reader.jdbc.Pay;
-import com.jojoldu.spring.springbatchinaction.reader.jdbc.Pay2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -45,7 +44,7 @@ public class JdbcBatchItemWriterJobConfiguration {
     @Bean
     public Step jdbcBatchItemWriterStep() {
         return stepBuilderFactory.get("jdbcBatchItemWriterStep")
-                .<Pay, Pay2>chunk(chunkSize)
+                .<Pay, Pay>chunk(chunkSize)
                 .reader(jdbcBatchItemWriterReader())
                 .writer(jdbcBatchItemWriter())
                 .build();
@@ -65,10 +64,10 @@ public class JdbcBatchItemWriterJobConfiguration {
     /**
      * reader에서 넘어온 데이터를 하나씩 출력하는 writer
      */
-    private JdbcBatchItemWriter<Pay2> jdbcBatchItemWriter() {
-        return new JdbcBatchItemWriterBuilder<Pay2>()
+    private JdbcBatchItemWriter<Pay> jdbcBatchItemWriter() {
+        return new JdbcBatchItemWriterBuilder<Pay>()
                 .dataSource(dataSource)
-                .sql("insert into Pay2(amount, tx_name, tx_date_time) values (:amount, :txName, :txDateTime)")
+                .sql("insert into pay2(amount, tx_name, tx_date_time) values (:amount, :txName, :txDateTime)")
                 .beanMapped()
                 .build();
     }
