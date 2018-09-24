@@ -80,6 +80,10 @@ Spring MVC는 자료가 정말 많지만 Batch는 너무 없어서 정리도 할
     * Listeners
 * runid
 * 테스트 코드
+* Multi DataSource
+    * Multi Datasource
+    * Multi EntityManager
+    * Multi TxManaer
 * Batch 스케줄링은 어떻게? (젠킨스)
 
 

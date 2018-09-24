@@ -76,24 +76,103 @@ ORM을 사용하지 않는 경우 Writer는 대부분 JdbcBatchItemWriter를 사
 
 > [JdbcTemplate.batchUpdate](https://docs.spring.io/spring/docs/3.0.0.M4/reference/html/ch12s04.html)의 공식 문서 내용을 참고하시면 같은 내용을 알 수 있습니다.
 
-* 업데이트를 일괄 처리로 그룹화하면 
+* 업데이트를 일괄 처리로 그룹화하면 데이터베이스와 어플리케이션간 왕복 횟수가 줄어들어 성능이 향상 됩니다.
 
 실제로 JdbcBatchItemWriter의 ```write()```를 확인해보시면 일괄처리 하는 것을 확인할 수 있습니다.
 
 ![jdbcwrite](./images/8/jdbcwrite.png)
 
-JdbcBatchItemWriter의 샘플 코드
+그럼 ```JdbcBatchItemWriter```로 간단한 배치를 하나 작성해보겠습니다.
 
 ```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class JdbcBatchItemWriterJobConfiguration {
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final DataSource dataSource; // DataSource DI
+
+    private static final int chunkSize = 10;
+
+    @Bean
+    public Job jdbcBatchItemWriterJob() {
+        return jobBuilderFactory.get("jdbcBatchItemWriterJob")
+                .start(jdbcBatchItemWriterStep())
+                .build();
+    }
+
+    @Bean
+    public Step jdbcBatchItemWriterStep() {
+        return stepBuilderFactory.get("jdbcBatchItemWriterStep")
+                .<Pay, Pay>chunk(chunkSize)
+                .reader(jdbcBatchItemWriterReader())
+                .writer(jdbcBatchItemWriter())
+                .build();
+    }
+
+    @Bean
+    public JdbcCursorItemReader<Pay> jdbcBatchItemWriterReader() {
+        return new JdbcCursorItemReaderBuilder<Pay>()
+                .fetchSize(chunkSize)
+                .dataSource(dataSource)
+                .rowMapper(new BeanPropertyRowMapper<>(Pay.class))
+                .sql("SELECT id, amount, tx_name, tx_date_time FROM pay")
+                .name("jdbcBatchItemWriter")
+                .build();
+    }
+
+    /**
+     * reader에서 넘어온 데이터를 하나씩 출력하는 writer
+     */
+    @Bean // beanMapped()을 사용할때는 필수
+    public JdbcBatchItemWriter<Pay> jdbcBatchItemWriter() {
+        return new JdbcBatchItemWriterBuilder<Pay>()
+                .dataSource(dataSource)
+                .sql("insert into pay2(amount, tx_name, tx_date_time) values (:amount, :txName, :txDateTime)")
+                .beanMapped()
+                .build();
+    }
+}
 
 ```
 
+대부분의 코드는 [Reader 쳅터](https://jojoldu.tistory.com/336)때 사용한 코드와 비슷합니다.  
+JdbcBatchItemWriterBuilder를 사용하는 코드만 조금 다르기 때문에 조금 자세히 설명드리겠습니다.  
+  
+JdbcBatchItemWriterBuilder는 다음과 같은 설정값을 갖고 있습니다
 
-|  Property     |  Type     |  설명   |
+|  Property     |  Parameter Type     |  설명   |
 |  ---                          |  ---                              |  ---  |
-| assertUpdates                 | boolean |  적어도 하나의 항목이 행을 업데이트하거나 삭제하지 않을 경우 예외를 throw할지 여부. 기본값은 true입니다. Exception:EmptyResultDataAccessException     | 
-| itemPreparedStatementSetter   | ItemPreparedStatementSetter<T> | SQL 문 매개 변수 값은? 위치 매개 변수 표시 자      |
-| ItemSqlParameterSource        | ItemSqlParameterSourceProvider<T>   | 명명 된 매개 변수의 SQL 문 매개 변수 값      |
+| assertUpdates                 | boolean |  적어도 하나의 항목이 행을 업데이트하거나 삭제하지 않을 경우 예외를 throw할지 여부를 설정합니다. 기본값은 ```true```입니다. Exception:```EmptyResultDataAccessException```     | 
+| columnMapped        | 없음 | Key,Value 기반으로 Insert SQL의 Values를 매핑합니다 (ex: ```Map<String, Object>```)      |
+| beanMapped        | 없음  | Pojo 기반으로 Insert SQL의 Values를 매핑합니다      |
+
+여기서 ```columnMapped```과 ```beanMapped```의 차이가 궁금하실것 같습니다.
+예를 들면 위 예제는 ```beanMapped```로 작성되었습니다.  
+만약 위 예제를 ```columnMapped``` 로 변경하면 다음과 같은 코드가 됩니다.
+
+```java
+
+new JdbcBatchItemWriterBuilder<Map<String, Object>>() // Map 사용
+				.columnMapped()
+				.dataSource(this.dataSource)
+				.sql("insert into pay2(amount, tx_name, tx_date_time) values (:amount, :txName, :txDateTime)")
+				.build();
+
+```
+
+차이는 간단합니다. Reader에서 Writer로 넘겨주는 타입이 ```Map<String, Object>``` 냐, ```Pay.class```와 같은 Pojo 타입이냐 입니다.  
+  
+그 외 궁금해 하실만한 것은 ```values(:field)```일 것 같습니다.  
+이 값의 경우 **Dto의 Getter 혹은 Map의 Key**에 매핑되어 값이 할당 됩니다.
+  
+추가로 JdbcBatchItemWriterBuilder가 아닌 ```JdbcBatchItemWriter```의 설정에서 주의하실게 하나 있습니다.
+
+* JdbcBatchItemWriter의 제네릭 타입은 **Reader에서 넘겨주는 값의 타입**입니다.
+
+Spring Batch를 처음 쓰시는 분들이 자주 오해하시는게 이 부분입니다.  
+위 코드에서도 나와있지만, **Pay2 테이블에 데이터를 넣은 Writer이지만 선언된 제네릭 타입은 Reader에서 넘겨준 Pay클래스**입니다.  
 
 
 
