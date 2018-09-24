@@ -64,7 +64,8 @@ public class JdbcBatchItemWriterJobConfiguration {
     /**
      * reader에서 넘어온 데이터를 하나씩 출력하는 writer
      */
-    private JdbcBatchItemWriter<Pay> jdbcBatchItemWriter() {
+    @Bean // beanMapped()을 사용할때는 필수
+    public JdbcBatchItemWriter<Pay> jdbcBatchItemWriter() {
         return new JdbcBatchItemWriterBuilder<Pay>()
                 .dataSource(dataSource)
                 .sql("insert into pay2(amount, tx_name, tx_date_time) values (:amount, :txName, :txDateTime)")

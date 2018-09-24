@@ -44,7 +44,7 @@ public class JdbcBatchItemWriterJobConfigurationTest {
     @Autowired
     private Pay2Repository pay2Repository;
 
-
+    @SuppressWarnings("Duplicates")
     @Test
     public void JdbcItemWriter테스트() throws Exception {
         //given

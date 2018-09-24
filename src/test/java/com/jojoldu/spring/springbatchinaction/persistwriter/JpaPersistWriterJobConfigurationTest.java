@@ -43,7 +43,6 @@ public class JpaPersistWriterJobConfigurationTest {
     @Autowired
     private PayCopyRepository payCopyRepository;
 
-
     @Test
     public void persistTest() throws Exception {
         //given
