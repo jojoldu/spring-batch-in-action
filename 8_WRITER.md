@@ -172,13 +172,85 @@ new JdbcBatchItemWriterBuilder<Map<String, Object>>() // Map 사용
 * JdbcBatchItemWriter의 제네릭 타입은 **Reader에서 넘겨주는 값의 타입**입니다.
 
 Spring Batch를 처음 쓰시는 분들이 자주 오해하시는게 이 부분입니다.  
-위 코드에서도 나와있지만, **Pay2 테이블에 데이터를 넣은 Writer이지만 선언된 제네릭 타입은 Reader에서 넘겨준 Pay클래스**입니다.  
+위 코드에서도 나와있지만, **Pay2 테이블에 데이터를 넣은 Writer이지만 선언된 제네릭 타입은 Reader/Processor에서 넘겨준 Pay클래스**입니다.  
+  
+이외에도 추가로 아셔야할 메소드는 ```afterPropertiesSet``` 정도가 있습니다.  
+이 메소드는 ```InitializingBean``` 인터페이스 에서 갖고 있는 메소드입니다.  
+JdbcBatchItemWriter, JpaItemWriter등 ItemWriter의 구현체들은 모두 ```InitializingBean``` 인터페이스를 구현하고 있는데요.  
+여기서 ```afterPropertiesSet```가 하는 일은 각각의 Writer들이 실행되기 위해 필요한 필수값들이 제대로 세팅되어있는지를 체크합니다.
 
+![afterpropertiesset1](./images/8/afterpropertiesset1.png)
 
+Writer를 생성하시고 위 메소드를 그 아래에서 바로 실행해보시면 어느 값이 누락되었는지 명확하게 인지할 수 있어서 많이들 사용하는 옵션입니다.
 
 ## 8-4. JpaItemWriter
 
-## Custom ItemWriter
+```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class JpaItemWriterJobConfiguration {
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory entityManagerFactory;
+    
+    private static final int chunkSize = 10;
+
+    @Bean
+    public Job jpaItemWriterJob() {
+        return jobBuilderFactory.get("jpaItemWriterJob")
+                .start(jpaItemWriterStep())
+                .build();
+    }
+
+    @Bean
+    public Step jpaItemWriterStep() {
+        return stepBuilderFactory.get("jpaItemWriterStep")
+                .<Pay, Pay2>chunk(chunkSize)
+                .reader(jpaItemWriterReader())
+                .processor(jpaItemProcessor())
+                .writer(jpaItemWriter())
+                .build();
+    }
+
+    @Bean
+    public JpaPagingItemReader<Pay> jpaItemWriterReader() {
+        return new JpaPagingItemReaderBuilder<Pay>()
+                .name("jpaItemWriterReader")
+                .entityManagerFactory(entityManagerFactory)
+                .pageSize(chunkSize)
+                .queryString("SELECT p FROM Pay p")
+                .build();
+    }
+
+    @Bean
+    public ItemProcessor<Pay, Pay2> jpaItemProcessor() {
+        return pay -> new Pay2(pay.getAmount(), pay.getTxName(), pay.getTxDateTime());
+    }
+
+    @Bean
+    public JpaItemWriter<Pay2> jpaItemWriter() {
+        JpaItemWriter<Pay2> jpaItemWriter = new JpaItemWriter<>();
+        jpaItemWriter.setEntityManagerFactory(entityManagerFactory);
+        return jpaItemWriter;
+    }
+}
+```
+
+JdbcBatchItemWriter와 달리 processor가 추가 되었습니다.  
+이유는 Pay Entity를 읽어서 Writer에는 Pay2 Entity를 전달해주기 위함입니다.  
+**Reader에서 읽은 데이터를 가공해야할때 Processor가 필요**합니다.  
+JpaItemWriter는 JdbcBatchItemWriter와 달리 넘어온 Entity를 데이터베이스에 반영합니다.  
+
+즉, JpaItemWriter는 **Entity 클래스를 제네릭 타입으로 받아야만 합니다**.  
+JdbcBatchItemWriter의 경우 DTO 클래스를 받더라도 ```sql```로 지정된 쿼리가 실행되니 문제가 없지만, JpaItemWriter 는 넘어온 Item을 그대로 ```entityManger.merge()```로 테이블에 반영을 하기 때문입니다.
+
+![dowrite](./images/8/dowrite.png)
+
+![afterpropertiesset2](./images/8/afterpropertiesset2.png)
+
+
+## 8-5. Custom ItemWriter
 
 Reader와 달리 Writer의 경우 Custom하게 구현해야할 일이 많습니다.
 

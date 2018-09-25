@@ -46,7 +46,7 @@ public class JpaItemWriterJobConfigurationTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void JdbcItemWriter테스트() throws Exception {
+    public void JpaItemWriter테스트() throws Exception {
         //given
         for(long i=0;i<10;i++) {
             payRepository.save(new Pay(i*100, String.valueOf(i), LocalDateTime.now()));
