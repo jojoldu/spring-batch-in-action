@@ -185,6 +185,11 @@ Writer를 생성하시고 위 메소드를 그 아래에서 바로 실행해보�
 
 ## 8-4. JpaItemWriter
 
+두번째로 알아볼 Writer는 ORM을 사용할 수 있는 ```JpaItemWriter```입니다.  
+Writer에 전달하는 데이터가 Entity 클래스라면 JpaItemWriter를 사용하시면 됩니다.  
+  
+바로 샘플 코드로 가보겠습니다.
+
 ```java
 @Slf4j
 @RequiredArgsConstructor
@@ -237,26 +242,54 @@ public class JpaItemWriterJobConfiguration {
 }
 ```
 
-JdbcBatchItemWriter와 달리 processor가 추가 되었습니다.  
-이유는 Pay Entity를 읽어서 Writer에는 Pay2 Entity를 전달해주기 위함입니다.  
-**Reader에서 읽은 데이터를 가공해야할때 Processor가 필요**합니다.  
-JpaItemWriter는 JdbcBatchItemWriter와 달리 넘어온 Entity를 데이터베이스에 반영합니다.  
+JpaItemWriter는 JPA를 사용하기 때문에 영속성 관리를 위해 EntityManager를 할당해줘야 합니다.  
 
+> 일반적으로 ```spring-boot-starter-data-jpa```를 의존성에 등록하면 Entity Manager가 Bean으로 자동생성되어 DI 코드만 추가해주시면 됩니다.  
+
+대신 **필수로 설정해야할 값이 EntityManager뿐**입니다.  
+JdbcBatchItemWriter에 비해 필수값이 Entity Manager 뿐이라 체크할 요소가 적다는 것이 장점아닌 장점입니다.
+
+![afterpropertiesset2](./images/8/afterpropertiesset2.png)
+
+(필수값 체크 메소드인 ```afterPropertiesSet```)  
+  
+EntityManager만 ```set``` 하면 모든 설정은 끝납니다.  
+  
+다만 여기서는 JdbcBatchItemWriter와 달리 processor가 추가 되었습니다.  
+이유는 Pay Entity를 읽어서 Writer에는 Pay2 Entity를 전달해주기 위함입니다.  
+
+> Reader에서 읽은 데이터를 가공해야할 때 Processor가 필요합니다.  
+
+JpaItemWriter는 JdbcBatchItemWriter와 달리 **넘어온 Entity를 데이터베이스에 반영**합니다.  
+  
 즉, JpaItemWriter는 **Entity 클래스를 제네릭 타입으로 받아야만 합니다**.  
 JdbcBatchItemWriter의 경우 DTO 클래스를 받더라도 ```sql```로 지정된 쿼리가 실행되니 문제가 없지만, JpaItemWriter 는 넘어온 Item을 그대로 ```entityManger.merge()```로 테이블에 반영을 하기 때문입니다.
 
 ![dowrite](./images/8/dowrite.png)
 
-![afterpropertiesset2](./images/8/afterpropertiesset2.png)
+(```JpaItemWriter.doWrite()```)  
+  
 
+> 참고로 여기서 나오는 merge는 Insert & Update가 함께 이루어지는 기능이라고 보시면 됩니다.  
+merge이기 때문에 항상 내부적으로 **Insert와 Update 쿼리가 같이 발생**합니다.  
+그러다보니 Insert만 필요한 배치에서는 성능상 이슈가 발생합니다.  
+이 문제의 해결책은 아래 8-6. 주의사항에 자세하게 기록했으니 참고하시면 됩니다.
+
+이렇게만 설정하시면 JpaItemWriter의 사용법은 끝입니다.  
+실제로 실행해보시면 정상적으로 결과가 나오는것을 확인할 수 있습니다.
 
 ## 8-5. Custom ItemWriter
 
 Reader와 달리 Writer의 경우 Custom하게 구현해야할 일이 많습니다.
 
 > 물론 Reader 역시 조회용 프레임워크를 어떤걸 쓰는지에 따라 Reader를 Custom 하게 구현해야할 수도 있습니다.  
-예를 들면 Querydsl용 ItemReader를 만든다거나, JOOQ용 ItemReader를 만드는 등이 있을 수 있습니다.
+예를 들면 Querydsl기반의 ItemReader를 만든다거나, Jooq 기반의 ItemReader를 만드는 등이 있을 수 있습니다.
 
-## 주의 사항
+예를 들어 다음과 같은 경우가 있습니다.
+
+* Reader에서 읽어온 데이터를 RestTemplate으로 외부 API로 전달해야할때
+* 임시저장을 하고 비교하기 위해 Si
+
+## 8-6. 주의 사항
 
 * [Writer에 List형 Item을 전달하고 싶을때](https://jojoldu.tistory.com/140)
