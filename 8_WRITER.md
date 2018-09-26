@@ -65,7 +65,7 @@ Writer가 받은 모든 Item이 처리 된 후, Spring Batch는 현재 트랜잭
 ## 8-3. JdbcBatchItemWriter
 
 ORM을 사용하지 않는 경우 Writer는 대부분 JdbcBatchItemWriter를 사용합니다.  
-이 JdbcBatchItemWriter는 아래 그림과 같이 JDBC의 일괄 처리 기능을 사용하여 한번에 Database로 전달하여 Database 내부에서 쿼리들이 실행되도록 합니다.
+이 JdbcBatchItemWriter는 아래 그림과 같이 **JDBC의 Batch 기능을 사용하여 한번에 Database로 전달하여 Database 내부에서 쿼리들이 실행**되도록 합니다.
 
 ![jdbcwrite-flow](./images/8/jdbcwrite-flow.png)
 
@@ -286,13 +286,85 @@ Reader와 달리 Writer의 경우 Custom하게 구현해야할 일이 많습니�
 * 여러 Entity를 동시에 save 해야할때
 
 등등 여러 상황이 있습니다.  
-이렇게 Spring Batch에서   
+이렇게 Spring Batch에서 공식적으로 지원하지 않는 Writer를 사용하고 싶을때 **ItemWriter인터페이스를 구현**하시면 됩니다.  
+  
+아래는 processor에서 넘어온 데이터를 ```System.out.println``` 으로 출력하는 Writer를 만든 경우입니다.
 
+```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class CustomItemWriterJobConfiguration {
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory entityManagerFactory;
+    
+    private static final int chunkSize = 10;
+
+    @Bean
+    public Job customItemWriterJob() {
+        return jobBuilderFactory.get("customItemWriterJob")
+                .start(customItemWriterStep())
+                .build();
+    }
+
+    @Bean
+    public Step customItemWriterStep() {
+        return stepBuilderFactory.get("customItemWriterStep")
+                .<Pay, Pay2>chunk(chunkSize)
+                .reader(customItemWriterReader())
+                .processor(customItemWriterProcessor())
+                .writer(customItemWriter())
+                .build();
+    }
+
+    @Bean
+    public JpaPagingItemReader<Pay> customItemWriterReader() {
+        return new JpaPagingItemReaderBuilder<Pay>()
+                .name("customItemWriterReader")
+                .entityManagerFactory(entityManagerFactory)
+                .pageSize(chunkSize)
+                .queryString("SELECT p FROM Pay p")
+                .build();
+    }
+
+    @Bean
+    public ItemProcessor<Pay, Pay2> customItemWriterProcessor() {
+        return pay -> new Pay2(pay.getAmount(), pay.getTxName(), pay.getTxDateTime());
+    }
+
+    @Bean
+    public ItemWriter<Pay2> customItemWriter() {
+        return new ItemWriter<Pay2>() {
+            @Override
+            public void write(List<? extends Pay2> items) throws Exception {
+                for (Pay2 item : items) {
+                    System.out.println(item);
+                }
+            }
+        };
+    }
+}
+```
+
+보시는것처럼 ```write()```만 ```@Override``` 하시면 구현체 생성은 끝납니다.  
+위 코드는 Java7 이하일 경우 사용하시면 되지만, Java8 이상을 사용하시는 경우 아래처럼 람다식을 사용하시면 더욱 깔끔하게 구현할 수 있습니다.
+
+```java
+   @Bean
+   public ItemWriter<Pay2> customItemWriter() {
+       return items -> {
+           for (Pay2 item : items) {
+               System.out.println(item);
+           }
+       };
+   }
+```
 
 
 ## 8-6. 주의 사항
 
-ItemWriter를 사용할 때 Processor에서 Writer에 List를 전달하고 싶을때가 있습니다.  
+ItemWriter를 사용할 때 **Processor에서 Writer에 List를 전달**하고 싶을때가 있습니다.  
 이때 ItemWriter의 제네릭을 List로 선언해서는 문제를 해결할 수 없는데요.  
 해결할 수 있는 방법을 아래 링크에 상세하게 작성했으니 참고하시면 좋을것 같습니다.
 
