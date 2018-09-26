@@ -1,13 +1,10 @@
 # 8. Writer
 
-앞서 Reader에 대해서 배웠습니다.  
+앞 시간에 Reader에 대해서 배웠습니다.  
 Writer는 Reader, Prcessor와 함께 ChunkOrientedTasklet을 구성하는 3 요소입니다.  
-여기서 Processor가 아닌 Writer를 우선 선택한 이유가 궁금 하실수 있습니다.  
+여기서 Processor가 아닌 Writer를 우선 선택한 이유는 **Processor는 선택**이기 때문입니다.  Processor는 없어도 ChunkOrientedTasklet는 구성할 수 있습니다.
+반면 Reader와 Writer는 ChunkOrientedTasklet에서 필수 요소입니다.  
   
-이유는 **Processor는 선택**이기 때문입니다.  
-Reader와 Writer는 ChunkOrientedTasklet에서 필수 요소입니다.  
-  
-하지만 Processor는 없어도 ChunkOrientedTasklet는 구성할 수 있습니다.  
 그래서 Writer를 먼저 다뤄보겠습니다.  
   
 ## 8-1. ItemWriter 소개
@@ -255,7 +252,7 @@ JdbcBatchItemWriter에 비해 필수값이 Entity Manager 뿐이라 체크할 �
   
 EntityManager만 ```set``` 하면 모든 설정은 끝납니다.  
   
-다만 여기서는 JdbcBatchItemWriter와 달리 processor가 추가 되었습니다.  
+여기서 한가지 JdbcBatchItemWriter와 다른것이 있다면 processor가 추가 되었습니다.  
 이유는 Pay Entity를 읽어서 Writer에는 Pay2 Entity를 전달해주기 위함입니다.  
 
 > Reader에서 읽은 데이터를 가공해야할 때 Processor가 필요합니다.  
@@ -270,13 +267,10 @@ JdbcBatchItemWriter의 경우 DTO 클래스를 받더라도 ```sql```로 지정�
 (```JpaItemWriter.doWrite()```)  
   
 
-> 참고로 여기서 나오는 merge는 Insert & Update가 함께 이루어지는 기능이라고 보시면 됩니다.  
-merge이기 때문에 항상 내부적으로 **Insert와 Update 쿼리가 같이 발생**합니다.  
-그러다보니 Insert만 필요한 배치에서는 성능상 이슈가 발생합니다.  
-이 문제의 해결책은 아래 8-6. 주의사항에 자세하게 기록했으니 참고하시면 됩니다.
-
 이렇게만 설정하시면 JpaItemWriter의 사용법은 끝입니다.  
 실제로 실행해보시면 정상적으로 결과가 나오는것을 확인할 수 있습니다.
+
+![jpaitemwriter-result](./images/8/jpaitemwriter-result.png)
 
 ## 8-5. Custom ItemWriter
 
@@ -288,8 +282,18 @@ Reader와 달리 Writer의 경우 Custom하게 구현해야할 일이 많습니�
 예를 들어 다음과 같은 경우가 있습니다.
 
 * Reader에서 읽어온 데이터를 RestTemplate으로 외부 API로 전달해야할때
-* 임시저장을 하고 비교하기 위해 Si
+* 임시저장을 하고 비교하기 위해 싱글톤 객체에 값을 넣어야할때
+* 여러 Entity를 동시에 save 해야할때
+
+등등 여러 상황이 있습니다.  
+이렇게 Spring Batch에서   
+
+
 
 ## 8-6. 주의 사항
+
+ItemWriter를 사용할 때 Processor에서 Writer에 List를 전달하고 싶을때가 있습니다.  
+이때 ItemWriter의 제네릭을 List로 선언해서는 문제를 해결할 수 없는데요.  
+해결할 수 있는 방법을 아래 링크에 상세하게 작성했으니 참고하시면 좋을것 같습니다.
 
 * [Writer에 List형 Item을 전달하고 싶을때](https://jojoldu.tistory.com/140)

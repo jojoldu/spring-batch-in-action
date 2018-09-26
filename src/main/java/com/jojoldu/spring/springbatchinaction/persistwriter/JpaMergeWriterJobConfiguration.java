@@ -8,6 +8,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
@@ -16,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 import javax.persistence.EntityManagerFactory;
 
 /**
- * Created by jojoldu@gmail.com on 20/08/2018
+ * Created by jojoldu@gmail.com on 26/09/2018
  * Blog : http://jojoldu.tistory.com
  * Github : https://github.com/jojoldu
  */
@@ -24,8 +25,8 @@ import javax.persistence.EntityManagerFactory;
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
-public class JpaPersistWriterJobConfiguration {
-    public static final String JOB_NAME = "jpaPersistWriterJob";
+public class JpaMergeWriterJobConfiguration {
+    public static final String JOB_NAME = "jpaMergeWriterJob";
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final EntityManagerFactory entityManagerFactory;
@@ -33,24 +34,24 @@ public class JpaPersistWriterJobConfiguration {
     private int chunkSize = 10;
 
     @Bean
-    public Job jpaPersistWriterJob() {
+    public Job jpaMergeWriterJob() {
         return jobBuilderFactory.get(JOB_NAME)
-                .start(jpaPersistWriterStep())
+                .start(jpaMergeWriterStep())
                 .build();
     }
 
     @Bean
-    public Step jpaPersistWriterStep() {
+    public Step jpaMergeWriterStep() {
         return stepBuilderFactory.get(JOB_NAME+"Step")
                 .<Pay, PayCopy>chunk(chunkSize)
-                .reader(jpaPersistReader())
-                .processor(jpaPersistProcessor())
-                .writer(jpaPersistWriter())
+                .reader(jpaMergeReader())
+                .processor(jpaMergeProcessor())
+                .writer(jpaMergeWriter())
                 .build();
     }
 
     @Bean(name = JOB_NAME+"Reader")
-    public JpaPagingItemReader<Pay> jpaPersistReader() {
+    public JpaPagingItemReader<Pay> jpaMergeReader() {
         return new JpaPagingItemReaderBuilder<Pay>()
                 .name(JOB_NAME+"Reader")
                 .entityManagerFactory(entityManagerFactory)
@@ -59,12 +60,14 @@ public class JpaPersistWriterJobConfiguration {
                 .build();
     }
 
-    private ItemProcessor<Pay, PayCopy> jpaPersistProcessor() {
+    private ItemProcessor<Pay, PayCopy> jpaMergeProcessor() {
         return PayCopy::new;
     }
 
-    private JpaItemPersistWriter<PayCopy> jpaPersistWriter() {
-        return new JpaItemPersistWriter<>(PayCopy.class, entityManagerFactory);
+    private JpaItemWriter<PayCopy> jpaMergeWriter() {
+        JpaItemWriter<PayCopy> jpaItemWriter = new JpaItemWriter<>();
+        jpaItemWriter.setEntityManagerFactory(entityManagerFactory);
+        return jpaItemWriter;
     }
 
 }
