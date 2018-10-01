@@ -1,4 +1,4 @@
-# 8. Writer
+# 8. ItemWriter
 
 앞 시간에 Reader에 대해서 배웠습니다.  
 Writer는 Reader, Prcessor와 함께 ChunkOrientedTasklet을 구성하는 3 요소입니다.  
