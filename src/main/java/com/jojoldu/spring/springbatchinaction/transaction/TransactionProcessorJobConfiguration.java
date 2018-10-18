@@ -6,6 +6,7 @@ package com.jojoldu.spring.springbatchinaction.transaction;
  * Github : https://github.com/jojoldu
  */
 
+import com.jojoldu.spring.springbatchinaction.transaction.domain.ClassInformation;
 import com.jojoldu.spring.springbatchinaction.transaction.domain.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +53,7 @@ public class TransactionProcessorJobConfiguration {
     @JobScope
     public Step step() {
         return stepBuilderFactory.get(BEAN_PREFIX + "step")
-                .<Teacher, Teacher>chunk(chunkSize)
+                .<Teacher, ClassInformation>chunk(chunkSize)
                 .reader(reader())
                 .processor(processor())
                 .writer(writer())
@@ -70,19 +71,15 @@ public class TransactionProcessorJobConfiguration {
                 .build();
     }
 
-    @Bean
-    public ItemProcessor<Teacher, Teacher> processor() {
-        return teacher -> {
-            log.info("teacher={}, student Size={}", teacher.getName(), teacher.getStudents().size());
-            return teacher;
-        };
+    public ItemProcessor<Teacher, ClassInformation> processor() {
+        return teacher -> new ClassInformation(teacher.getName(), teacher.getStudents().size());
     }
 
-    private ItemWriter<Teacher> writer() {
+    private ItemWriter<ClassInformation> writer() {
         return items -> {
             log.info(">>>>>>>>>>> Item Write");
-            for (Teacher item : items) {
-                log.info(item.getName());
+            for (ClassInformation item : items) {
+                log.info("반 정보= {}", item);
             }    
         };
     }

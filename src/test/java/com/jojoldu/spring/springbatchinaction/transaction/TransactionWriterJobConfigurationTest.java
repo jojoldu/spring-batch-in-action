@@ -27,10 +27,10 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-public class TransactionProcessorJobConfigurationTest {
+public class TransactionWriterJobConfigurationTest {
 
     @Autowired
-    @Qualifier(TransactionProcessorJobConfiguration.JOB_NAME)
+    @Qualifier(TransactionWriterJobConfiguration.JOB_NAME)
     private Job job;
 
     @Autowired
@@ -41,7 +41,7 @@ public class TransactionProcessorJobConfigurationTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void Processor트랜잭션테스트() throws Exception {
+    public void Writer트랜잭션테스트() throws Exception {
         //given
         for(long i=0;i<10;i++) {
             String teacherName = i + "선생님";
