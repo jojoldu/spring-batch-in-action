@@ -1,7 +1,7 @@
 package com.jojoldu.spring.springbatchinaction.processor;
 
 /**
- * Created by jojoldu@gmail.com on 2018. 10. 1.
+ * Created by jojoldu@gmail.com on 2018. 10. 18.
  * Blog : http://jojoldu.tistory.com
  * Github : https://github.com/jojoldu
  */
@@ -14,7 +14,6 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
@@ -28,9 +27,9 @@ import javax.persistence.EntityManagerFactory;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-public class ProcessorNullJobConfiguration {
+public class ProcessorConvertJobConfiguration {
 
-    public static final String JOB_NAME = "processorNullBatch";
+    public static final String JOB_NAME = "processorConvertBatch";
     public static final String BEAN_PREFIX = JOB_NAME + "_";
 
     private final JobBuilderFactory jobBuilderFactory;
@@ -43,7 +42,6 @@ public class ProcessorNullJobConfiguration {
     @Bean(JOB_NAME)
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
-                .incrementer(new RunIdIncrementer())
                 .start(step())
                 .build();
     }
@@ -52,7 +50,7 @@ public class ProcessorNullJobConfiguration {
     @JobScope
     public Step step() {
         return stepBuilderFactory.get(BEAN_PREFIX + "step")
-                .<Teacher, Teacher>chunk(chunkSize)
+                .<Teacher, String>chunk(chunkSize)
                 .reader(reader())
                 .processor(processor())
                 .writer(writer())
@@ -69,26 +67,15 @@ public class ProcessorNullJobConfiguration {
                 .build();
     }
 
-    @Bean
-    public ItemProcessor<Teacher, Teacher> processor() {
-        return teacher -> {
-
-            boolean isIgnoreTarget = teacher.getId() % 2 == 0L;
-            if(isIgnoreTarget){
-                log.info(">>>>>>>>> teacher name={}, isIgnoreTarget={}", teacher.getName(), isIgnoreTarget);
-                return null;
-            }
-
-            return teacher;
-        };
+    public ItemProcessor<Teacher, String> processor() {
+        return Teacher::getName;
     }
 
-    private ItemWriter<Teacher> writer() {
+    private ItemWriter<String> writer() {
         return items -> {
-            for (Teacher item : items) {
-                log.info("Teacher Name={}", item.getName());
+            for (String item : items) {
+                log.info("Teacher Name={}", item);
             }
         };
     }
-
 }

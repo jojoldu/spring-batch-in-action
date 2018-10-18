@@ -20,17 +20,17 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 /**
- * Created by jojoldu@gmail.com on 20/08/2018
+ * Created by jojoldu@gmail.com on 18/10/2018
  * Blog : http://jojoldu.tistory.com
  * Github : https://github.com/jojoldu
  */
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-public class ProcessorNullJobConfigurationTest {
+public class ProcessorConvertJobConfigurationTest {
 
     @Autowired
-    @Qualifier(ProcessorNullJobConfiguration.JOB_NAME)
+    @Qualifier(ProcessorConvertJobConfiguration.JOB_NAME)
     private Job job;
 
     @Autowired
@@ -41,7 +41,7 @@ public class ProcessorNullJobConfigurationTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void Process에서_NULL을_반환하면_Writer로_전달되지않는다() throws Exception {
+    public void Process에서는_Reader에서_읽은_데이터를_원하는형태로_변환하여_Writer로_전달한다() throws Exception {
         //given
         for(long i=0;i<10;i++) {
             String teacherName = i + "선생님";
