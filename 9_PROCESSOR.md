@@ -21,10 +21,13 @@ ItemProcessor는 데이터를 가공하거나 필터링하는 역할을 합니�
 
 ## 9-1. ItemProcessor 소개
 
-![process](./images/9/process.png)
-
 ItemProcessor는 **Reader에서 넘겨준 데이터 개별건을 가공/처리**해줍니다.  
 ItemWriter에서는 ChunkSize 단위로 묶은 데이터를 한번에 처리하는 것과는 대조됩니다.  
+
+
+![process](./images/9/process.png)
+
+
 
 
 일반적으로 ItemProcessor를 사용하는 방법은 2가지 입니다.
@@ -55,7 +58,7 @@ public interface ItemProcessor<I, O> {
     * ItemWriter에 보낼 데이터 타입
 
 
-일반적으로 ItemProcessor는 다음과 같이 익명 클래스 혹은 람다식을 자주 사용합니다.  
+일반적으로 ItemProcessor는 다음과 같이 **익명 클래스 혹은 람다식을 자주 사용**합니다.  
 
 ```java
 @Bean(BEAN_PREFIX + "processor")
@@ -90,6 +93,72 @@ Spring Batch에서는 자주 사용하는 용도의 Processor를 미리 클래�
 |  ItemProcessorAdapter     |  ItemProcessor를 구현하는 데 필요하지 않은 POJO 대리자에서 사용자 지정 메서드를 호출합니다.     |
 |  ValidatingItemProcessor     |  논리를 필터링하여 Validator 객체에 위임     |
 |  CompositeItemProcessor     |  ItemProcessors 체이닝 지원     |
+
+## 변환
+
+```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class ProcessorConvertJobConfiguration {
+
+    public static final String JOB_NAME = "ProcessorConvertBatch";
+    public static final String BEAN_PREFIX = JOB_NAME + "_";
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory emf;
+
+    @Value("${chunkSize:1000}")
+    private int chunkSize;
+
+    @Bean(JOB_NAME)
+    public Job job() {
+        return jobBuilderFactory.get(JOB_NAME)
+                .incrementer(new RunIdIncrementer())
+                .start(step())
+                .build();
+    }
+
+    @Bean(BEAN_PREFIX + "step")
+    @JobScope
+    public Step step() {
+        return stepBuilderFactory.get(BEAN_PREFIX + "step")
+                .<Teacher, String>chunk(chunkSize)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
+                .build();
+    }
+
+    @Bean
+    public JpaPagingItemReader<Teacher> reader() {
+        return new JpaPagingItemReaderBuilder<Teacher>()
+                .name(BEAN_PREFIX+"reader")
+                .entityManagerFactory(emf)
+                .pageSize(chunkSize)
+                .queryString("SELECT t FROM Teacher t")
+                .build();
+    }
+
+    @Bean
+    public ItemProcessor<Teacher, String> processor() {
+        return teacher -> {
+            return teacher.getName();
+        };
+    }
+
+    private ItemWriter<String> writer() {
+        return items -> {
+            for (String item : items) {
+                log.info("Teacher Name={}", item);
+            }
+        };
+    }
+}
+```
+
+## 필터
 
 
 
