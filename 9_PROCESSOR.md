@@ -57,8 +57,13 @@ public interface ItemProcessor<I, O> {
 * O
     * ItemWriter에 보낼 데이터 타입
 
-
-일반적으로 ItemProcessor는 다음과 같이 **익명 클래스 혹은 람다식을 자주 사용**합니다.  
+그리고 구현해야할 메소드는 ```process``` 하나입니다.  
+Reader에서 읽은 데이터가 ItemProcessor의 ```process```를 통과해서 Writer에 전달됩니다.  
+  
+자바8부터는 인터페이스의 추상 메소드가 1개일 경우 **람다식을 사용**할 수 있습니다.  
+ItemProcessor 역시 ```process``` 만 있기 때문에 람다식을 사용할 수 있습니다.  
+  
+그래서 많은 배치들이 ItemProcessor를 다음과 같이 **익명 클래스 혹은 람다식을 자주 사용**합니다.  
 
 ```java
 @Bean(BEAN_PREFIX + "processor")
@@ -81,7 +86,7 @@ public ItemProcessor<ReadType, WriteType> processor() {
 
 * Batch Config 클래스 안에 포함되어 있어야만 해서 Batch Config의 코드 양이 많아질 수 있습니다.
 
-단점을 해결하기 위해 **ItemProcessor의 구현체를 직접 만들어서 사용해도 무방**합니다.  
+**ItemProcessor의 구현체를 직접 만들어서 사용해도 무방**합니다.  
 
 > 보통 코드 양이 많아지면 별도 클래스로 Processor를 분리해서 쓰기도 합니다.
   
@@ -162,11 +167,214 @@ public class ProcessorConvertJobConfiguration {
 
 
 
-## JpaItemReader 사용시 주의 사항
+```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class ProcessorNullJobConfiguration {
 
-트랜잭션 범위가 
+    public static final String JOB_NAME = "processorNullBatch";
+    public static final String BEAN_PREFIX = JOB_NAME + "_";
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory emf;
+
+    @Value("${chunkSize:1000}")
+    private int chunkSize;
+
+    @Bean(JOB_NAME)
+    public Job job() {
+        return jobBuilderFactory.get(JOB_NAME)
+                .incrementer(new RunIdIncrementer())
+                .start(step())
+                .build();
+    }
+
+    @Bean(BEAN_PREFIX + "step")
+    @JobScope
+    public Step step() {
+        return stepBuilderFactory.get(BEAN_PREFIX + "step")
+                .<Teacher, Teacher>chunk(chunkSize)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
+                .build();
+    }
+
+    @Bean
+    public JpaPagingItemReader<Teacher> reader() {
+        return new JpaPagingItemReaderBuilder<Teacher>()
+                .name(BEAN_PREFIX+"reader")
+                .entityManagerFactory(emf)
+                .pageSize(chunkSize)
+                .queryString("SELECT t FROM Teacher t")
+                .build();
+    }
+
+    @Bean
+    public ItemProcessor<Teacher, Teacher> processor() {
+        return teacher -> {
+
+            boolean isIgnoreTarget = teacher.getId() % 2 == 0L;
+            if(isIgnoreTarget){
+                log.info(">>>>>>>>> Teacher name={}, isIgnoreTarget={}", teacher.getName(), isIgnoreTarget);
+                return null;
+            }
+
+            return teacher;
+        };
+    }
+
+    private ItemWriter<Teacher> writer() {
+        return items -> {
+            for (Teacher item : items) {
+                log.info("Teacher Name={}", item.getName());
+            }
+        };
+    }
+}
+```
+
+## 트랜잭션 범위
+
+Spring Batch에서 **트랜잭션 범위는 Chunk단위** 입니다.  
+그래서 Reader에서 Entity를 반환해주었다면 **Entity간의 Lazy Loading이 가능**합니다.
+이는 Processor뿐만 아니라 Writer에서도 가능 합니다.  
+  
+실제로 가능한지 한번 테스트 해보겠습니다.
+
+### Processor
+
+```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class TransactionProcessorJobConfiguration {
+
+    public static final String JOB_NAME = "transactionProcessorBatch";
+    public static final String BEAN_PREFIX = JOB_NAME + "_";
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory emf;
+
+    @Value("${chunkSize:1000}")
+    private int chunkSize;
+
+    @Bean(JOB_NAME)
+    public Job job() {
+        return jobBuilderFactory.get(JOB_NAME)
+                .incrementer(new RunIdIncrementer())
+                .start(step())
+                .build();
+    }
+
+    @Bean(BEAN_PREFIX + "step")
+    @JobScope
+    public Step step() {
+        return stepBuilderFactory.get(BEAN_PREFIX + "step")
+                .<Teacher, ClassInformation>chunk(chunkSize)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
+                .build();
+    }
+
+
+    @Bean
+    public JpaPagingItemReader<Teacher> reader() {
+        return new JpaPagingItemReaderBuilder<Teacher>()
+                .name(BEAN_PREFIX+"reader")
+                .entityManagerFactory(emf)
+                .pageSize(chunkSize)
+                .queryString("SELECT t FROM Teacher t")
+                .build();
+    }
+
+    public ItemProcessor<Teacher, ClassInformation> processor() {
+        return teacher -> new ClassInformation(teacher.getName(), teacher.getStudents().size());
+    }
+
+    private ItemWriter<ClassInformation> writer() {
+        return items -> {
+            log.info(">>>>>>>>>>> Item Write");
+            for (ClassInformation item : items) {
+                log.info("반 정보= {}", item);
+            }    
+        };
+    }
+}
+
+```
+
+
+### Writer
+
+```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class TransactionWriterJobConfiguration {
+
+    public static final String JOB_NAME = "transactionWriterBatch";
+    public static final String BEAN_PREFIX = JOB_NAME + "_";
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory emf;
+
+    @Value("${chunkSize:1000}")
+    private int chunkSize;
+
+    @Bean(JOB_NAME)
+    public Job job() {
+        return jobBuilderFactory.get(JOB_NAME)
+                .incrementer(new RunIdIncrementer())
+                .start(step())
+                .build();
+    }
+
+    @Bean(BEAN_PREFIX + "step")
+    @JobScope
+    public Step step() {
+        return stepBuilderFactory.get(BEAN_PREFIX + "step")
+                .<Teacher, Teacher>chunk(chunkSize)
+                .reader(reader())
+                .writer(writer())
+                .build();
+    }
+
+
+    @Bean
+    public JpaPagingItemReader<Teacher> reader() {
+        return new JpaPagingItemReaderBuilder<Teacher>()
+                .name(BEAN_PREFIX+"reader")
+                .entityManagerFactory(emf)
+                .pageSize(chunkSize)
+                .queryString("SELECT t FROM Teacher t")
+                .build();
+    }
+
+    private ItemWriter<Teacher> writer() {
+        return items -> {
+            log.info(">>>>>>>>>>> Item Write");
+            for (Teacher item : items) {
+                log.info("teacher={}, student Size={}", item.getName(), item.getStudents().size());
+            }    
+        };
+    }
+}
+```
 
 ![writer트랜잭션](./images/9/writer트랜잭션.png)
 
-## 주의 사항
+
+## ItemProcessor 구현체
+
+### ItemProcessorAdapter
+
+### ValidatingItemProcessor
+
+### CompositeItemProcessor
 
