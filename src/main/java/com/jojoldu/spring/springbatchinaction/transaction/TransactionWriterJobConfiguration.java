@@ -42,7 +42,7 @@ public class TransactionWriterJobConfiguration {
     @Bean(JOB_NAME)
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
-                .incrementer(new RunIdIncrementer())
+                .preventRestart()
                 .start(step())
                 .build();
     }

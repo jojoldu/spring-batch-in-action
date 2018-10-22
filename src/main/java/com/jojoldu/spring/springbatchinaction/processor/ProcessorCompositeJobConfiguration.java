@@ -1,12 +1,11 @@
-package com.jojoldu.spring.springbatchinaction.transaction;
+package com.jojoldu.spring.springbatchinaction.processor;
 
 /**
- * Created by jojoldu@gmail.com on 2018. 10. 1.
+ * Created by jojoldu@gmail.com on 2018. 10. 18.
  * Blog : http://jojoldu.tistory.com
  * Github : https://github.com/jojoldu
  */
 
-import com.jojoldu.spring.springbatchinaction.transaction.domain.ClassInformation;
 import com.jojoldu.spring.springbatchinaction.transaction.domain.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,23 +14,25 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
+import org.springframework.batch.item.support.CompositeItemProcessor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.persistence.EntityManagerFactory;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-public class TransactionProcessorJobConfiguration {
+public class ProcessorCompositeJobConfiguration {
 
-    public static final String JOB_NAME = "transactionProcessorBatch";
+    public static final String JOB_NAME = "processorCompositeBatch";
     public static final String BEAN_PREFIX = JOB_NAME + "_";
 
     private final JobBuilderFactory jobBuilderFactory;
@@ -53,13 +54,12 @@ public class TransactionProcessorJobConfiguration {
     @JobScope
     public Step step() {
         return stepBuilderFactory.get(BEAN_PREFIX + "step")
-                .<Teacher, ClassInformation>chunk(chunkSize)
+                .<Teacher, String>chunk(chunkSize)
                 .reader(reader())
-                .processor(processor())
+                .processor(compositeProcessor())
                 .writer(writer())
                 .build();
     }
-
 
     @Bean
     public JpaPagingItemReader<Teacher> reader() {
@@ -71,17 +71,32 @@ public class TransactionProcessorJobConfiguration {
                 .build();
     }
 
-    public ItemProcessor<Teacher, ClassInformation> processor() {
-        return teacher -> new ClassInformation(teacher.getName(), teacher.getStudents().size());
+    @Bean
+    public CompositeItemProcessor compositeProcessor() {
+        List<ItemProcessor> delegates = new ArrayList<>(2);
+        delegates.add(processor1());
+        delegates.add(processor2());
+
+        CompositeItemProcessor processor = new CompositeItemProcessor<>();
+
+        processor.setDelegates(delegates);
+
+        return processor;
     }
 
-    private ItemWriter<ClassInformation> writer() {
+    public ItemProcessor<Teacher, String> processor1() {
+        return Teacher::getName;
+    }
+
+    public ItemProcessor<String, String> processor2() {
+        return name -> "안녕하세요. "+ name + "입니다.";
+    }
+
+    private ItemWriter<String> writer() {
         return items -> {
-            log.info(">>>>>>>>>>> Item Write");
-            for (ClassInformation item : items) {
-                log.info("반 정보= {}", item);
-            }    
+            for (String item : items) {
+                log.info("Teacher Name={}", item);
+            }
         };
     }
-
 }

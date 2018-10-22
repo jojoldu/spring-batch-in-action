@@ -188,7 +188,7 @@ public ItemProcessor<Teacher, String> processor() {
 ## 9-4. 필터
 
 다음으로 알아볼 예제는 **필터**입니다.  
-즉, Writer에 값을 넘길지 말지를 Processor에서 판단하는 것을 얘기합니다.  
+즉, **Writer에 값을 넘길지 말지를 Processor에서 판단하는 것**을 얘기합니다.  
 아래의 코드는 ```Teacher``` 의 id가 짝수일 경우 필터링 하는 예제입니다.
 
 ```java
@@ -282,6 +282,8 @@ public ItemProcessor<Teacher, Teacher> processor() {
 
 ![filter1](./images/9/filter1.png)
 
+이와 같은 방식으로 Writer에 넘길 데이터들을 제어할 수 있겠죠?
+
 ## 9-5. 트랜잭션 범위
 
 Spring Batch에서 **트랜잭션 범위는 Chunk단위** 입니다.  
@@ -293,7 +295,8 @@ Spring Batch에서 **트랜잭션 범위는 Chunk단위** 입니다.
 ### 9-5-1. Processor
 
 첫번째 예제는 **Processor에서의 Lazy Loading** 입니다.  
-
+  
+아래 코드는 Reader에서 ```Teacher``` Entity를 반환해, Processor에서 Entity의 하위 자식들인 ```Student```를 Lazy Loading합니다.
 
 ```java
 @Slf4j
@@ -314,7 +317,7 @@ public class TransactionProcessorJobConfiguration {
     @Bean(JOB_NAME)
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
-                .incrementer(new RunIdIncrementer())
+                .preventRestart()
                 .start(step())
                 .build();
     }
@@ -357,8 +360,27 @@ public class TransactionProcessorJobConfiguration {
 
 ```
 
+보시는것처럼 Processor 부분에서는 ```teacher.getStudents()```로 가져옵니다.
+
+```java
+    public ItemProcessor<Teacher, ClassInformation> processor() {
+        return teacher -> new ClassInformation(teacher.getName(), teacher.getStudents().size());
+    }
+```
+
+여기서 Processor가 트랜잭션 범위 밖이라면 오류가 나겠죠?  
+하지만 실제로 실행해보면!
+
+![transactionProcessor](./images/9/transactionProcessor.png)
+
+성공적으로 배치가 실행되었음을 확인할 수 있습니다.  
+즉, **Processor는 트랜잭션 범위 안이며, Entity의 Lazy Loading이 가능**하다는 것을 확인하였습니다.
 
 ### 9-5-2. Writer
+
+두번째 예제는 **Writer에서의 Lazy Loading** 입니다.  
+  
+아래 코드는 Reader에서 ```Teacher``` Entity를 반환해, Processor를 거치지 않고 Writer로 바로 넘겨 Writer에서 Entity의 하위 자식들인 ```Student```를 Lazy Loading합니다.
 
 ```java
 @Slf4j
@@ -379,7 +401,7 @@ public class TransactionWriterJobConfiguration {
     @Bean(JOB_NAME)
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
-                .incrementer(new RunIdIncrementer())
+                .preventRestart()
                 .start(step())
                 .build();
     }
@@ -416,26 +438,156 @@ public class TransactionWriterJobConfiguration {
 }
 ```
 
-![writer트랜잭션](./images/9/writer트랜잭션.png)
+이 코드 역시 실행해보면!
 
+![transactionWriter](./images/9/transactionWriter.png)
+
+Lazy Loading이 발생하는 것을 확인할 수 있습니다.  
+  
+위 2개의 테스트로 Processor와 Writer는 트랜잭션 범위 안이며, Lazy Loading이 가능하다는 것을 확인하였습니다.  
+이제는 JPA를 쓸 때 좀 더 편하게 사용할 수 있겠죠?
 
 ## 9-6. ItemProcessor 구현체
 
 Spring Batch에서는 자주 사용하는 용도의 Processor를 미리 클래스로 만들어서 제공해주고 있습니다.  
+총 3개의 클래스가 있습니다.
+
+* ItemProcessorAdapter
+* ValidatingItemProcessor
+* CompositeItemProcessor
+
+하지민 최근에는 대부분 Processor 구현을 직접 구현할때가 많고, 여차하면 람다식으로 빠르게 구현할때도 많습니다.  
+그래서 ItemProcessorAdapter, ValidatingItemProcessor는 거의 사용하지 않습니다.  
+이들의 역할은 커스텀하게 직접 구현해도 되기 때문입니다.  
+다만, CompositeItemProcessor는 간혹 필요할때가 있기 때문에 소개드립니다.  
+  
+CompositeItemProcessor는 **ItemProcessor간의 체이닝을 지원**하는 Processor라고 보시면 됩니다.  
+  
+Processor의 역할은 변환 혹은 필터라고 위에서 말씀드렸습니다.  
+하지만 이 변환이 2번 필요하면 어떻게 할까요?  
+하나의 Processor에서 모두 변환하면 될까요?  
+그럼 그 하나의 Processor의 역할이 너무나 커지지 않을까요?  
+CompositeItemProcessor는 그런 의문에서 시작되었습니다.  
+  
+아래의 예제는 ```Teacher```의 이름을 가져와 (```getName()```) 이름 앞/뒤에 문장 (```"안녕하세요. "+ name + "입니다."```)을 붙여 Writer에 전달하는 예제입니다.
 
 
-|  클래스명     |    설명   |
-|  ---  |  ---  |
-|  ItemProcessorAdapter     |  ItemProcessor를 구현하는 데 필요하지 않은 POJO 대리자에서 사용자 지정 메서드를 호출합니다.     |
-|  ValidatingItemProcessor     |  논리를 필터링하여 Validator 객체에 위임     |
-|  CompositeItemProcessor     |  ItemProcessors 체이닝 지원     |
+```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class ProcessorCompositeJobConfiguration {
+
+    public static final String JOB_NAME = "processorCompositeBatch";
+    public static final String BEAN_PREFIX = JOB_NAME + "_";
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory emf;
+
+    @Value("${chunkSize:1000}")
+    private int chunkSize;
+
+    @Bean(JOB_NAME)
+    public Job job() {
+        return jobBuilderFactory.get(JOB_NAME)
+                .preventRestart()
+                .start(step())
+                .build();
+    }
+
+    @Bean(BEAN_PREFIX + "step")
+    @JobScope
+    public Step step() {
+        return stepBuilderFactory.get(BEAN_PREFIX + "step")
+                .<Teacher, String>chunk(chunkSize)
+                .reader(reader())
+                .processor(compositeProcessor())
+                .writer(writer())
+                .build();
+    }
+
+    @Bean
+    public JpaPagingItemReader<Teacher> reader() {
+        return new JpaPagingItemReaderBuilder<Teacher>()
+                .name(BEAN_PREFIX+"reader")
+                .entityManagerFactory(emf)
+                .pageSize(chunkSize)
+                .queryString("SELECT t FROM Teacher t")
+                .build();
+    }
+
+    @Bean
+    public CompositeItemProcessor compositeProcessor() {
+        List<ItemProcessor> delegates = new ArrayList<>(2);
+        delegates.add(processor1());
+        delegates.add(processor2());
+
+        CompositeItemProcessor processor = new CompositeItemProcessor<>();
+
+        processor.setDelegates(delegates);
+
+        return processor;
+    }
+
+    public ItemProcessor<Teacher, String> processor1() {
+        return Teacher::getName;
+    }
+
+    public ItemProcessor<String, String> processor2() {
+        return name -> "안녕하세요. "+ name + "입니다.";
+    }
+
+    private ItemWriter<String> writer() {
+        return items -> {
+            for (String item : items) {
+                log.info("Teacher Name={}", item);
+            }
+        };
+    }
+}
+```
+
+> 이와 유사하게 서로 다른 클래스 타입으로 변환해도 가능합니다.
+
+CompositeItemProcessor에 ItemProcessor List인 ```delegates```을 할당만 하면 모든 구현은 끝납니다.
+
+```java
+@Bean
+public CompositeItemProcessor compositeProcessor() {
+    List<ItemProcessor> delegates = new ArrayList<>(2);
+    delegates.add(processor1());
+    delegates.add(processor2());
+
+    CompositeItemProcessor processor = new CompositeItemProcessor<>();
+
+    processor.setDelegates(delegates);
+
+    return processor;
+}
+```
+
+다만 여기서 제네릭 타입을 쓰지 못하는데요.  
+그 이유는 제네릭 타입을 쓰게 되면 ```delegates```에 포함된 **모든 ItemProcessor는 같은 제네릭 타입을 가져야**합니다.  
+  
+지금 같은 경우 processor1은 ```<Teacher, String>```을, processor2는 ```<String, String>```입니다.  
+같은 제네릭 타입을 쓰지 못하기 때문에 현재 예제는 제네릭을 사용하지 않았습니다.  
+  
+만약 같은 제네릭 타입을 쓸 수 있는 ItemProcessor간의 체이닝이라면 제네릭을 선언하는게 좀 더 안전한 코드가 될 수 있겠죠?  
+  
+자 그럼 이 코드를 한번 실행해보면!
+
+![compositeProcessor](./images/9/compositeProcessor.png)
+
+아주 잘 수행되었음을 확인할 수 있습니다.
+
+## 마무리
+
+Reader, Writer에 이어 Processor까지 모두 완료 되었습니다!  
+Processor는 크게 어려운 내용이 없으니 가볍게 훑어 보시면 될것 같습니다.  
+  
+긴 글 끝까지 봐주셔서 감사합니다!  
+그럼 다음 시간에 뵙겠습니다. :)
 
 
-> 최근에는 람다식을 많이 사용하다보니 실제로 위 Processor를 사용하는 경우는 많지 않습니다.
-> 
-### ItemProcessorAdapter
-
-### ValidatingItemProcessor
-
-### CompositeItemProcessor
 
