@@ -43,7 +43,7 @@ public class ProcessorNullJobConfigurationTest {
     @Test
     public void Process에서_NULL을_반환하면_Writer로_전달되지않는다() throws Exception {
         //given
-        for(long i=0;i<10;i++) {
+        for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";
             Teacher teacher = new Teacher(teacherName, "수학");
             Student student = new Student(teacherName+"의 제자");

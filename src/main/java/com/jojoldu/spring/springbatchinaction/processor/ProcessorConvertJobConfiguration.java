@@ -42,6 +42,7 @@ public class ProcessorConvertJobConfiguration {
     @Bean(JOB_NAME)
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
+                .preventRestart()
                 .start(step())
                 .build();
     }
