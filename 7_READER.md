@@ -352,6 +352,7 @@ public class JdbcPagingItemReaderJobConfiguration {
         parameterValues.put("amount", 2000);
 
         return new JdbcPagingItemReaderBuilder<Pay>()
+                .pageSize(chunkSize)
                 .fetchSize(chunkSize)
                 .dataSource(dataSource)
                 .rowMapper(new BeanPropertyRowMapper<>(Pay.class))
@@ -422,7 +423,7 @@ JdbcCursorItemReader를 사용할 때는 단순히 ```String``` 타입으로 쿼
 
 쿼리 로그를 보시면 ```LIMIT 10```이 들어간 것을 알 수 있습니다.  
 작성한 코드에서 Limit 선언은 없는데, 사용된 쿼리에선 추가되었습니다.  
-이는 위에서 언급했듯이 JdbcPagingItemReader에서 선언된 fetchSize에 맞게 자동으로 쿼리에 추가해줬기 때문입니다.  
+이는 위에서 언급했듯이 JdbcPagingItemReader에서 선언된 pageSize (Cursor에서는 fetchSize) 에 맞게 자동으로 쿼리에 추가해줬기 때문입니다.  
 만약 조회할 데이터가 10개 이상이였다면 ```offset```으로 적절하게 다음 fetchSize만큼을 가져올 수 있습니다.
 
 ### 7-4-2. JpaPagingItemReader

@@ -59,6 +59,7 @@ public class JdbcPagingItemReaderJobConfiguration {
         parameterValues.put("amount", 2000);
 
         return new JdbcPagingItemReaderBuilder<Pay>()
+                .pageSize(chunkSize)
                 .fetchSize(chunkSize)
                 .dataSource(dataSource)
                 .rowMapper(new BeanPropertyRowMapper<>(Pay.class))
