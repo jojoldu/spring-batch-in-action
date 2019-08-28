@@ -509,7 +509,7 @@ public class JpaPagingItemReaderJobConfiguration {
     * 만약 정말 JpaRepository를 써야 하신다면 ```RepositoryItemReader```를 사용하시는 것을 추천합니다.
         * [예제 코드](https://stackoverflow.com/a/43986718)
         * Paging을 기본적으로 지원합니다.
-* Hibernate, JPA 등 영속성 컨텍스트가 필요한 Reader 사용시 fetchSize와 ChunkSize는 같은 값을 유지해야 합니다.
+* Hibernate, JPA 등 영속성 컨텍스트가 필요한 Reader 사용시 pageSize/fetchSize와 ChunkSize는 같은 값을 유지해야 합니다.
     * [Spring Batch 영속성 컨텍스트 문제](https://jojoldu.tistory.com/146)
 
 ## 마무리
