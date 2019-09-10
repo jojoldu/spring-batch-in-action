@@ -30,7 +30,7 @@ Job Parameter를 사용하기 위해선 항상 Spring Batch 전용 Scope를 선�
 
 ![sample-stepscope](./images/5/sample-stepscope.png)
 
-**@JobScope는 Step 선언문에서** 사용 가능하고, **@StepScope는 Taskler이나 ItemReader, ItemWriter, ItemProcessor**에서 사용할 수 있습니다.  
+**@JobScope는 Step 선언문에서** 사용 가능하고, **@StepScope는 Tasklet이나 ItemReader, ItemWriter, ItemProcessor**에서 사용할 수 있습니다.  
   
 현재 Job Parameter의 타입으로 사용할 수 있는 것은 ```Double```, ```Long```, ```Date```, ```String``` 이 있습니다.  
 아쉽지만 ```LocalDate```와 ```LocalDateTime```이 없어 ```String``` 으로 받아 타입변환을 해서 사용해야만 합니다.  
