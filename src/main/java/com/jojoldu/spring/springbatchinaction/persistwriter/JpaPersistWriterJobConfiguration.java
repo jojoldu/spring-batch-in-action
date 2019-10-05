@@ -27,7 +27,6 @@ import static com.jojoldu.spring.springbatchinaction.persistwriter.JpaPersistWri
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class JpaPersistWriterJobConfiguration {
     public static final String JOB_NAME = "jpaPersistWriterJob";
     private final JobBuilderFactory jobBuilderFactory;
@@ -53,7 +52,7 @@ public class JpaPersistWriterJobConfiguration {
                 .build();
     }
 
-    @Bean(name = JOB_NAME+"Reader")
+    @Bean(name = JOB_NAME +"_reader")
     public JpaPagingItemReader<Pay> jpaPersistReader() {
         return new JpaPagingItemReaderBuilder<Pay>()
                 .name(JOB_NAME+"Reader")

@@ -1,23 +1,22 @@
 package com.jojoldu.spring.springbatchinaction.persistwriter;
 
-import com.jojoldu.spring.springbatchinaction.TestJobLauncher;
+import com.jojoldu.spring.springbatchinaction.TestBatchConfig;
 import com.jojoldu.spring.springbatchinaction.reader.jdbc.Pay;
 import com.jojoldu.spring.springbatchinaction.reader.jdbc.PayRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.BatchStatus;
-import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.test.JobLauncherTestUtils;
+import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
 
-import static com.jojoldu.spring.springbatchinaction.persistwriter.JpaMergeWriterJobConfiguration.JOB_NAME;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -28,15 +27,13 @@ import static org.junit.Assert.assertThat;
  */
 
 @RunWith(SpringRunner.class)
+@SpringBatchTest
 @SpringBootTest
+@ContextConfiguration(classes={JpaMergeWriterJobConfiguration.class, TestBatchConfig.class})
 public class JpaMergeWriterJobConfigurationTest {
 
     @Autowired
-    @Qualifier(JOB_NAME)
-    private Job job;
-
-    @Autowired
-    private TestJobLauncher testJobLauncher;
+    private JobLauncherTestUtils jobLauncherTestUtils;
 
     @Autowired
     private PayRepository payRepository;
@@ -50,7 +47,6 @@ public class JpaMergeWriterJobConfigurationTest {
         for(long i=0;i<10;i++) {
             payRepository.save(new Pay(i*100, String.valueOf(i), LocalDateTime.now()));
         }
-        JobLauncherTestUtils jobLauncherTestUtils = testJobLauncher.getJobLauncherTestUtils(job);
         JobParametersBuilder builder = new JobParametersBuilder();
         builder.addString("version", "1");
 

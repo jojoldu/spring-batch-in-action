@@ -28,7 +28,6 @@ import javax.persistence.EntityManagerFactory;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = "jpaItemWriterJob")
 public class JpaItemWriterJobConfiguration {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;

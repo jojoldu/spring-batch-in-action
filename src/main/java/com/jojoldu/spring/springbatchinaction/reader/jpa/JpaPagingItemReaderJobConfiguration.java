@@ -27,7 +27,6 @@ import static com.jojoldu.spring.springbatchinaction.idempotency.IdempotencyAfte
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = "jpaPagingItemReaderJob")
 public class JpaPagingItemReaderJobConfiguration {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;

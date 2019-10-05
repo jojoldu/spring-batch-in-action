@@ -30,7 +30,6 @@ import java.util.Map;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = "jdbcPagingItemReaderJob")
 public class JdbcPagingItemReaderJobConfiguration {
 
     private final JobBuilderFactory jobBuilderFactory;

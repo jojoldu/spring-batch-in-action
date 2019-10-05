@@ -31,7 +31,6 @@ import static com.jojoldu.spring.springbatchinaction.processor.ProcessorConvertJ
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class ProcessorConvertJobConfiguration {
 
     public static final String JOB_NAME = "processorConvertBatch";
@@ -63,7 +62,7 @@ public class ProcessorConvertJobConfiguration {
                 .build();
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_reader")
     public JpaPagingItemReader<Teacher> reader() {
         return new JpaPagingItemReaderBuilder<Teacher>()
                 .name(BEAN_PREFIX+"reader")

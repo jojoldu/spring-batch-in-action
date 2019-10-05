@@ -27,7 +27,6 @@ import static java.time.format.DateTimeFormatter.ofPattern;
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class IdempotencyAfterBatchConfiguration {
     public static final String BATCH_NAME = "idempotencyAfterBatch";
     public static final String JOB_NAME = BATCH_NAME +"_job";

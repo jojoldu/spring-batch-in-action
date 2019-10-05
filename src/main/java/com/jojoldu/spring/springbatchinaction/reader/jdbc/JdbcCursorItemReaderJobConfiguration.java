@@ -25,7 +25,6 @@ import javax.sql.DataSource;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = "jdbcCursorItemReaderJob")
 public class JdbcCursorItemReaderJobConfiguration {
 
     private final JobBuilderFactory jobBuilderFactory;

@@ -20,7 +20,6 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "job.name", havingValue = "jobContextCompareActionJob")
 public class JobContextCompareConfiguration {
 
     private final JobBuilderFactory jobBuilderFactory;

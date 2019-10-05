@@ -21,7 +21,6 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "job.name", havingValue = "stepNextConditionalJob")
 public class StepNextConditionalJobConfiguration {
 
     private final JobBuilderFactory jobBuilderFactory;

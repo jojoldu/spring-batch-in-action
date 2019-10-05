@@ -26,7 +26,6 @@ import static com.jojoldu.spring.springbatchinaction.idempotency.IdempotencyBefo
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class IdempotencyBeforeBatchConfiguration {
     public static final String BATCH_NAME = "idempotencyBeforeBatch";
     public static final String JOB_NAME = BATCH_NAME +"_job";

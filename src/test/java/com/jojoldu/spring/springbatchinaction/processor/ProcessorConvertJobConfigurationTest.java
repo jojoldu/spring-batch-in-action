@@ -1,6 +1,7 @@
 package com.jojoldu.spring.springbatchinaction.processor;
 
-import com.jojoldu.spring.springbatchinaction.TestJobLauncher;
+import com.jojoldu.spring.springbatchinaction.TestBatchConfig;
+import com.jojoldu.spring.springbatchinaction.persistwriter.JpaMergeWriterJobConfiguration;
 import com.jojoldu.spring.springbatchinaction.transaction.domain.Student;
 import com.jojoldu.spring.springbatchinaction.transaction.domain.Teacher;
 import com.jojoldu.spring.springbatchinaction.transaction.domain.TeacherRepository;
@@ -11,9 +12,11 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.test.JobLauncherTestUtils;
+import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -26,15 +29,13 @@ import static org.junit.Assert.assertThat;
  */
 
 @RunWith(SpringRunner.class)
+@SpringBatchTest
 @SpringBootTest
+@ContextConfiguration(classes={ProcessorConvertJobConfiguration.class, TestBatchConfig.class})
 public class ProcessorConvertJobConfigurationTest {
 
     @Autowired
-    @Qualifier(ProcessorConvertJobConfiguration.JOB_NAME)
-    private Job job;
-
-    @Autowired
-    private TestJobLauncher testJobLauncher;
+    private JobLauncherTestUtils jobLauncherTestUtils;
 
     @Autowired
     private TeacherRepository teacherRepository;
@@ -51,7 +52,6 @@ public class ProcessorConvertJobConfigurationTest {
             teacherRepository.save(teacher);
         }
 
-        JobLauncherTestUtils jobLauncherTestUtils = testJobLauncher.getJobLauncherTestUtils(job);
         JobParametersBuilder builder = new JobParametersBuilder();
         builder.addString("version", "1");
 

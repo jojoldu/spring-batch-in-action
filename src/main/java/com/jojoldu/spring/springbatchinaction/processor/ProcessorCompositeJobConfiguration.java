@@ -34,7 +34,6 @@ import static com.jojoldu.spring.springbatchinaction.processor.ProcessorComposit
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class ProcessorCompositeJobConfiguration {
 
     public static final String JOB_NAME = "processorCompositeBatch";
@@ -66,7 +65,7 @@ public class ProcessorCompositeJobConfiguration {
                 .build();
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_reader")
     public JpaPagingItemReader<Teacher> reader() {
         return new JpaPagingItemReaderBuilder<Teacher>()
                 .name(BEAN_PREFIX+"reader")

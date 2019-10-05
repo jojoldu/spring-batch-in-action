@@ -28,7 +28,6 @@ import static com.jojoldu.spring.springbatchinaction.persistwriter.JpaMergeWrite
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "job.name", havingValue = "deciderJob")
 public class DeciderJobConfiguration {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;

@@ -24,7 +24,6 @@ import static com.jojoldu.spring.springbatchinaction.idempotency.IdempotencyAfte
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class StepNextJobConfiguration {
     private static final String JOB_NAME = "stepNextJob";
 

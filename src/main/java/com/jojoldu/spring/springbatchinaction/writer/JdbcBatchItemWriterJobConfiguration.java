@@ -28,7 +28,6 @@ import javax.sql.DataSource;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = "jdbcBatchItemWriterJob")
 public class JdbcBatchItemWriterJobConfiguration {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
