@@ -8,8 +8,12 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import static com.jojoldu.spring.springbatchinaction.idempotency.IdempotencyAfterBatchConfiguration.JOB_NAME;
+
 
 /**
  * Created by jojoldu@gmail.com on 29/07/2018
@@ -20,14 +24,16 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class StepNextJobConfiguration {
+    private static final String JOB_NAME = "stepNextJob";
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
 
     @Bean
     public Job stepNextJob() {
-        return jobBuilderFactory.get("stepNextJob")
+        return jobBuilderFactory.get(JOB_NAME)
                 .start(step1())
                 .next(step2())
                 .next(step3())

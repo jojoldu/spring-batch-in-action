@@ -1,6 +1,6 @@
 package com.jojoldu.spring.springbatchinaction.idempotency;
 
-import com.jojoldu.spring.springbatchinaction.entity.Product;
+import com.jojoldu.spring.springbatchinaction.reader.jpa.Product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -12,6 +12,7 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,11 +21,13 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.jojoldu.spring.springbatchinaction.idempotency.IdempotencyAfterBatchConfiguration.JOB_NAME;
 import static java.time.format.DateTimeFormatter.ofPattern;
 
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
+@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class IdempotencyAfterBatchConfiguration {
     public static final String BATCH_NAME = "idempotencyAfterBatch";
     public static final String JOB_NAME = BATCH_NAME +"_job";

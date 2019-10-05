@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.time.LocalDate;
+
 import static org.hamcrest.CoreMatchers.is;
 
 /**
@@ -60,7 +62,7 @@ public class JpaJobConfigurationTest {
     private void createStore() {
         for(int i=1;i<=100;i++){
             Store store = new Store("store-"+i);
-            store.addProduct(new Product("product-"+i, i));
+            store.addProduct(new Product("product-"+i, i, LocalDate.now()));
             storeRepository.save(store);
         }
     }

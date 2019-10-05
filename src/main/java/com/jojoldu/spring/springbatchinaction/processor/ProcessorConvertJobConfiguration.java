@@ -19,14 +19,19 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.persistence.EntityManagerFactory;
 
+import static com.jojoldu.spring.springbatchinaction.processor.ProcessorConvertJobConfiguration.JOB_NAME;
+
+
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
+@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class ProcessorConvertJobConfiguration {
 
     public static final String JOB_NAME = "processorConvertBatch";

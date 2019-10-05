@@ -7,6 +7,7 @@ package com.jojoldu.spring.springbatchinaction.reader.jpa;
  */
 
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -18,6 +19,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import java.time.LocalDate;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -30,14 +32,17 @@ public class Product {
 
     private String name;
     private long price;
+    private LocalDate createDate;
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "product_id")
     private Store store;
 
-    public Product(String name, long price) {
+    @Builder
+    public Product(String name, long price, LocalDate createDate) {
         this.name = name;
         this.price = price;
+        this.createDate = createDate;
     }
 
     public void changeStore(Store store) {

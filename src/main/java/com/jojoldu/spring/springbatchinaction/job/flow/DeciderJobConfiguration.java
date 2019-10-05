@@ -11,10 +11,13 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Random;
+
+import static com.jojoldu.spring.springbatchinaction.persistwriter.JpaMergeWriterJobConfiguration.JOB_NAME;
 
 /**
  * Created by jojoldu@gmail.com on 30/07/2018
@@ -25,6 +28,7 @@ import java.util.Random;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "job.name", havingValue = "deciderJob")
 public class DeciderJobConfiguration {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;

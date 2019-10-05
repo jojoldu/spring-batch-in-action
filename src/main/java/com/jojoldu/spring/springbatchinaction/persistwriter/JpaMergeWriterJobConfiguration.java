@@ -11,10 +11,13 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.persistence.EntityManagerFactory;
+
+import static com.jojoldu.spring.springbatchinaction.persistwriter.JpaMergeWriterJobConfiguration.JOB_NAME;
 
 /**
  * Created by jojoldu@gmail.com on 26/09/2018
@@ -25,6 +28,7 @@ import javax.persistence.EntityManagerFactory;
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
+@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class JpaMergeWriterJobConfiguration {
     public static final String JOB_NAME = "jpaMergeWriterJob";
     private final JobBuilderFactory jobBuilderFactory;
