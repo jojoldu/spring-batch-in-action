@@ -10,7 +10,7 @@ spring:
   profiles: local
   datasource:
     hikari:
-      jdbc-url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      jdbc-url: jdbc:h2:mem:testdb;
       username: sa
       password:
       driver-class-name: org.h2.Driver

@@ -1,24 +1,32 @@
-# 왜 Spring Batch 관리 Tool로서의 Jenkins
+# Spring Batch 관리 도구로서의 Jenkins
 
-Spring Batch는 아직까지 **표준 관리 Tool**로 불리는 도구는 없습니다.  
+Spring Batch는 아직까지 **표준 관리 도구**로 불리는 도구는 없습니다.  
 각 팀/회사마다 상이한 방법들을 사용합니다.  
 대표적인 방법들은 아래와 같습니다.
 
 * Cron
 * Spring MVC + API Call
-* Spring Batch Admin (Deprecated)
-  * Spring Cloud Data Flow
+* Spring Batch Admin
+  * **Deprecated** 되었습니다.
+    * 더이상 개선하지 않겠다고 합니다.
+  * **Spring Cloud Data Flow** 로 전환하라고 합니다.
+    * [참고](https://github.com/spring-attic/spring-batch-admin)
 * Quartz + Admin
 * CI Tools (Jenkins / Teamcity 등등)
 
 > Spring Cloud Data Flow는 아직 실무에서 써보질 않아서 비교대상에 넣질 못했습니다.
 > 하나씩 테스트 중인데 어느정도 정리가 되면 한번 블로그에 공유하겠습니다.
 
+인터넷을 돌아다니다보면 아직까지 Spring Batch Admin 에 대해 언급되거나 Quartz를 사용한 어드민 페이지를 만들어 스프링 배치를 관리하는 글을 보게 됩니다.  
+  
+
+
 ## Jenkins?
 
 Jenkins는 Java 진영의 대표적인 CI 툴입니다.  
 대부분 Jenkins는 배포 용도로 사용됩니다.  
-그러다보니 배치에서도 Jenkins를 써야된다고 하면 거부감이 들기 마련입니다.  
+그러다보니 배치에서도 Jenkins를 써야된다고 하면 거부감이 들기 마련입니다.
+
   
 실제로 이와 관련해서 친한 지인과 많은 이야기(를 가장한 온라인 배틀)을 했었는데요.  
 주장은 이렇습니다.  

@@ -25,7 +25,6 @@ import static com.jojoldu.spring.springbatchinaction.job.SimpleJobConfiguration.
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class SimpleJobConfiguration {
     public static final String JOB_NAME = "simpleJob";
     private final JobBuilderFactory jobBuilderFactory;

@@ -12,29 +12,26 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.beans.factory.annotation.Value;
 
 import javax.persistence.EntityManagerFactory;
-
 import java.util.HashMap;
 import java.util.Map;
-
-import static com.jojoldu.spring.springbatchinaction.jobparameter.JobParameterExtendsConfiguration.JOB_NAME;
 
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-@ConditionalOnProperty(name = "job.name", havingValue = JOB_NAME)
 public class JobParameterExtendsConfiguration {
     public static final String JOB_NAME = "jobParameterExtendsBatch";
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final EntityManagerFactory entityManagerFactory;
-
     private final CreateDateJobParameter jobParameter;
+
+    @Value("${chunkSize:1000}")
+    private int chunkSize;
 
     @Bean(JOB_NAME + "jobParameter")
     @JobScope
@@ -42,17 +39,16 @@ public class JobParameterExtendsConfiguration {
         return new CreateDateJobParameter();
     }
 
-    @Value("${chunkSize:1000}")
-    private int chunkSize;
-
     @Bean(name = JOB_NAME)
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
                 .start(step())
+                .preventRestart()
                 .build();
     }
 
     @Bean(name = JOB_NAME +"_step")
+    @JobScope
     public Step step() {
         return stepBuilderFactory.get(JOB_NAME +"_step")
                 .<Product, Product>chunk(chunkSize)
@@ -64,6 +60,8 @@ public class JobParameterExtendsConfiguration {
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
     public JpaPagingItemReader<Product> reader() {
+        validate();
+
         Map<String, Object> params = new HashMap<>();
         params.put("createDate", jobParameter.getCreateDate());
 
@@ -74,6 +72,12 @@ public class JobParameterExtendsConfiguration {
                 .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate")
                 .parameterValues(params)
                 .build();
+    }
+
+    private void validate() {
+        if(jobParameter.getCreateDate() == null) {
+            throw new IllegalArgumentException("createDate가 비어있습니다.");
+        }
     }
 
     private ItemWriter<Product> writer() {
