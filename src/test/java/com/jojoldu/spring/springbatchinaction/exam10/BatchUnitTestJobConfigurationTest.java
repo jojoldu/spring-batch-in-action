@@ -75,4 +75,30 @@ public class BatchUnitTestJobConfigurationTest {
         assertThat(salesSumList.get(0).getAmountSum()).isEqualTo(amount1+amount2+amount3);
     }
 
+    @Test
+    public void 중복파라미터_회피를위한_유니크파라미터() throws Exception {
+        //given
+        LocalDate orderDate = LocalDate.of(2019,10,6);
+        int amount1 = 1000;
+        int amount2 = 500;
+        int amount3 = 100;
+
+        salesRepository.save(new Sales(orderDate, amount1, "1"));
+        salesRepository.save(new Sales(orderDate, amount2, "2"));
+        salesRepository.save(new Sales(orderDate, amount3, "3"));
+
+        JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
+                .addString("orderDate", orderDate.format(FORMATTER))
+                .toJobParameters();
+
+        //when
+        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
+
+        //then
+        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        List<SalesSum> salesSumList = salesSumRepository.findAll();
+        assertThat(salesSumList.size()).isEqualTo(1);
+        assertThat(salesSumList.get(0).getOrderDate()).isEqualTo(orderDate);
+        assertThat(salesSumList.get(0).getAmountSum()).isEqualTo(amount1+amount2+amount3);
+    }
 }
