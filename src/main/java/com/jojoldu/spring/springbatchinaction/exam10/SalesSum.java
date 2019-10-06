@@ -25,14 +25,12 @@ public class SalesSum {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private LocalDate orderDate;
     private long amountSum;
 
     @Builder
-    public SalesSum(LocalDate startDate, LocalDate endDate, long amountSum) {
-        this.startDate = startDate;
-        this.endDate = endDate;
+    public SalesSum(LocalDate orderDate, long amountSum) {
+        this.orderDate = orderDate;
         this.amountSum = amountSum;
     }
 }
