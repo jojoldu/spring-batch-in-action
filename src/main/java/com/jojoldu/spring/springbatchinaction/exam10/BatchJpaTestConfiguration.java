@@ -31,9 +31,9 @@ import static java.time.format.DateTimeFormatter.ofPattern;
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
-public class BatchUnitTestConfiguration {
+public class BatchJpaTestConfiguration {
     public static final DateTimeFormatter FORMATTER = ofPattern("yyyy-MM-dd");
-    public static final String JOB_NAME = "batchUnitTestJob";
+    public static final String JOB_NAME = "batchJpaUnitTestJob";
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
@@ -43,24 +43,24 @@ public class BatchUnitTestConfiguration {
     private int chunkSize;
 
     @Bean
-    public Job batchUnitTestJob() {
+    public Job batchJpaUnitTestJob() {
         return jobBuilderFactory.get(JOB_NAME)
-                .start(batchUnitTestJobStep())
+                .start(batchJpaUnitTestJobStep())
                 .build();
     }
 
     @Bean
-    public Step batchUnitTestJobStep() {
-        return stepBuilderFactory.get("batchUnitTestJobStep")
+    public Step batchJpaUnitTestJobStep() {
+        return stepBuilderFactory.get("batchJpaUnitTestJobStep")
                 .<SalesSum, SalesSum>chunk(chunkSize)
-                .reader(batchUnitTestJobReader(null))
-                .writer(batchUnitTestJobWriter())
+                .reader(batchJpaUnitTestJobReader(null))
+                .writer(batchJpaUnitTestJobWriter())
                 .build();
     }
 
     @Bean
     @StepScope
-    public JpaPagingItemReader<SalesSum> batchUnitTestJobReader(
+    public JpaPagingItemReader<SalesSum> batchJpaUnitTestJobReader(
             @Value("#{jobParameters[orderDate]}") String orderDate) {
 
         Map<String, Object> params = new HashMap<>();
@@ -75,7 +75,7 @@ public class BatchUnitTestConfiguration {
                         "GROUP BY s.orderDate ", className);
 
         return new JpaPagingItemReaderBuilder<SalesSum>()
-                .name("batchUnitTestJobReader")
+                .name("batchJpaUnitTestJobReader")
                 .entityManagerFactory(emf)
                 .pageSize(chunkSize)
                 .queryString(queryString)
@@ -84,7 +84,7 @@ public class BatchUnitTestConfiguration {
     }
 
     @Bean
-    public JpaItemWriter<SalesSum> batchUnitTestJobWriter() {
+    public JpaItemWriter<SalesSum> batchJpaUnitTestJobWriter() {
         JpaItemWriter<SalesSum> jpaItemWriter = new JpaItemWriter<>();
         jpaItemWriter.setEntityManagerFactory(emf);
         return jpaItemWriter;
