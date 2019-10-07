@@ -52,7 +52,7 @@ public class BatchUnitTestConfiguration {
     @Bean
     public Step batchUnitTestJobStep() {
         return stepBuilderFactory.get("batchUnitTestJobStep")
-                .<Sales, SalesSum>chunk(chunkSize)
+                .<SalesSum, SalesSum>chunk(chunkSize)
                 .reader(batchUnitTestJobReader(null))
                 .writer(batchUnitTestJobWriter())
                 .build();
@@ -60,7 +60,7 @@ public class BatchUnitTestConfiguration {
 
     @Bean
     @StepScope
-    public JpaPagingItemReader<Sales> batchUnitTestJobReader(
+    public JpaPagingItemReader<SalesSum> batchUnitTestJobReader(
             @Value("#{jobParameters[orderDate]}") String orderDate) {
 
         Map<String, Object> params = new HashMap<>();
@@ -74,7 +74,7 @@ public class BatchUnitTestConfiguration {
                         "WHERE s.orderDate =:orderDate " +
                         "GROUP BY s.orderDate ", className);
 
-        return new JpaPagingItemReaderBuilder<Sales>()
+        return new JpaPagingItemReaderBuilder<SalesSum>()
                 .name("batchUnitTestJobReader")
                 .entityManagerFactory(emf)
                 .pageSize(chunkSize)

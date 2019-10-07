@@ -1,22 +1,27 @@
 package com.jojoldu.spring.springbatchinaction.exam10;
 
 import com.jojoldu.spring.springbatchinaction.TestBatchConfig;
-import org.junit.After;
+import com.zaxxer.hikari.HikariDataSource;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.batch.core.BatchStatus;
-import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.item.ExecutionContext;
+import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.test.JobLauncherTestUtils;
+import org.springframework.batch.test.MetaDataInstanceFactory;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import javax.sql.DataSource;
 import java.time.LocalDate;
-import java.util.List;
 
 import static com.jojoldu.spring.springbatchinaction.exam10.BatchUnitTestConfiguration.FORMATTER;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,75 +34,49 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBatchTest
-@SpringBootTest(classes={BatchUnitTestConfiguration.class, TestBatchConfig.class})
+@DataJpaTest
+@ContextConfiguration(classes={BatchUnitTestConfiguration.class, TestBatchConfig.class})
 public class BatchUnitTestJobConfigurationTest {
+
+
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
 
     @Autowired
-    private SalesRepository salesRepository;
+    private JpaPagingItemReader<SalesSum> batchUnitTestJobReader;
 
     @Autowired
-    private SalesSumRepository salesSumRepository;
+    private SalesRepository salesRepository;
 
-    @After
-    public void tearDown() throws Exception {
-        salesRepository.deleteAllInBatch();
-        salesSumRepository.deleteAllInBatch();
+    private static final LocalDate ORDER_DATE = LocalDate.of(2019,10,6);
+
+    public StepExecution getStepExecution() {
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addString("orderDate", ORDER_DATE.format(FORMATTER))
+                .toJobParameters();
+
+        return MetaDataInstanceFactory.createStepExecution(jobParameters);
     }
 
     @Test
     public void 기간내_Sales가_집계되어_SalesSum이된다() throws Exception {
         //given
-        LocalDate orderDate = LocalDate.of(2019,10,6);
         int amount1 = 1000;
         int amount2 = 500;
         int amount3 = 100;
 
-        salesRepository.save(new Sales(orderDate, amount1, "1"));
-        salesRepository.save(new Sales(orderDate, amount2, "2"));
-        salesRepository.save(new Sales(orderDate, amount3, "3"));
-
-        JobParameters jobParameters = new JobParametersBuilder()
-                .addString("orderDate", orderDate.format(FORMATTER))
-                .toJobParameters();
+        salesRepository.save(new Sales(ORDER_DATE, amount1, "1"));
+        salesRepository.save(new Sales(ORDER_DATE, amount2, "2"));
+        salesRepository.save(new Sales(ORDER_DATE, amount3, "3"));
 
         //when
-        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
+        batchUnitTestJobReader.open(new ExecutionContext());
 
         //then
-        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
-        List<SalesSum> salesSumList = salesSumRepository.findAll();
-        assertThat(salesSumList.size()).isEqualTo(1);
-        assertThat(salesSumList.get(0).getOrderDate()).isEqualTo(orderDate);
-        assertThat(salesSumList.get(0).getAmountSum()).isEqualTo(amount1+amount2+amount3);
+        SalesSum read1 = batchUnitTestJobReader.read();
+        assertThat(read1.getAmountSum()).isEqualTo(amount1+amount2+amount3);
     }
 
-    @Test
-    public void 중복파라미터_회피를위한_유니크파라미터() throws Exception {
-        //given
-        LocalDate orderDate = LocalDate.of(2019,10,6);
-        int amount1 = 1000;
-        int amount2 = 500;
-        int amount3 = 100;
 
-        salesRepository.save(new Sales(orderDate, amount1, "1"));
-        salesRepository.save(new Sales(orderDate, amount2, "2"));
-        salesRepository.save(new Sales(orderDate, amount3, "3"));
-
-        JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
-                .addString("orderDate", orderDate.format(FORMATTER))
-                .toJobParameters();
-
-        //when
-        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
-
-        //then
-        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
-        List<SalesSum> salesSumList = salesSumRepository.findAll();
-        assertThat(salesSumList.size()).isEqualTo(1);
-        assertThat(salesSumList.get(0).getOrderDate()).isEqualTo(orderDate);
-        assertThat(salesSumList.get(0).getAmountSum()).isEqualTo(amount1+amount2+amount3);
-    }
 }
