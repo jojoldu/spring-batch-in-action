@@ -71,7 +71,8 @@ public class BatchUnitTestConfiguration {
         String queryString = String.format (
                         "SELECT new %s(s.orderDate, SUM(s.amount)) " +
                         "FROM Sales s " +
-                        "WHERE s.orderDate =:orderDate", className);
+                        "WHERE s.orderDate =:orderDate " +
+                        "GROUP BY s.orderDate ", className);
 
         return new JpaPagingItemReaderBuilder<Sales>()
                 .name("batchUnitTestJobReader")
