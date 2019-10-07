@@ -32,8 +32,7 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBatchTest
-@SpringBootTest
-@ContextConfiguration(classes={JdbcBatchItemWriterJobConfiguration.class, TestBatchConfig.class})
+@SpringBootTest(classes={JdbcBatchItemWriterJobConfiguration.class, TestBatchConfig.class})
 public class JdbcBatchItemWriterJobConfigurationTest {
 
     @Autowired

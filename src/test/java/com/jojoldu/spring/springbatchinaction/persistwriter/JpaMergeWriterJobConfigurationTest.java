@@ -28,8 +28,7 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBatchTest
-@SpringBootTest
-@ContextConfiguration(classes={JpaMergeWriterJobConfiguration.class, TestBatchConfig.class})
+@SpringBootTest(classes={JpaMergeWriterJobConfiguration.class, TestBatchConfig.class})
 public class JpaMergeWriterJobConfigurationTest {
 
     @Autowired

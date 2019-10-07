@@ -32,8 +32,7 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBatchTest
-@SpringBootTest
-@ContextConfiguration(classes={JpaItemWriterJobConfiguration.class, TestBatchConfig.class})
+@SpringBootTest(classes={JpaItemWriterJobConfiguration.class, TestBatchConfig.class})
 public class JpaItemWriterJobConfigurationTest {
 
     @Autowired

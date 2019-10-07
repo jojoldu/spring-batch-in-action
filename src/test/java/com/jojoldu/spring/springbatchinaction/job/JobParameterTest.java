@@ -24,8 +24,7 @@ import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(SpringRunner.class)
 @SpringBatchTest
-@SpringBootTest
-@ContextConfiguration(classes={SimpleJobConfiguration.class, TestBatchConfig.class})
+@SpringBootTest(classes={SimpleJobConfiguration.class, TestBatchConfig.class})
 public class JobParameterTest {
 
     @Autowired

@@ -30,8 +30,7 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBatchTest
-@SpringBootTest
-@ContextConfiguration(classes={TransactionWriterJobConfiguration.class, TestBatchConfig.class})
+@SpringBootTest(classes={TransactionWriterJobConfiguration.class, TestBatchConfig.class})
 public class TransactionWriterJobConfigurationTest {
 
     @Autowired

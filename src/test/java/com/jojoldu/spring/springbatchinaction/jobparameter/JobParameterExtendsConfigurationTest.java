@@ -23,8 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBatchTest
-@SpringBootTest
-@ContextConfiguration(classes={JobParameterExtendsConfiguration.class, TestBatchConfig.class})
+@SpringBootTest(classes={JobParameterExtendsConfiguration.class, TestBatchConfig.class})
 public class JobParameterExtendsConfigurationTest {
 
     @Autowired
