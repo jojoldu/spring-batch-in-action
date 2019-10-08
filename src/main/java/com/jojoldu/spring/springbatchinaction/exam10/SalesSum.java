@@ -9,6 +9,7 @@ package com.jojoldu.spring.springbatchinaction.exam10;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -16,6 +17,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import java.time.LocalDate;
 
+@Setter
 @Getter
 @NoArgsConstructor
 @Entity

@@ -26,7 +26,6 @@ repositories {
 dependencies {
     compile('org.springframework.boot:spring-boot-starter-batch')
     compile('org.springframework.boot:spring-boot-starter-data-jpa')
-    compile('org.springframework.boot:spring-boot-starter-jdbc')
     compile('com.h2database:h2')
     compile('mysql:mysql-connector-java')
     compile('org.projectlombok:lombok')
