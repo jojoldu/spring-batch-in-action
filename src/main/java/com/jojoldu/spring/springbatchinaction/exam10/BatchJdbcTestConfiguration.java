@@ -42,8 +42,12 @@ public class BatchJdbcTestConfiguration {
     private final StepBuilderFactory stepBuilderFactory;
     private final DataSource dataSource;
 
-    @Value("${chunkSize:1000}")
     private int chunkSize;
+
+    @Value("${chunkSize:1000}")
+    public void setChunkSize(int chunkSize) {
+        this.chunkSize = chunkSize;
+    }
 
     @Bean
     public Job batchJdbcUnitTestJob() throws Exception {
