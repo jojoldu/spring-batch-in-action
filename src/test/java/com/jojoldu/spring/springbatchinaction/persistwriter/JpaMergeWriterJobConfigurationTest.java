@@ -3,6 +3,7 @@ package com.jojoldu.spring.springbatchinaction.persistwriter;
 import com.jojoldu.spring.springbatchinaction.TestBatchConfig;
 import com.jojoldu.spring.springbatchinaction.reader.jdbc.Pay;
 import com.jojoldu.spring.springbatchinaction.reader.jdbc.PayRepository;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.BatchStatus;
@@ -39,6 +40,12 @@ public class JpaMergeWriterJobConfigurationTest {
 
     @Autowired
     private PayCopyRepository payCopyRepository;
+
+    @After
+    public void tearDown() throws Exception {
+        payRepository.deleteAllInBatch();
+        payCopyRepository.deleteAllInBatch();
+    }
 
     @Test
     public void mergeTest() throws Exception {

@@ -5,6 +5,7 @@ import com.jojoldu.spring.springbatchinaction.persistwriter.JpaMergeWriterJobCon
 import com.jojoldu.spring.springbatchinaction.reader.jdbc.Pay;
 import com.jojoldu.spring.springbatchinaction.reader.jdbc.Pay2Repository;
 import com.jojoldu.spring.springbatchinaction.reader.jdbc.PayRepository;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.BatchStatus;
@@ -43,6 +44,12 @@ public class JdbcBatchItemWriterJobConfigurationTest {
 
     @Autowired
     private Pay2Repository pay2Repository;
+
+    @After
+    public void tearDown() throws Exception {
+        payRepository.deleteAllInBatch();
+        pay2Repository.deleteAllInBatch();
+    }
 
     @SuppressWarnings("Duplicates")
     @Test

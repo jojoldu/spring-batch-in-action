@@ -1,6 +1,7 @@
 package com.jojoldu.spring.springbatchinaction.exam10;
 
 import com.jojoldu.spring.springbatchinaction.TestBatchConfig;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,6 +64,10 @@ public class BatchJdbcUnitTestJobConfigurationTest {
     public void setUp() throws Exception {
         this.batchJdbcUnitTestJobReader.setDataSource(this.dataSource);
         this.jdbcTemplate = new JdbcTemplate(this.dataSource);
+    }
+
+    @After
+    public void tearDown() throws Exception {
         this.jdbcTemplate.update("delete from sales");
         this.jdbcTemplate.update("delete from sales_sum");
     }

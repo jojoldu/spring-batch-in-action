@@ -1,6 +1,8 @@
 package com.jojoldu.spring.springbatchinaction.exam10;
 
 import com.jojoldu.spring.springbatchinaction.TestBatchConfig;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.JobParameters;
@@ -40,11 +42,20 @@ public class BatchJpaUnitTestJobConfigurationTest {
     @Autowired
     private SalesRepository salesRepository;
 
-    private static final LocalDate ORDER_DATE = LocalDate.of(2019,10,6);
+    @Autowired
+    private SalesSumRepository salesSumRepository;
+
+    private static final LocalDate orderDate = LocalDate.of(2019,10,6);
+
+    @After
+    public void tearDown() throws Exception {
+        salesRepository.deleteAllInBatch();
+        salesSumRepository.deleteAllInBatch();
+    }
 
     public StepExecution getStepExecution() {
         JobParameters jobParameters = new JobParametersBuilder()
-                .addString("orderDate", ORDER_DATE.format(FORMATTER))
+                .addString("orderDate", orderDate.format(FORMATTER))
                 .toJobParameters();
 
         return MetaDataInstanceFactory.createStepExecution(jobParameters);
@@ -57,9 +68,9 @@ public class BatchJpaUnitTestJobConfigurationTest {
         int amount2 = 500;
         int amount3 = 100;
 
-        salesRepository.save(new Sales(ORDER_DATE, amount1, "1"));
-        salesRepository.save(new Sales(ORDER_DATE, amount2, "2"));
-        salesRepository.save(new Sales(ORDER_DATE, amount3, "3"));
+        salesRepository.save(new Sales(orderDate, amount1, "1"));
+        salesRepository.save(new Sales(orderDate, amount2, "2"));
+        salesRepository.save(new Sales(orderDate, amount3, "3"));
 
         //when
         batchUnitTestJobReader.open(new ExecutionContext());
