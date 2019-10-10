@@ -1,5 +1,8 @@
 package com.jojoldu.spring.springbatchinaction.exam10;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,34 +83,13 @@ public class BatchNoSpringContextUnitTest {
         assertEquals(third, item.getThird());
     }
 
+    @NoArgsConstructor
+    @Setter
+    @Getter
     public static class Foo {
         private int first;
         private String second;
         private String third;
-
-        public int getFirst() {
-            return first;
-        }
-
-        public void setFirst(int first) {
-            this.first = first;
-        }
-
-        public String getSecond() {
-            return second;
-        }
-
-        public void setSecond(String second) {
-            this.second = second;
-        }
-
-        public String getThird() {
-            return third;
-        }
-
-        public void setThird(String third) {
-            this.third = third;
-        }
     }
 
     @Configuration
