@@ -17,6 +17,7 @@ import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.jdbc.DataJdbcTest;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
@@ -36,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBatchTest
-@ContextConfiguration(classes={BatchJdbcTestConfiguration.class, TestBatchConfig.class})
+@SpringBootTest(classes={BatchJdbcTestConfiguration.class, TestBatchConfig.class})
 public class BatchJdbcUnitTestJobConfigurationTest {
 
     @Autowired

@@ -9,7 +9,7 @@
 더군다나 개발자가 로컬 환경에서 배치 애플리케이션을 수행하는 것도 많은 수작업이 필요합니다.  
 수정/삭제 등의 배치 애플리케이션이라면 **한번 수행할때마다 로컬 DB의 데이터를 원복**하고 다시 수행하는 작업을 반복해야 합니다.  
   
-그래서 테스트 코드의 필요성이 많이 강조됩니다.  
+당연하게 테스트 코드의 필요성이 많이 강조됩니다.  
   
 다행이라면 배치 애플리케이션은 웹 애플리케이션 보다 테스트 코드 작성이 좀 더 수월하고, 한번 작성하게 되면 그 효과가 좋습니다.  
   
@@ -27,7 +27,9 @@
   
 그래서 먼저 해볼것은 스프링 배치의 통합 테스트 입니다.  
   
-### 10-1-1. 4.0.x 이하 버전
+> 스프링 부트 배치 테스트를 사용하실때는 의존성에 ```spring-boot-starter-test``` 가 꼭 있어야만 합니다.
+
+### 10-1-1. 4.0.x (부트 2.0) 이하 버전
 
 4.1 보다 아래 버전의 스프링 배치를 사용하신다면 다음과 같이 통합 테스트를 사용할 수 있습니다.
 
@@ -63,12 +65,12 @@ public class BatchIntegrationTestJobConfigurationLegacyTest {
         salesRepository.save(new Sales(orderDate, amount2, "2"));
         salesRepository.save(new Sales(orderDate, amount3, "3"));
 
-        JobParameters jobParameters = new JobParametersBuilder() // (3)
+        JobParameters jobParameters = new JobParametersBuilder() 
                 .addString("orderDate", orderDate.format(FORMATTER))
                 .toJobParameters();
 
         //when
-        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters); // (4)
+        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters); // (3)
 
         //then
         assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
@@ -83,35 +85,47 @@ public class BatchIntegrationTestJobConfigurationLegacyTest {
 > 모든 코드는 [Github](https://github.com/jojoldu/spring-batch-in-action/tree/master/src/test/java/com/jojoldu/spring/springbatchinaction/exam10) 에 있습니다.
 
 
-(1) ```@SpringBootTest(classes={...})```: 통합 테스트 실행시 사용할 Java 설정들을 선택합니다.
+(1) ```@SpringBootTest(classes={...})```
 
+* 통합 테스트 실행시 사용할 Java 설정들을 선택합니다.
 * ```BatchJpaTestConfiguration``` : 테스트할 Batch Job
 * ```TestBatchLegacyConfig``` : 배치 테스트 환경
   * 아래에서 좀 더 자세히 설명드리겠습니다.
 
-(2) ```JobLauncherTestUtils```: Batch Job을 테스트 환경에서 실행할 Utils 클래스입니다.
+(2) ```JobLauncherTestUtils```
 
-* CLI 등으로 실행하는 Job을 테스트 환경에서 실행할 수 있도록 지원합니다.
+* Batch Job을 테스트 환경에서 실행할 Utils 클래스입니다.
+* CLI 등으로 실행하는 Job을 **테스트 코드에서 Job을 실행**할 수 있도록 지원합니다.
 
-TestBatchLegacyConfig 의 코드는 아래와 같이 구성합니다.
+(3) ```jobLauncherTestUtils.launchJob(jobParameters)```
 
-```java
-@Configuration
-@EnableAutoConfiguration
-@EnableBatchProcessing
-public class TestBatchLegacyConfig {
+* JobParameter와 함께 Job을 실행합니다.
+* 해당 Job의 결과는 ```JobExecution```에 담겨 반환 됩니다.
+* 성공적으로 Batch가 수행되었는지는 ```jobExecution.getStatus()```로 검증합니다.
 
-    @Bean
-    public JobLauncherTestUtils jobLauncherTestUtils() {
-        return new JobLauncherTestUtils();
-    }
-}
-```
-
+(1)의 코드를 보시면 어떤 Batch를 수행할지 **Config 클래스로 지정**되었습니다.  
+(여기서는 ```BatchJpaTestConfiguration``` Job이 수행되겠죠?)  
   
+이외에 나머지 클래스들은 불러오지 않기 때문에 **실행 대상에서 자동으로 제외**됩니다.  
+자동으로 제외될 수 있는 이유는 ```JobLauncherTestUtils```가 ```@Autowired```로 현재 Bean에 올라간 Job을 주입받기 때문인데요.  
+
+![1](./images/1.png)
+
+(```JobLauncherTestUtils```의 ```setJob``` 메소드)  
+  
+현재 실행하는 테스트 환경에서 ```Job``` 클래스의 Bean은 ```class={}```에 등록된 ```BatchJpaTestConfiguration```의 Job 하나 뿐이라 자동 선택되는 것입니다.  
+  
+이렇게 하지 않을 경우 JobLauncherTestUtils에서는 **어느 Job Bean을 선택해야할지 알 수 없어 에러**가 발생합니다.  
+  
+> 물론 회피 방법이 있습니다만 이건 다른 포스팅에서 소개드리겠습니다.
+> 이 회피 방법을 통해 Spring Context 하나로 전체 테스트를 수행하기 때문입니다.
+
+그래서 ```@SpringBootTest(classes={...})``` 를 통해 **단일 Job Config**만 선택하도록 합니다.  
+  
+아마 이 코드를 보고 의아해하시는분들이 계실텐데요.  
 이전에는 ```@ConditionalOnProperty```와 ```@TestPropertySource``` 를 사용하여 **특정 Batch Job**만 설정을 불러와 배치를 테스트 했습니다.  
   
-다만 이 방식에도 여러 단점들이 있는데요.  
+다만 이 방식에도 저 개인적으로 생각하는 여러 단점들이 있습니다.  
 
 1. 흔히 말하는 행사 코드가 많이 필요합니다.
 
@@ -119,26 +133,70 @@ public class TestBatchLegacyConfig {
 
 2. 전체 테스트 수행시 매번 Spring Context가 새로 실행됩니다.
 
-* 앞에서 얘기한 행사코드인 ```@TestPropertySource```로 인해 전체 테스트 수행시에는 매번 Spring의 Context가 다시 생성됩니다.
-* 단일 테스트 속도는 빠르나 전체 테스트에선 아무래도 느릴수 밖에 없습니다.
+* 앞에서 얘기한 행사 코드인 ```@TestPropertySource```로 인해 **전체 테스트 수행시에는 매번 Spring의 Context가 다시 생성**됩니다.
+* 단일 테스트 속도는 빠르나 **전체 테스트에선 너무나 느립니다**.
 
-1번의 문제인 **많은 행사코드** 문제는 그나마 해결이 가능한데요.  
+대신 장점도 있습니다.
+
+1. Bean 이름 충돌을 걱정안해도 된다.
+
+* 운영 환경에서도 ```@ConditionalOnProperty``` 덕분에 Job / Step / Reader 등의 Bean 생성시 **다른 배치 Job에서 사용된 Bean 이름**에 대해서 크게 신경쓰지 않아도 됩니다.
+
+2. 운영 환경에서의 속도가 빠르다.
+
+* 1번과 마찬가지로 운영 환경에서 배치가 수행될때 단일 Job 설정들만 로딩되기 때문에 경량화된 상태로 실행 가능합니다.
+
+그래서 써보시고 마음에 드시는 방법으로 선택하시면 될것 같습니다.  
   
-최근 스프링 배치 공식 문서에서는 ```@ContextConfiguration``` 를 사용하여 행사 코드를 줄였습니다.  
+저 같은 경우 현재 단점들과 스프링 배치 공식 문서에서도 권장하는 방법으로 변경중인데요.  
   
-이 어노테이션은 ```ApplicationContext``` 에서 관리할 Bean과 Configuration 들을 지정하는 곳 입니다.  
+첫번째 단점인 **많은 행사코드** 문제를 해결한 것이 바로 위 예제 코드에서도 사용한 ```@ContextConfiguration``` 입니다.  
+
+> ```@SpringBootTest(classes={...})``` 는 내부적으로 ```@ContextConfiguration```를 사용하기 때문에 둘은 같습니다.
   
-해당 어노테이션을 사용하면 **특정 Batch Job**의 설정들만 가져와서 수행할 수 있습니다.
+이 어노테이션은 ```ApplicationContext``` 에서 관리할 Bean과 Configuration 들을 지정할 수 있기 때문에 **특정 Batch Job**의 설정들만 가져와서 수행할 수 있습니다.  
+Batch Job 코드에서는 별도로 ```@ConditionalOnProperty``` 등을 사용할 필요가 없습니다.  
+**테스트 코드에서 해당 Config만 별도로 호출**해서 사용하기 때문이죠.  
+  
+다만 이 방식을 선택해도 기본적으로는 **전체 테스트 수행시 Spring Context가 재실행되는 것은 여전**합니다.  
+다행인것은 ```@ContextConfiguration```를 선택한다면 테스트 코드를 어떻게 작성하냐에 따라서 하나의 Spring Context를 사용하는 방법/각자의 Spring Context를 사용하는 방법을 선택할 수 있습니다.  
+  
+> 하나의 Spring Context를 사용하는 방법에 대해서는 **별도의 테스트 포스팅**으로 소개드리겠습니다.  
+> 일단 이 글에서는 처음 스프링 배치 테스트를 작성하는 분들의 기본을 잡는게 목적이기 때문입니다.  
 
-> ```@SpringBootTest(classes={XXX.class, ZZZ.class})``` 를 써보신 분들은 동일하게 작동된다고 생각하시면 됩니다.
+이런 이유로 ```@ConditionalOnProperty``` 대신에 ```@ContextConfiguration``` (```@SpringBootTest(classes={})```) 를 사용하여 Batch Job 클래스를 호출하였습니다.  
+  
+그럼 나머지 호출 대상인 ```TestBatchLegacyConfig``` 는 어떤 역할일까요?  
+이는 해당 클래스의 코드를 바로 보면서 설명드리겠습니다.  
+  
+TestBatchLegacyConfig 의 코드는 아래와 같이 구성합니다.
 
-이 방식을 선택하나 위에서 언급한 ```ConditionalOnProperty```을 선택하나 **전체 테스트 수행시 Spring Context가 재실행되는 것은 여전**합니다.  
-다만, 두번째 방식인 ```@ContextConfiguration```를 선택한다면 테스트 코드를 어떻게 작성하냐에 따라서 하나의 Spring Context를 사용할수도/각자의 Spring Context를 사용할수도 있습니다.  
-하나의 Spring Context를 사용하는 방법에 대해서는 **별도의 테스트 포스팅**으로 소개드리겠습니다.  
-일단 이 글에서는 처음 스프링 배치 테스트를 작성하는 분들의 기본을 잡는게 목적이기 때문입니다.  
+```java
+@Configuration
+@EnableAutoConfiguration
+@EnableBatchProcessing // (1)
+public class TestBatchLegacyConfig {
+
+    @Bean
+    public JobLauncherTestUtils jobLauncherTestUtils() { // (2)
+        return new JobLauncherTestUtils();
+    }
+}
+```
+
+(1) ```@EnableBatchProcessing```
+
+* 배치 환경을 자동 설정합니다.
+* 테스트 환경에서도 역시 필요하기 때문에 별도의 설정에서 선언되어 사용합니다.
+
+(2) ```@Bean JobLauncherTestUtils```
+
+* 테스트 유틸인 ```JobLauncherTestUtils```을 Bean으로 등록합니다.
+* 이렇게 등록된 ```JobLauncherTestUtils```를 각 테스트 코드에서 ```@Autowired```로 호출해서 사용합니다.
+  
 
 
-### 4.1.x 이상 버전
+### 10-1-2. 4.1.x 이상 (부트 2.1) 버전
 
 스프링 배치 4.1에서 새로운 어노테이션이 추가되었습니다.  
 바로 ```@SpringBatchTest```입니다.  
@@ -158,9 +216,26 @@ public class TestBatchLegacyConfig {
 
 
 
+### 10-1-3. @SpringBootTest가 필수인가요?
 
+저 같은 경우 스프링 배치 통합 테스트가 필요할때라면 그냥 ```@SpringBootTest```를 쓰라고 합니다.  
+사용하지 않을 경우 아래와 같이 **전체 테스트 수행시 많은 에러**가 발생합니다.
 
-## 단위 테스트
+```java
+InstanceAlreadyExistsException: com.zaxxer.hikari:name=dataSource,type=HikariDataSource
+```
+
+아래는 stackoverflow에 올라온 질문에 대해 스프링 배치 팀의 개발자인 [beans](https://github.com/benas)가 답변을 남긴 것인데요.  
+beans 역시 그냥 ```@SpringBootTest```를 사용하라고 합니다.
+
+[spring-batch-end-to-end-test-configuration-not-working](https://stackoverflow.com/questions/55871880/spring-batch-end-to-end-test-configuration-not-working)
+
+어떻게든 수동으로 환경을 만들어서 통합 테스트를 수행할 순 있겠지만, 그 비용이 너무 많이 들기 때문에 마음 편하게 ```@SpringBootTest```를 사용하시는걸 추천드립니다.
+
+## 10-2. Spring Context 없는 단위 테스트
+
+## 10-3. Spring Context 가 필요한 단위 테스트
+
 
 ```java
 public class StepScopeTestExecutionListener implements TestExecutionListener {
@@ -255,15 +330,9 @@ public class StepScopeTestExecutionListenerIntegrationTests {
 ```
 
 
-## @SpringBootTest ?
 
-```java
-InstanceAlreadyExistsException: com.zaxxer.hikari:name=dataSource,type=HikariDataSource
-```
 
-[spring-batch-end-to-end-test-configuration-not-working](https://stackoverflow.com/questions/55871880/spring-batch-end-to-end-test-configuration-not-working)
-
-## 중복 회피
+## Unique JobParameter
 
 ```java
 JobInstanceAlreadyCompleteException: A job instance already exists and is complete for parameters={orderDate=2019-10-06}.  If you want to run this job again, change the parameters.

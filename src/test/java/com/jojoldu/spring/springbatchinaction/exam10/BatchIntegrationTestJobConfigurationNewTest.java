@@ -12,6 +12,7 @@ import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDate;
@@ -28,7 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBatchTest
-@SpringBootTest(classes={BatchJpaTestConfiguration.class, TestBatchConfig.class})
+@ContextConfiguration(classes={BatchJpaTestConfiguration.class, TestBatchConfig.class})
+//@SpringBootTest(classes={BatchJpaTestConfiguration.class, TestBatchConfig.class})
 public class BatchIntegrationTestJobConfigurationNewTest {
 
     @Autowired
@@ -58,7 +60,7 @@ public class BatchIntegrationTestJobConfigurationNewTest {
         salesRepository.save(new Sales(orderDate, amount2, "2"));
         salesRepository.save(new Sales(orderDate, amount3, "3"));
 
-        JobParameters jobParameters = new JobParametersBuilder()
+        JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
                 .addString("orderDate", orderDate.format(FORMATTER))
                 .toJobParameters();
 
