@@ -72,11 +72,12 @@ public class BatchJpaUnitTestJobConfigurationTest {
         salesRepository.save(new Sales(orderDate, amount2, "2"));
         salesRepository.save(new Sales(orderDate, amount3, "3"));
 
-        //when
         batchUnitTestJobReader.open(new ExecutionContext());
 
-        //then
+        //when
         SalesSum read1 = batchUnitTestJobReader.read();
+
+        //then
         assertThat(read1.getAmountSum()).isEqualTo(amount1+amount2+amount3);
     }
 

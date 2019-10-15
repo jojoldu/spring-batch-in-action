@@ -29,8 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBatchTest
-@ContextConfiguration(classes={BatchJpaTestConfiguration.class, TestBatchConfig.class})
-//@SpringBootTest(classes={BatchJpaTestConfiguration.class, TestBatchConfig.class})
+@SpringBootTest(classes={BatchJpaTestConfiguration.class, TestBatchConfig.class})
 public class BatchIntegrationTestJobConfigurationNewTest {
 
     @Autowired
