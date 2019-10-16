@@ -279,6 +279,9 @@ public class TestBatchConfig {}
 아마 ```@SpringBatchTest```와 ```@ContextConfiguration``` 를 사용하면 굳이 ```@SpringBootTest```가 필요한가? 라는 의문이 드실수 있습니다.  
 실제로 저도 그렇게 생각했고, 스프링 배치 공식 문서에서도 비슷하게 가이드 하고 있었습니다.  
 
+![4](./images/4.png)
+
+([End-To-End Testing of Batch Jobs](https://docs.spring.io/spring-batch/4.2.x/reference/html/testing.html#endToEndTesting))
 
 저 같은 경우 스프링 배치 통합 테스트가 필요할때라면 그냥 ```@SpringBootTest```을 사용합니다.  
 사용하지 않을 경우 아래와 같이 **전체 테스트 수행시 다양한 에러**가 발생합니다.
