@@ -199,7 +199,8 @@ public class TestBatchLegacyConfig {
 (1) ```@EnableBatchProcessing```
 
 * 배치 환경을 자동 설정합니다.
-* 테스트 환경에서도 역시 필요하기 때문에 별도의 설정에서 선언되어 사용합니다.
+* 테스트 환경에서도 필요하기 때문에 별도의 설정에서 선언되어 사용합니다.
+  * 모든 테스트 클래스에서 선언하는 불편함을 없애기 위함입니다.
 
 (2) ```@Bean JobLauncherTestUtils```
 
@@ -277,22 +278,25 @@ public class TestBatchConfig {}
 ### 10-1-3. @SpringBootTest가 필수인가요?
 
 아마 ```@SpringBatchTest```와 ```@ContextConfiguration``` 를 사용하면 굳이 ```@SpringBootTest```가 필요한가? 라는 의문이 드실수 있습니다.  
+  
 실제로 저도 그렇게 생각했고, 스프링 배치 공식 문서에서도 비슷하게 가이드 하고 있었습니다.  
 
 ![4](./images/4.png)
 
 ([End-To-End Testing of Batch Jobs](https://docs.spring.io/spring-batch/4.2.x/reference/html/testing.html#endToEndTesting))
 
-저 같은 경우 스프링 배치 통합 테스트가 필요할때라면 그냥 ```@SpringBootTest```을 사용합니다.  
-사용하지 않을 경우 아래와 같이 **전체 테스트 수행시 다양한 에러**가 발생합니다.
+헌데 JPA를 비롯해서 **자동 설정이 많이 필요한** 의존성들이 있는 프로젝트라면 ```@SpringBootTest```가 필요한 경우가 많습니다.  
+  
+저 같은 경우 스프링 배치 통합 테스트가 필요할때라면 그냥 마음편하게 ```@SpringBootTest```을 사용합니다.  
+사용하지 않을 경우 아래와 같이 **전체 테스트 수행시 다양한 에러**가 발생합니다.  
+(이외에도 **어떤 스프링 라이브러리들을 의존하고 있냐**에 따라 다양한 에러가 발생합니다.)  
 
 ```java
 InstanceAlreadyExistsException: com.zaxxer.hikari:name=dataSource,type=HikariDataSource
 ```
 
-이는 ```@SpringBootTest```가 해주던 많은 자동 설정들이 지원이 되지 않기 때문인데요.  
-
-
+아무래도 ```@SpringBootTest```가 해주던 많은 자동 설정들이 지원이 되지 않기 때문에 어쩔수 없는 일입니다.  
+  
 아래는 stackoverflow에 올라온 질문에 대해 **스프링 배치 팀의 개발자인** [beans](https://github.com/benas)가 답변을 남긴 것인데요.  
 beans 역시 그냥 ```@SpringBootTest```를 사용하라고 합니다.
 
@@ -300,99 +304,3 @@ beans 역시 그냥 ```@SpringBootTest```를 사용하라고 합니다.
 
 어떻게든 수동으로 환경을 만들어서 통합 테스트를 수행할 순 있겠지만, 그 비용이 너무 많이 들기 때문에 마음 편하게 ```@SpringBootTest```를 사용하시는걸 추천드립니다.
 
-## 10-2. Spring Context 없는 단위 테스트
-
-## 10-3. Spring Context 가 필요한 단위 테스트
-
-
-```java
-public class StepScopeTestExecutionListener implements TestExecutionListener {
-    ...
-    protected StepExecution getStepExecution(TestContext testContext) {
-		Object target;
-
-		try {
-			Method method = TestContext.class.getMethod(GET_TEST_INSTANCE_METHOD);
-			target = ReflectionUtils.invokeMethod(method, testContext);
-		} catch (NoSuchMethodException e) {
-			throw new IllegalStateException("No such method " + GET_TEST_INSTANCE_METHOD + " on provided TestContext", e);
-		}
-
-		ExtractorMethodCallback method = new ExtractorMethodCallback(StepExecution.class, "getStepExecution");
-		ReflectionUtils.doWithMethods(target.getClass(), method);
-		if (method.getName() != null) {
-			HippyMethodInvoker invoker = new HippyMethodInvoker();
-			invoker.setTargetObject(target);
-			invoker.setTargetMethod(method.getName());
-			try {
-				invoker.prepare();
-				return (StepExecution) invoker.invoke();
-			}
-			catch (Exception e) {
-				throw new IllegalArgumentException("Could not create step execution from method: " + method.getName(),
-						e);
-			}
-		}
-
-		return MetaDataInstanceFactory.createStepExecution();
-	}
-    ...
-}
-```
-
-### 4.0.x 이하 버전
-
-```java
-@ContextConfiguration
-@TestExecutionListeners( { DependencyInjectionTestExecutionListener.class,
-    StepScopeTestExecutionListener.class })
-@RunWith(SpringRunner.class)
-public class StepScopeTestExecutionListenerIntegrationTests {
-
-    // This component is defined step-scoped, so it cannot be injected unless
-    // a step is active...
-    @Autowired
-    private ItemReader<String> reader;
-
-    public StepExecution getStepExecution() {
-        StepExecution execution = MetaDataInstanceFactory.createStepExecution();
-        execution.getExecutionContext().putString("input.data", "foo,bar,spam");
-        return execution;
-    }
-
-    @Test
-    public void testReader() {
-        // The reader is initialized and bound to the input data
-        assertNotNull(reader.read());
-    }
-
-}
-```
-
-### 4.1.x 이상 버전
-
-```java
-@SpringBatchTest
-@RunWith(SpringRunner.class)
-@ContextConfiguration
-public class StepScopeTestExecutionListenerIntegrationTests {
-
-    // This component is defined step-scoped, so it cannot be injected unless
-    // a step is active...
-    @Autowired
-    private ItemReader<String> reader;
-
-    public StepExecution getStepExecution() {
-        StepExecution execution = MetaDataInstanceFactory.createStepExecution();
-        execution.getExecutionContext().putString("input.data", "foo,bar,spam");
-        return execution;
-    }
-
-    @Test
-    public void testReader() {
-        // The reader is initialized and bound to the input data
-        assertNotNull(reader.read());
-    }
-
-}
-```
