@@ -29,7 +29,7 @@ JUnit & Mockito 프레임워크와 H2를 이용한 테스트 환경 등에 대�
   
 물론 그렇다고 해서 항상 통합 테스트만 작성하라는 의미는 아닙니다.  
   
-저 같은 경우 최근에는 배치의 테스트 코드를 작성할때 Reader / Processor 단위의 테스트 코드를 먼저 작성 후 통합 테스트 코드를 작성합니다.  
+저 같은 경우 최근에는 배치의 테스트 코드를 작성할때 **Reader / Processor의 단위 테스트 코드를 먼저 작성** 후 통합 테스트 코드를 작성합니다.  
   
 단위 테스트의 장점을 버리라는 의미는 아닙니다.  
   
@@ -43,7 +43,7 @@ JUnit & Mockito 프레임워크와 H2를 이용한 테스트 환경 등에 대�
 
 스프링 배치 4.1 보다 아래 버전의 스프링 배치를 사용하신다면 다음과 같이 통합 테스트를 사용할 수 있습니다.  
 
-> 스프링 부트 배치로는 2.1 아래 버전이라고 보시면 됩니다.
+> 스프링 부트 배치 기준으로는 **2.1.0 보다 하위 버전**이라고 보시면 됩니다.
 
 ```java
 @RunWith(SpringRunner.class)
@@ -111,7 +111,8 @@ public class BatchIntegrationTestJobConfigurationLegacyTest {
 
 (3) ```jobLauncherTestUtils.launchJob(jobParameters)```
 
-* JobParameter와 함께 Job을 실행합니다.
+* **JobParameter와 함께 Job을 실행**합니다.
+  * 운영 환경에서는 CLI로 배치를 수행하겠지만, 지금 같은 테스트 코드에서는 ```JobLauncherTestUtils``` 를 통해 Job을 수행하고 결과를 검증합니다.
 * 해당 Job의 결과는 ```JobExecution```에 담겨 반환 됩니다.
 * 성공적으로 Batch가 수행되었는지는 ```jobExecution.getStatus()```로 검증합니다.
 
@@ -129,15 +130,12 @@ public class BatchIntegrationTestJobConfigurationLegacyTest {
   
 이렇게 하지 않을 경우 JobLauncherTestUtils에서는 **여러개의 Job Bean 중 어떤것을 선택해야할지 알 수 없어 에러**가 발생합니다.  
   
-> 물론 회피 방법이 있습니다만 이건 다른 포스팅에서 소개드리겠습니다.
-> 이 회피 방법을 통해 Spring Context 하나로 전체 테스트를 수행하기 때문입니다.
-
 그래서 ```@SpringBootTest(classes={...})``` 를 통해 **단일 Job Config**만 선택하도록 합니다.  
   
 아마 이 코드를 보고 의아해하시는분들이 계실텐데요.  
 이전에는 ```@ConditionalOnProperty```와 ```@TestPropertySource``` 를 사용하여 **특정 Batch Job**만 설정을 불러와 배치를 테스트 했습니다.  
   
-다만 이 방식에도 저 개인적으로 생각하는 여러 단점들이 있습니다.  
+다만 저 개인적으로 생각하는 이 방식의 단점들은 아래와 같습니다.  
 
 1. 흔히 말하는 행사 코드가 많이 필요합니다.
 
@@ -154,19 +152,18 @@ public class BatchIntegrationTestJobConfigurationLegacyTest {
 
 * 운영 환경에서도 ```@ConditionalOnProperty``` 덕분에 Job / Step / Reader 등의 Bean 생성시 **다른 Job에서 사용된 Bean 이름**에 대해서 크게 신경쓰지 않아도 됩니다.
 
-2. 운영 환경에서의 속도가 빠르다.
+2. 운영 환경에서의 Spring 실행 속도가 빠르다.
 
 * 1번과 마찬가지로 운영 환경에서 배치가 수행될때 단일 Job 설정들만 로딩되기 때문에 경량화된 상태로 실행 가능합니다.
 
-저 역시 두가지 모두 좋다고 생각합니다.  
+둘 중 어느걸 쓰더라도 무방하다고 생각합니다.  
 그래서 써보시고 마음에 드시는 방법으로 선택하시면 될 것 같습니다.  
   
-저 같은 경우 현재 스프링 배치 공식 문서에서도 권장하는 방법으로 변경중인데요.  
-스프링 배치 공식 문서에서는 ```@ConditionalOnProperty``` 보다는 ```@ContextConfiguration``` 를 사용 중입니다.  
+저 같은 경우 현재 스프링 배치 공식 문서에서도 권장하는 방법인 ```@ContextConfiguration``` 를 사용 중입니다.  
   
-첫번째 단점인 **많은 행사코드** 문제를 해결한 것이 바로 위 예제 코드에서도 사용한 ```@ContextConfiguration``` 입니다.  
-
 > ```@SpringBootTest(classes={...})``` 는 내부적으로 ```@ContextConfiguration```를 사용하기 때문에 둘은 같습니다.
+  
+첫번째 단점인 **많은 행사코드** 문제가 ```@ContextConfiguration``` 를 통해 어느 정도는 해소됩니다.  
   
 이 어노테이션은 ```ApplicationContext``` 에서 관리할 Bean과 Configuration 들을 지정할 수 있기 때문에 **특정 Batch Job**의 설정들만 가져와서 수행할 수 있습니다.  
   
@@ -211,7 +208,12 @@ public class TestBatchLegacyConfig {
 * ```JobLauncherTestUtils``` Bean을 각 테스트 코드에서 ```@Autowired```로 호출해서 사용합니다.
 
 4.1 아래 즉, 4.0.x 버전까지 쓰시는 분들은 위와 같이 테스트 코드를 작성하시면 됩니다.  
-4.1부터는 새로운 어노테이션이 추가되었습니다.
+  
+위 코드를 실제로 수행해보시면!
+
+![2](./images/2.png)
+
+테스트가 잘 수행된 것을 확인할 수 있습니다.
 
 ### 10-1-2. 4.1.x 이상 (부트 2.1) 버전
 
@@ -220,9 +222,9 @@ public class TestBatchLegacyConfig {
 해당 어노테이션을 추가하게되면 자동으로 ApplicationContext 에 테스트에 필요한 여러 유틸 Bean을 등록해줍니다.
 
 > Tip) 다들 아시겠지만, ApplicationContext 은 Spring의 Bean 컨테이너입니다.  
-> 여기에 Spring의 Bean들이 모두 담겨져있고, 가져와서 사용할 수 있다고 보시면 됩니다.
+> 여기에 Spring의 Bean들이 모두 담겨져있고, 가져와서 (```@Autowired```) 사용할 수 있다고 보시면 됩니다.
 
-등록되는 빈은 총 4개입니다.
+자동으로 등록되는 빈은 총 4개입니다.
 
 * JobLauncherTestUtils
   * 스프링 배치 테스트에 필요한 전반적인 유틸 기능들을 지원
@@ -235,55 +237,30 @@ public class TestBatchLegacyConfig {
   * 배치 단위 테스트시 JobScope 컨텍스트를 생성
   * 해당 컨텍스트를 통해 JobParameter등을 단위 테스트에서 DI 받을 수 있음
 
+여기서 ```JobLauncherTestUtils```와 ```JobRepositoryTestUtils```는 통합 테스트에 필요한 Bean들이며, ```StepScopeTestExecutionListener```와 ```JobScopeTestExecutionListener```는 단위 테스트 환경에서 필요한 Bean 들 입니다.  
+  
+스프링 배치 테스트 코드 작성에 필요한 Bean들을 미리 다 제공해준다고 생각하시면 됩니다.  
+자 그럼 ```@SpringBatchTest``` 를 이용해 코드를 개선해보겠습니다.  
+
 ```java
 @RunWith(SpringRunner.class)
-@SpringBatchTest
-@SpringBootTest(classes={BatchJpaTestConfiguration.class, TestBatchConfig.class})
+@SpringBatchTest // (1)
+@SpringBootTest(classes={BatchJpaTestConfiguration.class, TestBatchConfig.class}) // (2)
 public class BatchIntegrationTestJobConfigurationNewTest {
-
-    @Autowired
-    private JobLauncherTestUtils jobLauncherTestUtils;
-
-    @Autowired
-    private SalesRepository salesRepository;
-
-    @Autowired
-    private SalesSumRepository salesSumRepository;
-
-    @After
-    public void tearDown() throws Exception {
-        salesRepository.deleteAllInBatch();
-        salesSumRepository.deleteAllInBatch();
-    }
-
-    @Test
-    public void 기간내_Sales가_집계되어_SalesSum이된다() throws Exception {
-        //given
-        LocalDate orderDate = LocalDate.of(2019,10,6);
-        int amount1 = 1000;
-        int amount2 = 500;
-        int amount3 = 100;
-
-        salesRepository.save(new Sales(orderDate, amount1, "1"));
-        salesRepository.save(new Sales(orderDate, amount2, "2"));
-        salesRepository.save(new Sales(orderDate, amount3, "3"));
-
-        JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
-                .addString("orderDate", orderDate.format(FORMATTER))
-                .toJobParameters();
-
-        //when
-        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
-
-        //then
-        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
-        List<SalesSum> salesSumList = salesSumRepository.findAll();
-        assertThat(salesSumList.size()).isEqualTo(1);
-        assertThat(salesSumList.get(0).getOrderDate()).isEqualTo(orderDate);
-        assertThat(salesSumList.get(0).getAmountSum()).isEqualTo(amount1+amount2+amount3);
-    }
+    ...
 }
 ```
+
+(1) ```@SpringBatchTest```
+
+* 앞에서 언급한대로 Spring Batch 4.1 버전에 새롭게 추가된 어노테이션
+* 현재 테스트에선 ```JobLauncherTestUtils```를 지원 받기 위해 사용됩니다.
+
+(2) ```TestBatchConfig.class```
+
+* ```@SpringBatchTest``` 로 인해 불필요한 설정이 제거된 Config 클래스
+
+새롭게 추가될 ```TestBatchConfig``` 클래스의 코드는 아래가 전부입니다.
 
 ```java
 @Configuration
@@ -291,16 +268,29 @@ public class BatchIntegrationTestJobConfigurationNewTest {
 @EnableBatchProcessing
 public class TestBatchConfig {}
 ```
+
+기존에 생성해주던 ```JobLauncherTestUtils``` 가 모두 ```@SpringBatchTest```를 통해 자동 Bean으로 등록되니 더이상 직접 생성해줄 필요가 없습니다.  
+조금 더 간편해졌죠?  
+  
+![3](./images/3.png)
+
 ### 10-1-3. @SpringBootTest가 필수인가요?
 
-저 같은 경우 스프링 배치 통합 테스트가 필요할때라면 그냥 ```@SpringBootTest```를 쓰라고 합니다.  
-사용하지 않을 경우 아래와 같이 **전체 테스트 수행시 많은 에러**가 발생합니다.
+아마 ```@SpringBatchTest```와 ```@ContextConfiguration``` 를 사용하면 굳이 ```@SpringBootTest```가 필요한가? 라는 의문이 드실수 있습니다.  
+실제로 저도 그렇게 생각했고, 스프링 배치 공식 문서에서도 비슷하게 가이드 하고 있었습니다.  
+
+
+저 같은 경우 스프링 배치 통합 테스트가 필요할때라면 그냥 ```@SpringBootTest```을 사용합니다.  
+사용하지 않을 경우 아래와 같이 **전체 테스트 수행시 다양한 에러**가 발생합니다.
 
 ```java
 InstanceAlreadyExistsException: com.zaxxer.hikari:name=dataSource,type=HikariDataSource
 ```
 
-아래는 stackoverflow에 올라온 질문에 대해 스프링 배치 팀의 개발자인 [beans](https://github.com/benas)가 답변을 남긴 것인데요.  
+이는 ```@SpringBootTest```가 해주던 많은 자동 설정들이 지원이 되지 않기 때문인데요.  
+
+
+아래는 stackoverflow에 올라온 질문에 대해 **스프링 배치 팀의 개발자인** [beans](https://github.com/benas)가 답변을 남긴 것인데요.  
 beans 역시 그냥 ```@SpringBootTest```를 사용하라고 합니다.
 
 [spring-batch-end-to-end-test-configuration-not-working](https://stackoverflow.com/questions/55871880/spring-batch-end-to-end-test-configuration-not-working)
@@ -402,13 +392,4 @@ public class StepScopeTestExecutionListenerIntegrationTests {
     }
 
 }
-```
-
-
-
-
-## Unique JobParameter
-
-```java
-JobInstanceAlreadyCompleteException: A job instance already exists and is complete for parameters={orderDate=2019-10-06}.  If you want to run this job again, change the parameters.
 ```

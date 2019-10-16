@@ -64,7 +64,7 @@ public class BatchJdbcUnitTestJobConfigurationTest {
     @Before
     public void setUp() throws Exception {
         this.batchJdbcUnitTestJobReader.setDataSource(this.dataSource);
-        this.jdbcTemplate = new JdbcTemplate(this.dataSource);
+        this.jdbcTemplate = new JdbcTemplate(this.dataSource); //
     }
 
     @After
