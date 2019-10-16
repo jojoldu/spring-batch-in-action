@@ -1,19 +1,9 @@
-buildscript {
-    ext {
-        springBootVersion = '2.1.9.RELEASE'
-    }
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-    }
+plugins {
+    id 'org.springframework.boot' version '2.2.0.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.8.RELEASE'
+    id 'java'
+    id 'com.gorylenko.gradle-git-properties' version '2.2.0'
 }
-
-apply plugin: 'java'
-apply plugin: 'eclipse'
-apply plugin: 'org.springframework.boot'
-apply plugin: 'io.spring.dependency-management'
 
 group = 'com.jojoldu.spring'
 version = '0.0.1-SNAPSHOT'
@@ -28,7 +18,14 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-data-jpa')
     compile('com.h2database:h2')
     compile('mysql:mysql-connector-java')
-    compile('org.projectlombok:lombok')
+    annotationProcessor 'org.projectlombok:lombok'
+    compileOnly 'org.projectlombok:lombok'
     testCompile('org.springframework.boot:spring-boot-starter-test')
     testCompile('org.springframework.batch:spring-batch-test')
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
 }
