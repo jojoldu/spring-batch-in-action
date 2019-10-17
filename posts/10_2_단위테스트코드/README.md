@@ -1,8 +1,10 @@
-# 10-2. Spring Batch 단위 테스트 코드
+# 10.1. Spring Batch 단위 테스트 코드
 
-## 10-2. Spring Context 없는 단위 테스트
+## 10-2. Reader 테스트
 
-## 10-3. Spring Context 가 필요한 단위 테스트
+### StepScope 가 필요 없는 단위 테스트
+
+### StepScope 가 필요한 단위 테스트
 
 
 ```java
@@ -45,7 +47,7 @@ public class StepScopeTestExecutionListener implements TestExecutionListener {
 ```java
 @ContextConfiguration
 @TestExecutionListeners( { DependencyInjectionTestExecutionListener.class,
-    StepScopeTestExecutionListener.class })
+    StepScopeTestExecutionListener.class }) // 
 @RunWith(SpringRunner.class)
 public class StepScopeTestExecutionListenerIntegrationTests {
 

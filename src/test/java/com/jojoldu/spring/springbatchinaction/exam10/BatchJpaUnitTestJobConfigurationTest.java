@@ -2,7 +2,6 @@ package com.jojoldu.spring.springbatchinaction.exam10;
 
 import com.jojoldu.spring.springbatchinaction.TestBatchConfig;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.JobParameters;
@@ -37,7 +36,7 @@ public class BatchJpaUnitTestJobConfigurationTest {
     private JobLauncherTestUtils jobLauncherTestUtils;
 
     @Autowired
-    private JpaPagingItemReader<SalesSum> batchUnitTestJobReader;
+    private JpaPagingItemReader<SalesSum> reader;
 
     @Autowired
     private SalesRepository salesRepository;
@@ -72,13 +71,14 @@ public class BatchJpaUnitTestJobConfigurationTest {
         salesRepository.save(new Sales(orderDate, amount2, "2"));
         salesRepository.save(new Sales(orderDate, amount3, "3"));
 
-        batchUnitTestJobReader.open(new ExecutionContext());
+        reader.open(new ExecutionContext());
 
         //when
-        SalesSum read1 = batchUnitTestJobReader.read();
+        SalesSum readItem = reader.read();
 
         //then
-        assertThat(read1.getAmountSum()).isEqualTo(amount1+amount2+amount3);
+        assertThat(readItem.getAmountSum()).isEqualTo(amount1+amount2+amount3);
+        assertThat(reader.read()).isNull(); // 더이상 읽을게 없어 null
     }
 
 

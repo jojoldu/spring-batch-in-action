@@ -10,17 +10,13 @@ import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
-import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.MetaDataInstanceFactory;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.data.jdbc.DataJdbcTest;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
@@ -44,7 +40,7 @@ public class BatchJdbcUnitTestJobConfigurationTest {
     private JobLauncherTestUtils jobLauncherTestUtils;
 
     @Autowired
-    private JdbcPagingItemReader<SalesSum> batchJdbcUnitTestJobReader;
+    private JdbcPagingItemReader<SalesSum> reader;
 
     @Autowired
     private DataSource dataSource;
@@ -63,7 +59,7 @@ public class BatchJdbcUnitTestJobConfigurationTest {
 
     @Before
     public void setUp() throws Exception {
-        this.batchJdbcUnitTestJobReader.setDataSource(this.dataSource);
+        this.reader.setDataSource(this.dataSource);
         this.jdbcTemplate = new JdbcTemplate(this.dataSource); //
     }
 
@@ -85,11 +81,12 @@ public class BatchJdbcUnitTestJobConfigurationTest {
         jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", ORDER_DATE, amount3, "3");
 
         //when
-        batchJdbcUnitTestJobReader.open(new ExecutionContext());
+        reader.open(new ExecutionContext());
 
         //then
-        SalesSum read1 = batchJdbcUnitTestJobReader.read();
-        assertThat(read1.getAmountSum()).isEqualTo(amount1+amount2+amount3);
+        SalesSum readItem = reader.read();
+        assertThat(readItem.getAmountSum()).isEqualTo(amount1+amount2+amount3);
+        assertThat(reader.read()).isNull(); // 더이상 읽을게 없어 null
     }
 
 
