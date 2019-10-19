@@ -34,16 +34,16 @@ public class BatchNoSpringContextUnitTest2 {
     private JdbcTemplate jdbcTemplate;
     private ConfigurableApplicationContext context;
     private LocalDate orderDate;
-    private BatchJdbcTestConfiguration job;
+    private BatchOnlyJdbcReaderTestConfiguration job;
 
     @Before
     public void setUp() {
-        this.context = new AnnotationConfigApplicationContext(TestDataSourceConfiguration.class);
-        this.dataSource = (DataSource) context.getBean("dataSource");
-        this.jdbcTemplate = new JdbcTemplate(this.dataSource);
+        this.context = new AnnotationConfigApplicationContext(TestDataSourceConfiguration.class); // (1)
+        this.dataSource = (DataSource) context.getBean("dataSource"); // (2)
+        this.jdbcTemplate = new JdbcTemplate(this.dataSource); // (3)
         this.orderDate = LocalDate.of(2019, 10, 6);
-        this.job = new BatchJdbcTestConfiguration(null, null, dataSource);
-        this.job.setChunkSize(10);
+        this.job = new BatchOnlyJdbcReaderTestConfiguration(dataSource); // (4)
+        this.job.setChunkSize(10); // (5)
     }
 
     @After
@@ -63,7 +63,7 @@ public class BatchNoSpringContextUnitTest2 {
         jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount2, "2");
         jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount3, "3");
 
-        JdbcPagingItemReader<SalesSum> reader = job.batchJdbcUnitTestJobReader(orderDate.format(FORMATTER));
+        JdbcPagingItemReader<SalesSum> reader = job.batchOnlyJdbcReaderTestJobReader(orderDate.format(FORMATTER));
         reader.afterPropertiesSet(); // Query 생성
         reader.open(new ExecutionContext()); // Step Execution Context 할당
 
