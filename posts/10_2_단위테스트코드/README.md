@@ -107,7 +107,7 @@ public class BatchNoSpringContextUnitTest2 {
     private JdbcTemplate jdbcTemplate;
     private ConfigurableApplicationContext context;
     private LocalDate orderDate;
-    private BatchJdbcTestConfiguration job;
+    private BatchOnlyJdbcReaderTestConfiguration job;
 
     @Before
     public void setUp() {
@@ -115,11 +115,11 @@ public class BatchNoSpringContextUnitTest2 {
         this.dataSource = (DataSource) context.getBean("dataSource"); // (2)
         this.jdbcTemplate = new JdbcTemplate(this.dataSource); // (3)
         this.orderDate = LocalDate.of(2019, 10, 6);
-        this.job = new BatchJdbcTestConfiguration(null, null, dataSource); // (4)
+        this.job = new BatchOnlyJdbcReaderTestConfiguration(dataSource); // (4)
         this.job.setChunkSize(10); // (5)
     }
 
-    @After // context 초기화
+    @After
     public void tearDown() {
         if (this.context != null) {
             this.context.close();
@@ -132,28 +132,26 @@ public class BatchNoSpringContextUnitTest2 {
         long amount1 = 1000;
         long amount2 = 100;
         long amount3 = 10;
-        jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount1, "1");
+        jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount1, "1"); // (1)
         jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount2, "2");
         jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount3, "3");
 
-        JdbcPagingItemReader<SalesSum> reader = job.batchJdbcUnitTestJobReader(orderDate.format(FORMATTER));
-        reader.afterPropertiesSet(); // Query 생성
-        reader.open(new ExecutionContext()); // Step Execution Context 할당
+        JdbcPagingItemReader<SalesSum> reader = job.batchOnlyJdbcReaderTestJobReader(orderDate.format(FORMATTER)); // (2)
+        reader.afterPropertiesSet(); // (3)
 
-        // when
-        SalesSum readResult = reader.read();
-
-        // then
-        assertThat(readResult.getAmountSum()).isEqualTo(amount1 + amount2 + amount3); // 첫번째 결과 조회
-        assertThat(reader.read()).isNull(); // 더이상 읽을게 없어 null
+        // when & then
+        assertThat(reader.read().getAmountSum()).isEqualTo(amount1 + amount2 + amount3); // (4)
+        assertThat(reader.read()).isNull(); //(5)
     }
 
     @Configuration
     public static class TestDataSourceConfiguration {
 
+        // (1)
         private static final String CREATE_SQL =
                         "create table IF NOT EXISTS `sales` (id bigint not null auto_increment, amount bigint not null, order_date date, order_no varchar(255), primary key (id)) engine=InnoDB;";
 
+        // (2)
         @Bean
         public DataSource dataSource() {
             EmbeddedDatabaseFactory databaseFactory = new EmbeddedDatabaseFactory();
@@ -161,6 +159,7 @@ public class BatchNoSpringContextUnitTest2 {
             return databaseFactory.getDatabase();
         }
 
+        // (3)
         @Bean
         public DataSourceInitializer initializer(DataSource dataSource) {
             DataSourceInitializer dataSourceInitializer = new DataSourceInitializer();
@@ -235,38 +234,138 @@ java.lang.IllegalArgumentException: pageSize must be greater than zero
 그래서 여기서는 **pageSize 값에 사용되는 chunkSize**를 **setter 인잭션**을 사용하도록 했습니다.
 
 ```java
-    private int chunkSize;
+private int chunkSize;
 
-    @Value("${chunkSize:1000}") // setter 인잭션
-    public void setChunkSize(int chunkSize) {
-        this.chunkSize = chunkSize;
-    }
+@Value("${chunkSize:1000}") // setter 인잭션
+public void setChunkSize(int chunkSize) {
+    this.chunkSize = chunkSize;
+}
+...
+
+@Bean
+@StepScope
+public JdbcPagingItemReader<SalesSum> batchJdbcUnitTestJobReader(
+        @Value("#{jobParameters[orderDate]}") String orderDate) throws Exception {
     ...
 
-    @Bean
-    @StepScope
-    public JdbcPagingItemReader<SalesSum> batchJdbcUnitTestJobReader(
-            @Value("#{jobParameters[orderDate]}") String orderDate) throws Exception {
-        ...
-
-        return ...
-                .pageSize(chunkSize) // chunkSize와 일치
-                .fetchSize(chunkSize) // chunkSize와 일치
-                ...;
-    }
+    return ...
+            .pageSize(chunkSize) // chunkSize와 일치
+            .fetchSize(chunkSize) // chunkSize와 일치
+            ...;
+}
 ```
 
 > setter 대신에 생성자 인잭션을 사용하셔도 됩니다.
 > 다만 그럴 경우 chunkSize를 가진 Spring Bean을 별도로 생성해야만 합니다.
 > 여기서는 예제이니 setter로 진행합니다.
 
-#### 테스트 메소드
+### 테스트 메소드
 
-#### 테스트 Config
+다음으론 테스트 코드가 수행될 테스트 메소드입니다.
 
+```java
+@Test
+public void 기간내_Sales가_집계되어_SalesSum이된다() throws Exception {
+    // given
+    long amount1 = 1000;
+    long amount2 = 100;
+    long amount3 = 10;
+    jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount1, "1"); // (1)
+    jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount2, "2");
+    jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount3, "3");
 
+    JdbcPagingItemReader<SalesSum> reader = job.batchOnlyJdbcReaderTestJobReader(orderDate.format(FORMATTER)); // (2)
+    reader.afterPropertiesSet(); // (3)
+
+    // when & then
+    assertThat(reader.read().getAmountSum()).isEqualTo(amount1 + amount2 + amount3); // (4)
+    assertThat(reader.read()).isNull(); //(5)
+}
+```
+
+(1) ```jdbcTemplate.update```
+
+* ```insert``` 쿼리를 통해 **테스트할 환경을 구축**합니다.
+* 총 3개의 saels 데이터를 등록합니다.
+
+(2) ```job.batchOnlyJdbcReaderTestJobReader```
+
+* ```setUp``` 메소드에서 만든 Job에서 Reader를 가져옵니다.
+
+(3) ```reader.afterPropertiesSet()```
+
+* Reader의 쿼리를 생성합니다.
+* 이 메소드가 실행되지 않으면 **Reader의 쿼리가 null**입니다.
+
+(4) ```assertThat(reader.read())```
+
+* ```group by``` 결과로 원하는 값의 1개의 row가 반환되는지 검증합니다.
+
+(5) ```assertThat(reader.read()).isNull()```
+
+* 조회 결과가 1개의 row라서 다음으로 읽을 row는 없으니 ```null```임을 검증한다.
+
+### 테스트 Config
+
+마지막으로 **테스트 코드가 수행되는 환경**을 만들어주는 ```TestDataSourceConfiguration```을 보겠습니다.
+
+```java
+@Configuration
+public static class TestDataSourceConfiguration {
+
+    // (1)
+    private static final String CREATE_SQL =
+                    "create table IF NOT EXISTS `sales` (id bigint not null auto_increment, amount bigint not null, order_date date, order_no varchar(255), primary key (id)) engine=InnoDB;";
+
+    // (2)
+    @Bean
+    public DataSource dataSource() {
+        EmbeddedDatabaseFactory databaseFactory = new EmbeddedDatabaseFactory();
+        databaseFactory.setDatabaseType(H2);
+        return databaseFactory.getDatabase();
+    }
+
+    // (3)
+    @Bean
+    public DataSourceInitializer initializer(DataSource dataSource) {
+        DataSourceInitializer dataSourceInitializer = new DataSourceInitializer();
+        dataSourceInitializer.setDataSource(dataSource);
+
+        Resource create = new ByteArrayResource(CREATE_SQL.getBytes());
+        dataSourceInitializer.setDatabasePopulator(new ResourceDatabasePopulator(create));
+
+        return dataSourceInitializer;
+    }
+}
+```
+
+(1) ```create table```
+
+* Reader의 쿼리가 수행될 테이블 (```sales```) 를 생성하는 쿼리입니다.
+* 제일 하단의 ```DataSourceInitializer``` 에서 **DB가 초기화 되는 시점에 실행*될 예정입니다.
+
+(2) ```@Bean dataSource```
+
+* 테스트용 DB를 실행합니다.
+  * ```@SpringBootTest```, ```@DataJpaTest``` 등을 써보신 분들은 H2를 이용한 테스트 환경과 동일하다고 생각하시면 됩니다.
+* 인메모리 DB인 H2를 사용했기 때문에 편하게 실행/종료가 가능합니다.
+  * Gradle / Maven에 ```H2``` 의존성이 꼭 있어야만 작동됩니다.
+
+(3) ```@Bean initializer```
+
+* (2)를 통해 생성된 DB의 초기 작업을 어떤걸 할지 결정합니다.
+* 여기서는 (1) 의 ```create table``` 쿼리를 (2) 의 DataBase에 실행하는 작업을 설정하였습니다.
+
+> Tip)
+> 이 모든 과정을 ```@SpringBootTest```가 자동으로 해줍니다.
+> 다만 **Spring에 관련된 모든 설정이 실행**되다보니 한번 수행할때마다 오래걸립니다.
+> 지금의 테스트는 순식간에 수행되니 속도 측면에서 충분히 장점이 있습니다.
+ 
+자 그래서 실제로 이 테스트 코드를 수행해보시면!
 
 ![1](./images/1.png)
+
+아주 빠른속도로 잘 작동되는 것을 확인해볼 수 있습니다.
 
 ## 10.1.2  StepScope 가 필요한 단위 테스트
 

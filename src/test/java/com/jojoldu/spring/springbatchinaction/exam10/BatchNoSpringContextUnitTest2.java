@@ -59,28 +59,26 @@ public class BatchNoSpringContextUnitTest2 {
         long amount1 = 1000;
         long amount2 = 100;
         long amount3 = 10;
-        jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount1, "1");
+        jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount1, "1"); // (1)
         jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount2, "2");
         jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", orderDate, amount3, "3");
 
-        JdbcPagingItemReader<SalesSum> reader = job.batchOnlyJdbcReaderTestJobReader(orderDate.format(FORMATTER));
-        reader.afterPropertiesSet(); // Query 생성
-        reader.open(new ExecutionContext()); // Step Execution Context 할당
+        JdbcPagingItemReader<SalesSum> reader = job.batchOnlyJdbcReaderTestJobReader(orderDate.format(FORMATTER)); // (2)
+        reader.afterPropertiesSet(); // (3)
 
-        // when
-        SalesSum readResult = reader.read();
-
-        // then
-        assertThat(readResult.getAmountSum()).isEqualTo(amount1 + amount2 + amount3); // 첫번째 결과 조회
-        assertThat(reader.read()).isNull(); // 더이상 읽을게 없어 null
+        // when & then
+        assertThat(reader.read().getAmountSum()).isEqualTo(amount1 + amount2 + amount3); // (4)
+        assertThat(reader.read()).isNull(); //(5)
     }
 
     @Configuration
     public static class TestDataSourceConfiguration {
 
+        // (1)
         private static final String CREATE_SQL =
                         "create table IF NOT EXISTS `sales` (id bigint not null auto_increment, amount bigint not null, order_date date, order_no varchar(255), primary key (id)) engine=InnoDB;";
 
+        // (2)
         @Bean
         public DataSource dataSource() {
             EmbeddedDatabaseFactory databaseFactory = new EmbeddedDatabaseFactory();
@@ -88,6 +86,7 @@ public class BatchNoSpringContextUnitTest2 {
             return databaseFactory.getDatabase();
         }
 
+        // (3)
         @Bean
         public DataSourceInitializer initializer(DataSource dataSource) {
             DataSourceInitializer dataSourceInitializer = new DataSourceInitializer();
