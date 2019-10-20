@@ -33,9 +33,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class BatchJpaUnitTestJobConfigurationTest {
 
     @Autowired
-    private JobLauncherTestUtils jobLauncherTestUtils;
-
-    @Autowired
     private JpaPagingItemReader<SalesSum> reader;
 
     @Autowired
