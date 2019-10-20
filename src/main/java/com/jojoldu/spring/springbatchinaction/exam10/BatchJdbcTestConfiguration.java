@@ -31,8 +31,8 @@ import static java.time.format.DateTimeFormatter.ofPattern;
  * Github : http://github.com/jojoldu
  */
 
-@Slf4j // log 사용을 위한 lombok 어노테이션
-@RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
+@Slf4j
+@RequiredArgsConstructor
 @Configuration
 public class BatchJdbcTestConfiguration {
     public static final DateTimeFormatter FORMATTER = ofPattern("yyyy-MM-dd");
@@ -71,7 +71,6 @@ public class BatchJdbcTestConfiguration {
             @Value("#{jobParameters[orderDate]}") String orderDate) throws Exception {
 
         Map<String, Object> params = new HashMap<>();
-
         params.put("orderDate", LocalDate.parse(orderDate, FORMATTER));
 
         SqlPagingQueryProviderFactoryBean queryProvider = new SqlPagingQueryProviderFactoryBean();
@@ -101,5 +100,4 @@ public class BatchJdbcTestConfiguration {
                 .beanMapped()
                 .build();
     }
-
 }

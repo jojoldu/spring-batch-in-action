@@ -3,18 +3,26 @@ package com.jojoldu.spring.springbatchinaction.exam10;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.batch.item.ExecutionContext;
+import org.junit.runner.RunWith;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.batch.test.MetaDataInstanceFactory;
+import org.springframework.batch.test.context.SpringBatchTest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory;
 import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.sql.DataSource;
 import java.time.LocalDate;
@@ -24,51 +32,58 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType.H2;
 
 /**
- * Created by jojoldu@gmail.com on 09/10/2019
+ * Created by jojoldu@gmail.com on 06/10/2019
  * Blog : http://jojoldu.tistory.com
  * Github : http://github.com/jojoldu
  */
-public class BatchNoSpringContextUnitTest2 {
 
-    private DataSource dataSource;
-    private JdbcTemplate jdbcTemplate;
-    private ConfigurableApplicationContext context;
-    private LocalDate orderDate;
-    private BatchOnlyJdbcReaderTestConfiguration job;
+@RunWith(SpringRunner.class)
+@EnableBatchProcessing
+@SpringBatchTest
+@ContextConfiguration(classes={
+        BatchJdbcTestConfiguration.class,
+        BatchJdbcUnitTestJobConfigurationNewTest.TestDataSourceConfiguration.class})
+public class BatchJdbcUnitTestJobConfigurationNewTest {
+
+    @Autowired private JdbcPagingItemReader<SalesSum> reader;
+    @Autowired private DataSource dataSource;
+
+    private JdbcOperations jdbcTemplate;
+    private LocalDate orderDate = LocalDate.of(2019, 10, 6);
+
+    public StepExecution getStepExecution() {
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addString("orderDate", this.orderDate.format(FORMATTER))
+                .toJobParameters();
+
+        return MetaDataInstanceFactory.createStepExecution(jobParameters);
+    }
 
     @Before
-    public void setUp() {
-        this.context = new AnnotationConfigApplicationContext(TestDataSourceConfiguration.class); // (1)
-        this.dataSource = (DataSource) context.getBean("dataSource"); // (2)
-        this.jdbcTemplate = new JdbcTemplate(this.dataSource); // (3)
-        this.orderDate = LocalDate.of(2019, 10, 6);
-        this.job = new BatchOnlyJdbcReaderTestConfiguration(dataSource); // (4)
-        this.job.setChunkSize(10); // (5)
+    public void setUp() throws Exception {
+        this.reader.setDataSource(this.dataSource);
+        this.jdbcTemplate = new JdbcTemplate(this.dataSource);
     }
 
     @After
-    public void tearDown() {
-        if (this.context != null) {
-            this.context.close();
-        }
+    public void tearDown() throws Exception {
+        this.jdbcTemplate.update("delete from sales");
     }
 
     @Test
     public void 기간내_Sales가_집계되어_SalesSum이된다() throws Exception {
-        // given
+        //given
         long amount1 = 1000;
-        long amount2 = 100;
-        long amount3 = 10;
+        long amount2 = 500;
+        long amount3 = 100;
+
         saveSales(amount1, "1");
         saveSales(amount2, "2");
         saveSales(amount3, "3");
 
-        JdbcPagingItemReader<SalesSum> reader = job.batchOnlyJdbcReaderTestJobReader(orderDate.format(FORMATTER)); // (2)
-        reader.afterPropertiesSet(); // (3)
-
-        // when & then
-        assertThat(reader.read().getAmountSum()).isEqualTo(amount1 + amount2 + amount3); // (4)
-        assertThat(reader.read()).isNull(); //(5)
+        // when && then
+        assertThat(reader.read().getAmountSum()).isEqualTo(amount1+amount2+amount3);
+        assertThat(reader.read()).isNull();
     }
 
     private void saveSales(long amount, String orderNo) {
@@ -78,11 +93,9 @@ public class BatchNoSpringContextUnitTest2 {
     @Configuration
     public static class TestDataSourceConfiguration {
 
-        // (1)
         private static final String CREATE_SQL =
-                        "create table IF NOT EXISTS `sales` (id bigint not null auto_increment, amount bigint not null, order_date date, order_no varchar(255), primary key (id)) engine=InnoDB;";
+                "create table IF NOT EXISTS `sales` (id bigint not null auto_increment, amount bigint not null, order_date date, order_no varchar(255), primary key (id)) engine=InnoDB;";
 
-        // (2)
         @Bean
         public DataSource dataSource() {
             EmbeddedDatabaseFactory databaseFactory = new EmbeddedDatabaseFactory();
@@ -90,7 +103,6 @@ public class BatchNoSpringContextUnitTest2 {
             return databaseFactory.getDatabase();
         }
 
-        // (3)
         @Bean
         public DataSourceInitializer initializer(DataSource dataSource) {
             DataSourceInitializer dataSourceInitializer = new DataSourceInitializer();

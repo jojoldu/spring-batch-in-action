@@ -8,9 +8,9 @@ import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
-import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.test.MetaDataInstanceFactory;
+import org.springframework.batch.test.StepScopeTestExecutionListener;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +23,9 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory;
 import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
 import javax.sql.DataSource;
 import java.time.LocalDate;
@@ -40,22 +42,23 @@ import static org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType.
 
 @RunWith(SpringRunner.class)
 @EnableBatchProcessing
-@SpringBatchTest
+@TestExecutionListeners( {
+        DependencyInjectionTestExecutionListener.class,
+        StepScopeTestExecutionListener.class })
 @ContextConfiguration(classes={
         BatchJdbcTestConfiguration.class,
-        BatchJdbcUnitTestJobConfigurationTest.TestDataSourceConfiguration.class})
-public class BatchJdbcUnitTestJobConfigurationTest {
-
-    private static final LocalDate ORDER_DATE = LocalDate.of(2019,10,6);
+        BatchJdbcUnitTestJobConfigurationLegacyTest.TestDataSourceConfiguration.class})
+public class BatchJdbcUnitTestJobConfigurationLegacyTest {
 
     @Autowired private JdbcPagingItemReader<SalesSum> reader;
     @Autowired private DataSource dataSource;
 
     private JdbcOperations jdbcTemplate;
+    private LocalDate orderDate = LocalDate.of(2019, 10, 6);
 
     public StepExecution getStepExecution() {
         JobParameters jobParameters = new JobParametersBuilder()
-                .addString("orderDate", ORDER_DATE.format(FORMATTER))
+                .addString("orderDate", this.orderDate.format(FORMATTER))
                 .toJobParameters();
 
         return MetaDataInstanceFactory.createStepExecution(jobParameters);
@@ -75,17 +78,21 @@ public class BatchJdbcUnitTestJobConfigurationTest {
     @Test
     public void 기간내_Sales가_집계되어_SalesSum이된다() throws Exception {
         //given
-        int amount1 = 1000;
-        int amount2 = 500;
-        int amount3 = 100;
+        long amount1 = 1000;
+        long amount2 = 500;
+        long amount3 = 100;
 
-        jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", ORDER_DATE, amount1, "1");
-        jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", ORDER_DATE, amount2, "2");
-        jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", ORDER_DATE, amount3, "3");
+        saveSales(amount1, "1");
+        saveSales(amount2, "2");
+        saveSales(amount3, "3");
 
         // when && then
         assertThat(reader.read().getAmountSum()).isEqualTo(amount1+amount2+amount3);
         assertThat(reader.read()).isNull();
+    }
+
+    private void saveSales(long amount, String orderNo) {
+        jdbcTemplate.update("insert into sales (order_date, amount, order_no) values (?, ?, ?)", this.orderDate, amount, orderNo);
     }
 
     @Configuration
@@ -112,5 +119,4 @@ public class BatchJdbcUnitTestJobConfigurationTest {
             return dataSourceInitializer;
         }
     }
-
 }
