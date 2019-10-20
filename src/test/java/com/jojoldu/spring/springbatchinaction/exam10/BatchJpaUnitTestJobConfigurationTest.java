@@ -32,14 +32,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes={BatchJpaTestConfiguration.class, TestBatchConfig.class})
 public class BatchJpaUnitTestJobConfigurationTest {
 
-    @Autowired
-    private JpaPagingItemReader<SalesSum> reader;
-
-    @Autowired
-    private SalesRepository salesRepository;
-
-    @Autowired
-    private SalesSumRepository salesSumRepository;
+    @Autowired private JpaPagingItemReader<SalesSum> reader;
+    @Autowired private SalesRepository salesRepository;
+    @Autowired private SalesSumRepository salesSumRepository;
 
     private static final LocalDate orderDate = LocalDate.of(2019,10,6);
 
@@ -64,19 +59,18 @@ public class BatchJpaUnitTestJobConfigurationTest {
         int amount2 = 500;
         int amount3 = 100;
 
-        salesRepository.save(new Sales(orderDate, amount1, "1"));
-        salesRepository.save(new Sales(orderDate, amount2, "2"));
-        salesRepository.save(new Sales(orderDate, amount3, "3"));
+        saveSales(amount1, "1");
+        saveSales(amount2, "2");
+        saveSales(amount3, "3");
 
         reader.open(new ExecutionContext());
 
-        //when
-        SalesSum readItem = reader.read();
-
-        //then
-        assertThat(readItem.getAmountSum()).isEqualTo(amount1+amount2+amount3);
+        //when & then
+        assertThat(reader.read().getAmountSum()).isEqualTo(amount1+amount2+amount3);
         assertThat(reader.read()).isNull(); // 더이상 읽을게 없어 null
     }
 
-
+    private Sales saveSales(long amount, String orderNo) {
+        return salesRepository.save(new Sales(orderDate, amount, orderNo));
+    }
 }
