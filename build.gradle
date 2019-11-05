@@ -14,6 +14,8 @@ repositories {
 }
 
 dependencies {
+    compile 'org.springframework:spring-web' // For RestTemplate
+
     compile('org.springframework.boot:spring-boot-starter-batch')
     compile('org.springframework.boot:spring-boot-starter-data-jpa')
     compile('com.h2database:h2')
