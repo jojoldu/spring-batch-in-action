@@ -48,7 +48,7 @@ Spring Batch는 ```@StepScope```와 ```@JobScope``` 라는 아주 특별한 Bean
 ![stepscope1](./images/5/stepscope1.png)
 
 Spring Batch가 Spring 컨테이너를 통해 지정된 **Step의 실행시점에 해당 컴포넌트를 Spring Bean으로 생성**합니다.  
-마찬가지로 ```@JobScpoe```는 **Job 실행시점**에 Bean이 생성 됩니다.  
+마찬가지로 ```@JobScope```는 **Job 실행시점**에 Bean이 생성 됩니다.  
 즉, **Bean의 생성 시점을 지정된 Scope가 실행되는 시점으로 지연**시킵니다.  
 
 > 어떻게 보면 MVC의 request scope와 비슷할 수 있겠습니다.  
