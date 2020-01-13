@@ -1,8 +1,9 @@
 plugins {
-    id 'org.springframework.boot' version '2.2.0.RELEASE'
+    id 'org.springframework.boot' version '2.2.0.RELEASE' apply false
     id 'io.spring.dependency-management' version '1.0.8.RELEASE'
     id 'java'
     id 'com.gorylenko.gradle-git-properties' version '2.2.0'
+    id 'com.ewerk.gradle.plugins.querydsl' version '1.0.10'
 }
 
 group = 'com.jojoldu.spring'
@@ -14,20 +15,60 @@ repositories {
 }
 
 dependencies {
-    compile 'org.springframework:spring-web' // For RestTemplate
+    implementation 'org.springframework:spring-web' // For RestTemplate
 
-    compile('org.springframework.boot:spring-boot-starter-batch')
-    compile('org.springframework.boot:spring-boot-starter-data-jpa')
-    compile('com.h2database:h2')
-    compile('mysql:mysql-connector-java')
+    implementation('org.springframework.boot:spring-boot-starter-batch')
+    implementation('org.springframework.boot:spring-boot-starter-data-jpa')
+    implementation('com.h2database:h2')
+    implementation('mysql:mysql-connector-java')
+    implementation ('com.querydsl:querydsl-jpa')
+    implementation ('com.querydsl:querydsl-apt')
+
     annotationProcessor 'org.projectlombok:lombok'
-    compileOnly 'org.projectlombok:lombok'
-    testCompile('org.springframework.boot:spring-boot-starter-test')
-    testCompile('org.springframework.batch:spring-batch-test')
+    implementation 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.projectlombok:lombok'
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test')
+    testImplementation('org.springframework.batch:spring-batch-test')
 }
 
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
+    }
+}
+
+configurations {
+    querydsl.extendsFrom compileClasspath
+    developmentOnly
+    runtimeClasspath {
+        extendsFrom developmentOnly
+    }
+}
+
+def querydslSrcDir = 'src/main/generated'
+
+querydsl {
+    library = "com.querydsl:querydsl-apt"
+    jpa = true
+    querydslSourcesDir = querydslSrcDir
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', querydslSrcDir]
+        }
+    }
+}
+
+compileQuerydsl{
+    options.annotationProcessorPath = configurations.querydsl
+}
+
+dependencyManagement {
+    imports {
+        mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
     }
 }
