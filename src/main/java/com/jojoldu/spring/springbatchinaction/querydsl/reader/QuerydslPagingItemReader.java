@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.querydsl;
+package com.jojoldu.spring.springbatchinaction.querydsl.reader;
 
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -17,13 +17,13 @@ import java.util.function.Function;
 
 public class QuerydslPagingItemReader<T> extends AbstractPagingItemReader<T> {
 
-    private final Map<String, Object> jpaPropertyMap = new HashMap<>();
-    private EntityManagerFactory entityManagerFactory;
-    private EntityManager entityManager;
-    private Function<JPAQueryFactory, JPAQuery<T>> queryFunction;
-    private boolean transacted = true;//default value
+    protected final Map<String, Object> jpaPropertyMap = new HashMap<>();
+    protected EntityManagerFactory entityManagerFactory;
+    protected EntityManager entityManager;
+    protected Function<JPAQueryFactory, JPAQuery<T>> queryFunction;
+    protected boolean transacted = true;//default value
 
-    private QuerydslPagingItemReader() {
+    protected QuerydslPagingItemReader() {
         setName(ClassUtils.getShortName(QuerydslPagingItemReader.class));
     }
 
@@ -52,18 +52,35 @@ public class QuerydslPagingItemReader<T> extends AbstractPagingItemReader<T> {
     @SuppressWarnings("unchecked")
     protected void doReadPage() {
 
-        if (transacted) {
-            entityManager.clear();
-        }//end if
+        clearIfTransacted();
 
         JPAQuery<T> query = createQuery().offset(getPage() * getPageSize()).limit(getPageSize());
 
+        initResults();
+
+        fetchQuery(query);
+    }
+
+    protected void clearIfTransacted() {
+        if (transacted) {
+            entityManager.clear();
+        }//end if
+    }
+
+    protected void initResults() {
         if (CollectionUtils.isEmpty(results)) {
             results = new CopyOnWriteArrayList<T>();
         } else {
             results.clear();
         }
+    }
 
+    private JPAQuery<T> createQuery() {
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+        return queryFunction.apply(queryFactory);
+    }
+
+    protected void fetchQuery(JPAQuery<T> query) {
         if (!transacted) {
             List<T> queryResult = query.fetch();
             for (T entity : queryResult) {
@@ -73,11 +90,6 @@ public class QuerydslPagingItemReader<T> extends AbstractPagingItemReader<T> {
         } else {
             results.addAll(query.fetch());
         }//end if
-    }
-
-    private JPAQuery<T> createQuery() {
-        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
-        return queryFunction.apply(queryFactory);
     }
 
     @Override

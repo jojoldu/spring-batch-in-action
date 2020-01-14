@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.querydsl;
+package com.jojoldu.spring.springbatchinaction.querydsl.reader;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
