@@ -25,11 +25,12 @@ import java.time.LocalDate;
 @Getter
 @NoArgsConstructor
 @Entity
-public class Product implements BaseEntityId {
+public class ProductBackup implements BaseEntityId {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private Long originId;
 
     private String name;
     private long price;
@@ -40,10 +41,11 @@ public class Product implements BaseEntityId {
     private Store store;
 
     @Builder
-    public Product(String name, long price, LocalDate createDate) {
-        this.name = name;
-        this.price = price;
-        this.createDate = createDate;
+    public ProductBackup(Product product) {
+        this.originId = product.getId();
+        this.name = product.getName();
+        this.price = product.getPrice();
+        this.createDate = product.getCreateDate();
     }
 
     public void changeStore(Store store) {

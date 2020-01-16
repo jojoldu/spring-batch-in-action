@@ -1,16 +1,28 @@
 spring:
   profiles:
     active: local
-
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate.dialect: org.hibernate.dialect.MySQL57Dialect
+      hibernate.hbm2ddl.import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor
+      hibernate.default_batch_fetch_size: ${chunkSize:1000}
+    open-in-view: false
 spring.batch.job.names: ${job.name:NONE}
 logging.level.org.springframework.batch: DEBUG
 
 ---
 spring:
   profiles: local
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
   datasource:
     hikari:
-      jdbc-url: jdbc:h2:mem:testdb;
+      jdbc-url: jdbc:h2:mem:testdb;MODE=MYSQL
       username: sa
       password:
       driver-class-name: org.h2.Driver
@@ -22,7 +34,7 @@ spring:
       ddl-auto: none
     show-sql: false
     properties:
-      hibernate.dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+      hibernate.dialect: org.hibernate.dialect.MySQL57Dialect
       hibernate.hbm2ddl.import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor
       hibernate.default_batch_fetch_size: ${chunkSize:1000}
     open-in-view: false

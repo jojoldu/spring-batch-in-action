@@ -3,15 +3,13 @@ package com.jojoldu.spring.springbatchinaction.querydsl.reader;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.CollectionUtils;
 
 import javax.persistence.EntityManagerFactory;
 import java.util.function.Function;
 
 public class QuerydslNoOffsetPagingItemReader<T extends BaseEntityId> extends QuerydslPagingItemReader<T> {
 
-    private Object lock = new Object();
-    private volatile int current = 0;
-    private volatile int page = 0;
     private long currentId = 0;
     private QuerydslNoOffsetOptions options;
 
@@ -29,37 +27,6 @@ public class QuerydslNoOffsetPagingItemReader<T extends BaseEntityId> extends Qu
     }
 
     @Override
-    protected T doRead() throws Exception {
-
-        synchronized (lock) {
-
-            if (results == null || current >= getPageSize()) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Reading page=" + page + ", currentId=" + currentId);
-                }
-
-                doReadPage();
-                page++;
-                if (current >= getPageSize()) {
-                    current = 0;
-                }
-            }
-
-            return readItem();
-        }
-    }
-
-    private T readItem() {
-        int next = current++;
-        if (next < results.size()) {
-            return results.get(next);
-        }
-
-        return null;
-
-    }
-
-    @Override
     @SuppressWarnings("unchecked")
     protected void doReadPage() {
 
@@ -74,17 +41,21 @@ public class QuerydslNoOffsetPagingItemReader<T extends BaseEntityId> extends Qu
         resetCurrentId();
     }
 
-    private JPAQuery<T> createQuery() {
+    @Override
+    protected JPAQuery<T> createQuery() {
         JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
 
         return queryFunction.apply(queryFactory)
-                .where(options.whereExpression(currentId, page))
+                .where(options.whereExpression(currentId, getPage()))
                 .orderBy(options.orderExpression());
     }
 
     private void resetCurrentId() {
-        if (results.size() > 0) {
+        if (!CollectionUtils.isEmpty(results)) {
             currentId = results.get(results.size() - 1).getId();
+            if (logger.isDebugEnabled()) {
+                logger.debug("Current Id " + currentId);
+            }
         }
     }
 

@@ -64,7 +64,7 @@ public class QuerydslPagingItemReader<T> extends AbstractPagingItemReader<T> {
     protected void clearIfTransacted() {
         if (transacted) {
             entityManager.clear();
-        }//end if
+        }
     }
 
     protected void initResults() {
@@ -75,7 +75,7 @@ public class QuerydslPagingItemReader<T> extends AbstractPagingItemReader<T> {
         }
     }
 
-    private JPAQuery<T> createQuery() {
+    protected JPAQuery<T> createQuery() {
         JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
         return queryFunction.apply(queryFactory);
     }
@@ -86,10 +86,10 @@ public class QuerydslPagingItemReader<T> extends AbstractPagingItemReader<T> {
             for (T entity : queryResult) {
                 entityManager.detach(entity);
                 results.add(entity);
-            }//end if
+            }
         } else {
             results.addAll(query.fetch());
-        }//end if
+        }
     }
 
     @Override

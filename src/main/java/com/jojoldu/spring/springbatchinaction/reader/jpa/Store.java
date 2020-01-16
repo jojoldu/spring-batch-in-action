@@ -6,7 +6,6 @@ package com.jojoldu.spring.springbatchinaction.reader.jpa;
  * Github : https://github.com/jojoldu
  */
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -21,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @Entity
 public class Store {
 

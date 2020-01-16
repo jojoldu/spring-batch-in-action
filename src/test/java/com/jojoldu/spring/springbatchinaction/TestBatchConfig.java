@@ -3,6 +3,7 @@ package com.jojoldu.spring.springbatchinaction;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.test.context.ContextConfiguration;
 
 /**
  * Created by jojoldu@gmail.com on 15/08/2018
