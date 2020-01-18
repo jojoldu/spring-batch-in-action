@@ -1,9 +1,6 @@
 package com.jojoldu.spring.springbatchinaction.querydsl.job;
 
-import com.jojoldu.spring.springbatchinaction.exam10.SalesSum;
-import com.jojoldu.spring.springbatchinaction.persistwriter.PayCopy;
 import com.jojoldu.spring.springbatchinaction.querydsl.reader.QuerydslPagingItemReader;
-import com.jojoldu.spring.springbatchinaction.reader.jdbc.Pay;
 import com.jojoldu.spring.springbatchinaction.reader.jpa.Product;
 import com.jojoldu.spring.springbatchinaction.reader.jpa.ProductBackup;
 import lombok.RequiredArgsConstructor;
@@ -13,21 +10,14 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
-import org.springframework.batch.item.database.JpaPagingItemReader;
-import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.persistence.EntityManagerFactory;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 
 import static com.jojoldu.spring.springbatchinaction.reader.jpa.QProduct.product;
 import static java.time.format.DateTimeFormatter.ofPattern;
