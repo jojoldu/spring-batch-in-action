@@ -7,6 +7,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -31,6 +32,7 @@ public class UniqueParameterJobConfiguration {
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
                 .start(step(null))
+                .incrementer(new RunIdIncrementer())
                 .build();
     }
 
@@ -48,6 +50,10 @@ public class UniqueParameterJobConfiguration {
     }
 
     public String getMessage(String requestDate) {
+        if("2020-03-09".equals(requestDate)) {
+            throw new IllegalStateException("이건 오류입니다.");
+        }
+
         return requestDate + "에 시작되었습니다.";
     }
 }
