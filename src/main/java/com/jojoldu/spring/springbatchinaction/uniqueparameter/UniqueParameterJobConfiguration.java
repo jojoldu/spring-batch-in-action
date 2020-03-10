@@ -2,6 +2,7 @@ package com.jojoldu.spring.springbatchinaction.uniqueparameter;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -12,6 +13,8 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import javax.persistence.PersistenceException;
 
 /**
  * Created by jojoldu@gmail.com on 09/03/2020
@@ -42,18 +45,14 @@ public class UniqueParameterJobConfiguration {
         return stepBuilderFactory.get("simpleStep1")
                 .tasklet((contribution, chunkContext) -> {
                     log.info(">>>>> This is Step1");
-                    log.info(">>>>> requestDate = {}", getMessage(requestDate));
-                    getMessage(requestDate);
+
+                    if("2020-03-09".equals(requestDate)) {
+                        throw new PersistenceException("강제 에러");
+                    }
+
+                    log.info(">>>>> requestDate = {}", requestDate);
                     return RepeatStatus.FINISHED;
                 })
                 .build();
-    }
-
-    public String getMessage(String requestDate) {
-        if("2020-03-09".equals(requestDate)) {
-            throw new IllegalStateException("이건 오류입니다.");
-        }
-
-        return requestDate + "에 시작되었습니다.";
     }
 }

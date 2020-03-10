@@ -16,8 +16,9 @@ Spring Batch의 경우 일반적으로 **동일 Job Parameter로 실행시** 어
   
 이번 글에서는 바로 이렇게 **동일 Job Parameter로 계속 실행이 되는 방법**에 대한 방법과 이를 활용하는 패턴들을 알아보겠습니다.  
 
-
 ## 1. RunIdIncrementer
+
+Spring Boot 1.5.x (Spring Batch 3.x) 까지는 동일 Job Parameter로 실행하고 싶은 코드에는 
 
 ```java
 JobInstanceAlreadyCompleteException: A job instance already exists and is complete for parameters={orderDate=2019-10-06}.  If you want to run this job again, change the parameters.
@@ -25,9 +26,21 @@ JobInstanceAlreadyCompleteException: A job instance already exists and is comple
 
 > 아래 모든 내용은 Spring Boot 2.2.x (Spring Batch 4.2.x) 를 기준으로 합니다.
 
-### Spring Boot 2에서 발생하는 버그
+### Spring Boot 2.0.x에서 발생하는 버그
 
-Spring Boot 2.x (Spring Batch 4.x)
+Spring Boot 2.0.x (Spring Batch 4.0.x)
+
+### Spring Boot 2.0.x 버그 해결책
+
+### Spring Boot 2.1.0 이상부터는?
+
+**Spring Boot 2.1.0 부터 해결된 문제** 입니다.  
+
+관련 PR
+
+* [Spring Boot 수정](https://github.com/spring-projects/spring-boot/pull/14933)
+* [Spring Batch 수정](https://github.com/spring-projects/spring-batch/pull/660)
+
 
 ## Spring Boot 2
 

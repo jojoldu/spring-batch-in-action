@@ -24,14 +24,12 @@ import static org.junit.Assert.assertThat;
 @ExtendWith(SpringExtension.class)
 @SpringBatchTest
 @SpringBootTest(classes={UniqueParameterJobConfiguration.class, TestBatchConfig.class})
-//@TestMethodOrder(OrderAnnotation.class)
 public class UniqueParameterFailJobConfigurationTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
 
     @Test
-//    @Order(1)
     public void A_실패테스트() throws Exception {
         //given
         String requestDate = "2020-03-09";
@@ -46,7 +44,6 @@ public class UniqueParameterFailJobConfigurationTest {
     }
 
     @Test
-//    @Order(2)
     public void B_성공테스트() throws Exception {
         //given
         String requestDate = "2020-03-10";
