@@ -18,31 +18,40 @@ Spring Batch의 경우 일반적으로 **동일 Job Parameter로 실행시** 어
 
 ## 1. RunIdIncrementer
 
-Spring Boot 1.5.x (Spring Batch 3.x) 까지는 동일 Job Parameter로 실행하고 싶은 코드에는 
+Spring Batch에서는 **동일 파라미터인데 다시 실행하고 싶을때** 사용하라는 의미로 ```RunIdIncrementer```를 제공합니다.  
+  
+실제로 사용 방법은 아래처럼 Job 의 ```incrementer``` 옵션에 추가하여 사용합니다.
 
 ```java
-JobInstanceAlreadyCompleteException: A job instance already exists and is complete for parameters={orderDate=2019-10-06}.  If you want to run this job again, change the parameters.
+public Job job() {
+    return jobBuilderFactory.get(JOB_NAME)
+            .start(step(null))
+            .incrementer(new RunIdIncrementer())
+            .build();
+}
 ```
 
-> 아래 모든 내용은 Spring Boot 2.2.x (Spring Batch 4.2.x) 를 기준으로 합니다.
+Spring Boot 1.5.x (Spring Batch 3.x) 까지는 위와 같이 해결이 가능했습니다만, Spring Boot 2 (Spring Batch 4) 로 버전업이 되면서 큰 버그가 하나 생겼습니다.  
 
-### Spring Boot 2.0.x에서 발생하는 버그
+> 사실 버그라기 보다는 의도한 동작이였지만, 실제로 그렇게 원하는 사람이 없었다가 맞는것 같습니다.
+
+### 1-1. Spring Boot 2.0.x에서 발생하는 버그
 
 Spring Boot 2.0.x (Spring Batch 4.0.x)
 
-### Spring Boot 2.0.x 버그 해결책
+Spring Boot 2.0.x 버그 해결책
 
-### Spring Boot 2.1.0 이상부터는?
+### 1-2. Spring Boot 2.1.0 이상부터는?
 
-**Spring Boot 2.1.0 부터 해결된 문제** 입니다.  
+위의 버그는 **Spring Boot 2.1.0 (Spring Batch 4.1.0)** 에서 해결된 문제 입니다.  
 
 관련 PR
 
 * [Spring Boot 수정](https://github.com/spring-projects/spring-boot/pull/14933)
 * [Spring Batch 수정](https://github.com/spring-projects/spring-batch/pull/660)
 
+그래서 최신의 Spring Boot를 사용하시는 분들은 기존처럼 ```RunIdIncrementer```를 사용하시면 됩니다.
 
-## Spring Boot 2
 
 ## 테스트 코드
 
