@@ -31,21 +31,23 @@ public Job job() {
 }
 ```
 
-이렇게 사용할 경우 Spring Batch에서 전달받은 Job Parameter 외에 ```run.id``` 라는 임의의 파라미터를 추가로 사용해 매번 ```run.id``` 값을 변경해줍니다.  
+이렇게 사용할 경우 Spring Batch에서 전달받은 Job Parameter 외에 ```run.id``` 라는 **임의의 파라미터를 추가**로 사용해 매번 ```run.id``` 값을 변경해줍니다.  
 매 실행마다 ```run.id```가 변경되니 재실행 할 수 있게 되는 것인데요.  
   
 Spring Boot 1.5.x (Spring Batch 3.x) 까지는 해당 기능에 문제가 없었습니다만, Spring Boot 2 (Spring Batch 4) 로 버전업이 되면서 큰 버그가 하나 생겼습니다.  
 
-> 사실 버그라기 보다는 의도한 동작이였지만, 실제로 그렇게 원하는 사람이 없었다가 맞는것 같습니다.
 
 ### 1-1. Spring Boot 2.0.x에서 발생하는 버그
 
 바로 **배치 Job이 실패할 경우 이후에 파라미터를 변경해도 계속 실패한 파라미터가 사용되는**것 입니다.  
   
+> 해당 버그에 관해서 [Spring Batch Jira](https://jira.spring.io/si/jira.issueviews:issue-html/BATCH-2711/BATCH-2711.html)에서 논의가 되었으니 필요하신분들은 읽어보셔도 좋을것 같습니다.  
+> 스레드에서 어떻게 토론이 진행되는지 구경하는 재미가 솔솔합니다.
+
 실제로 보여드리기 위해 프로젝트의 Spring Boot 버전을 2.0.6으로 내려서 Job을 수행해보겠습니다.
 
 > 참고로 해당 버그는 CLI로 실행시에만 발생합니다.  
-> 테스트 코드와 같이 실행자가 CLI가 아닌 경우엔 재현이 안됩니다.  
+> 실행자 (Executor)가 CLI가 아닌 경우 (ex: 테스트 코드 런처) 에선 재현이 안됩니다.  
 
 테스트로 사용할 Job의 구현 (step)은 아래와 같습니다.  
 
@@ -82,7 +84,7 @@ Exception이 발생해 배치가 실패한 것을 확인할 수 있습니다.
 
 ![overwrite4](./images/overwrite4.png)
   
-이번엔 정상으로 처리가 되는 ```2020-03-10```으로 다시 실행을 해보겠습니다.  
+이번엔 **정상값**인 ```2020-03-10```으로 다시 실행을 해보겠습니다.  
   
 그러면?  
   
@@ -97,7 +99,7 @@ Exception이 발생해 배치가 실패한 것을 확인할 수 있습니다.
 
 #### 해결 방법
 
-제일 쉬운 해결 방법은 **신규 파라미터와 run.id**만 사용하도록 **별도의 RunIdIncrementer 클래스**를 만들어서 사용하는 것입니다.  
+제일 쉬운 해결 방법은 **넘어온 파라미터와 run.id**만 사용하도록 **별도의 RunIdIncrementer 클래스**를 만들어서 사용하는 것입니다.  
   
 ```java
 import org.springframework.batch.core.JobParameters;
@@ -117,7 +119,7 @@ public class UniqueRunIdIncrementer extends RunIdIncrementer {
 }
 ```
 
-* ```run.id```가 실행시마다 계속 변경되어야하니, 이전 ```run.id``` 값에 +1을 시켜 계속 다른값을 사용하도록 합니다.
+* ```run.id```가 실행시마다 계속 변경되어야하니, 이전 ```run.id``` 값에 +1을 시켜 계속 다른 값을 사용하도록 합니다.
   
 그리고 이렇게 만든 ```UniqueRunIdIncrementer```를 기존의 ```RunIdIncrementer``` 자리에 대신 사용합니다.
 
@@ -142,8 +144,8 @@ public Job job() {
   
 **관련 PR**
 
-* [Spring Boot 수정](https://github.com/spring-projects/spring-boot/pull/14933)
-* [Spring Batch 수정](https://github.com/spring-projects/spring-batch/pull/660)
+* [Spring Boot PR](https://github.com/spring-projects/spring-boot/pull/14933)
+* [Spring Batch PR](https://github.com/spring-projects/spring-batch/pull/660)
 
 그래서 최신의 Spring Boot를 사용하시는 분들은 기존처럼 ```RunIdIncrementer```를 사용하시면 된다고 말씀드리고 싶지만!  
   
@@ -153,7 +155,7 @@ public Job job() {
 ![overwrite6](./images/overwrite6.png)
 
 * ```version``` 파라미터는 이전에 실행할때 사용한 임시 파라미터입니다.
-* 2번째 실행시에는 ```version``` 파라미터가 없는채 실행했음에도 실제 사용된 파라미터 내역에는 ```version``` 파라미터가 존재합니다.
+* 2번째 실행시에는 ```version``` 파라미터가 없는채로 실행했음에도 JOB에서 사용된 파라미터 내역에는 ```version``` 파라미터가 존재합니다.
 
 그래서 2.1.0 이상의 버전을 사용하시는 분들도 속편하게 ```UniqueRunIdIncrementer```와 같은 Custom RunIdIncrementer를 사용하시길 추천합니다.
 
@@ -161,32 +163,77 @@ public Job job() {
 
 위 1번과 달리 ```incrementer``` 옵션이 없는 Batch Job을 **같은 파라미터로** 여러 테스트 코드에서 사용하고 싶다면 어떻게 할까요?  
   
-많이들 사용하시는게 실제 Job에선 사용되지 않는 임의의 파라미터를 각각의 테스트 코드가 넣는 것입니다.  
+많이들 사용하시는게 실제 Job에선 사용되지 않는 **임의의 파라미터**를 사용하는 것입니다.  
 
 ```java
 JobParameters jobParameters = new JobParametersBuilder()
                 .addString("txDate", "2020-01-02")
                 .addLong("random", (Math.random() * JOB_PARAMETER_MAXIMUM)) // 매번 달라지게 난수 생성
-				.toJobParameters()
+                .toJobParameters()
 ```
 
-**JobLauncherTestUtils**
+이렇게 사용하셔도 무방하나, 매번 같은 코드를 반복 작성하기는 귀찮은 일입니다.  
+그래서 Spring Batch에서는 이미 이와 같은 방식을 지원하는 테스트 유틸 메소드가 있습니다.
+해당 유틸 메소드는 **Spring Batch의 테스트 유틸을 모아놓은** ```JobLauncherTestUtils``` 에 있습니다.  
+
+![test-unique](./images/test-unique.png)
+
+아쉽게도 ```getUniqueJobParameters``` 는 반환값이 ```JobParametersBuilder``` 가 아니다 보니 체이닝으로 파라미터를 추가할 수가 없습니다.  
+  
+그래서 ```getUniqueJobParameters``` 를 Wrapping 하여 ```JobParametersBuilder``` 를 반환하는 별도의 유틸 메소드를 만들어 재사용하게 합니다.  
+  
+**TestJobConfiguration**
 
 ```java
-public JobParameters getUniqueJobParameters() {
-    Map<String, JobParameter> parameters = new HashMap<>();
-    parameters.put("random", new JobParameter((long) (Math.random() * JOB_PARAMETER_MAXIMUM)));
-    return new JobParameters(parameters);
+public abstract class TestJobConfiguration {
+    ...
+
+    protected JobParametersBuilder getUniqueJobParametersBuilder() {
+        return new JobParametersBuilder(new JobLauncherTestUtils().getUniqueJobParameters());
+    }
 }
 ```
 
+위의 ```TestJobConfiguration``` 를 각각의 배치 테스트 코드들이 상속하게 하여 유니크 파라미터가 필요한 테스트들에서 사용하면 됩니다.
+
 ```java
-JobParameters jobParameters = new JobLauncherTestUtils()
-                            .getUniqueJobParameters()
-                            .addString("txDate", "2020-01-02").toJobParameters()
+JobParameters jobParameters = getUniqueJobParametersBuilder()
+                .addString("startDateTime", startDateTime)
+                .addString("endDateTime", endDateTime)
+                .toJobParameters();
 ```
 
-## 3. 개발 & 운영 다르게 활용해야할 때
+> 굳이 상속이 아닌 방식으로 하셔도 무방합니다.  
 
-예를 들어 실제 운영에서는 **같은 파라미터로 중복 실행을 막아야**하지만 개발 환경에서는 언제든 잦은 QA와 테스트를 위해 언제든 재실행이 되어야 한다면 어떻게 해야할까요?  
+## 3. 개발 & 운영 환경의 중복 파라미터 조건이 다를때
 
+예를 들어 실제 운영환경에서는 **같은 파라미터로 중복 실행을 막아야**하지만 개발 환경에서는 언제든 잦은 QA와 테스트를 위해 언제든 재실행이 되어야 한다면 어떻게 해야할까요?  
+  
+이렇게 될 경우 ```UniqueRunIdIncrementer``` 를 배치 코드에 넣기엔 무리가 있습니다.  
+  
+결국 운영 환경에서 같은 파라미터 중복 실행을 막지 못하기 때문인데요.  
+이런 경우 **코드는 운영 환경 제약조건에 맞추는게** 맞습니다.  
+  
+개발 환경 혹은 테스트 환경 같이 예외케이스는 배치를 실행하는 **실행자 대응하도록** 구현하는 것이 맞습니다.  
+  
+그래서 실제 배치 코드는 아래와 같이 **같은 파라미터 재시작을 막도록** ```prevenetRestart()```옵션을 넣고 ```increment()```는 제거합니다.
+
+```java
+@Bean(JOB_NAME)
+public Job job() {
+    return jobBuilderFactory.get(JOB_NAME)
+            .preventRestart()
+            .start(saveStep())
+            .build();
+}
+```
+
+그리고 개발 환경에서는 Batch 관리 시스템에서 매번 새로운 파라미터가 들어가도록 구성합니다.  
+  
+보통 Jenkins나 Teamcity 같은 CI 환경에서는 매번 Job 실행시마다 변경되는 **Build Number**와 같은 메타 데이터가 있으니 이를 **개발 환경에서 사용** 합니다.
+
+![jenkins](./images/jenkins.png)
+
+만약 CI 서비스로 배치를 관리하지 않고, Crontab을 이용하신다면 **현재 시간** (```date```) 등과 같은 명령어를 랜덤값 파라미터로 추가해 사용하시면 됩니다.  
+  
+결국 이럴 경우 실행 주체에서 **유니크 파라미터를 만들어준다**라는 것만 기억하시면 됩니다.
