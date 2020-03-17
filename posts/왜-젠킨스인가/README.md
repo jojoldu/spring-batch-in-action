@@ -1,11 +1,11 @@
-# Spring Batch 관리 도구로서의 CI 
+# Spring Batch 관리 도구로서의 Jenkins
 
 Spring Batch는 아직까지 **표준 관리 도구**로 불리는 도구는 없습니다.  
 각 팀/회사마다 상이한 방법들을 사용합니다.  
 대표적인 방법들은 아래와 같습니다.
 
 * Cron
-* Spring MVC + API Call
+* 본인이 직접 만든 어드민
 * Spring Batch Admin
   * **Deprecated** 되었습니다.
     * 더이상 개선하지 않겠다고 합니다.
@@ -48,6 +48,8 @@ Jenkins는 Java 진영의 대표적인 CI 툴로 대부분의 경우에 배포 �
 (여러 장점들이 있지만, 이 중 Spring Batch의 관리도구로서 체감되는 장점들만 소개드립니다.)
 
 ### 2-1. 기본적인 관리 기능
+
+![dashboard1](./images/dashboard1.png)
 
 * 기본적인 관리자 페이지 기능
   * 실행 이력
