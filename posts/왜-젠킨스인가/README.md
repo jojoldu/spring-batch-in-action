@@ -5,13 +5,13 @@ Spring Batch는 아직까지 **표준 관리 도구**로 불리는 도구는 없
 대표적인 방법들은 아래와 같습니다.
 
 * Cron
-* 본인이 직접 만든 어드민
+* API 기반의 직접 만든 관리자 페이지
 * Spring Batch Admin
   * **Deprecated** 되었습니다.
     * 더이상 개선하지 않겠다고 합니다.
   * **Spring Cloud Data Flow** 로 전환하라고 합니다.
     * [참고](https://github.com/spring-attic/spring-batch-admin)
-* Quartz + 직접 만든 Admin
+* Quartz를 이용한 직접 만든 관리자 페이지
   * Scheduler 역할로 Quartz를 사용하고 그에 대한 UI 대시보드를 직접 만드는 경우입니다.
   * [참고](https://kingbbode.tistory.com/38)
 * CI 서비스 (Jenkins / Teamcity 등등)
@@ -21,12 +21,11 @@ Spring Batch는 아직까지 **표준 관리 도구**로 불리는 도구는 없
 
 인터넷을 돌아다니다보면 아직까지 Spring Batch Admin 에 대해 언급되거나 직접 어드민 페이지를 만들어 스프링 배치를 관리하는 글을 보게 됩니다.  
   
-그래서 이번 글에서는 스프링 배치 관리도구로 CI 서비스들을 쓰면 어떤 장점이 있는지 소개하겠습니다.  
+그래서 이번 글에서는 스프링 배치 관리도구로 Jenkins를 쓰면 어떤 장/단점이 있는지 소개하겠습니다.  
 
 > ps. Spring Cloud Data Flow가 국내에서 좀 더 활성화가 많이 되는 시기가 온다면 그땐 이 글이 필요 없을 수도 있습니다.  
 > 하지만 현재는 Spring Cloud Data Flow가 국내에 활성화가 안된 상태라 자료나 커뮤니티가 거의 없다고 보시면 됩니다.
   
-
 ## 1. Jenkins?
 
 Jenkins는 Java 진영의 대표적인 CI 툴로 대부분의 경우에 배포 용도로 사용됩니다.  
@@ -49,13 +48,29 @@ Jenkins는 Java 진영의 대표적인 CI 툴로 대부분의 경우에 배포 �
 
 ### 2-1. 기본적인 관리 기능
 
+가장 먼저 기본적인 관리 기능이 지원됩니다.  
+  
+**대시보드**
+
 ![dashboard1](./images/dashboard1.png)
 
-* 기본적인 관리자 페이지 기능
-  * 실행 이력
-  * 로그 관리
-  * Dashboard
-  * 계정 관리
+**Job별 이력**
+
+![history](./images/history.png)
+
+![log1](./images/log1.png)
+
+![log2](./images/log2.png)
+
+**계정 인증**
+
+![authentication](./images/authentication.png)
+
+**권한 관리**
+
+![authorization](./images/authorization.png)
+
+
 
 이런 장점들로 인해 얻는 가장 큰 장점은 **추가 개발 공수가 필요하지 않습니다**.
 
@@ -80,24 +95,50 @@ Jenkins는 Java 진영의 대표적인 CI 툴로 대부분의 경우에 배포 �
 
 ### 2-3. 다양한 Job 실행 환경
 
+Job을 실행할 수 있는 여러 방법을 지원합니다.
 
-* 다양한 실행 방법 (Rest API / 스케줄링 / 수동 실행)
+* [HTTP API](https://tomining.tistory.com/148)
+* 스케줄링
+* 직접 실행
 
-### 2-4. 풍부한 생태계
+### 2-4. 풍부한 (국내) 생태계
 
 Java 진영에서 가장 오래되고 유명한 소프트웨어이다보니, 관련된 커뮤니티 / 자료 / 플러그인이 활성화가 되어있습니다.  
   
 정말 별별 플러그인들이 다 있으며, 
 
+* [젠킨스 코리아 페이스북 그룹](https://www.facebook.com/groups/jenkinskorea/)
+
 
     
 ### 2-5. 파이프라인
+
+![pipeline](./images/pipeline.png)
+
+![pipeline1](./images/pipeline1.png)
+
+이런 요구 사항을 다 들어줄려면 ```if```문과 [Spring Batch Job Flow](https://jojoldu.tistory.com/328) 로 완전히 도배된 코드가 나오게 됩니다.  
+더 큰 문제는 **설계 초기에 이런 조건별 실행이 고려되지 않았을 때**입니다.  
+
+![pipeline2](./images/pipeline2.png)
+
+* Job1 -> Job2 -> Job3 순차적으로 실행하거나
+* Job1 | Job2 | Job3 이 각자 동시에 수행되게 하거나
+* Job1과 Job2는 병렬로 수행하고 이 2개가 끝나면 Job3이 수행한다거나
+
+하는 등등 **각각의 Job들을 어떻게 실행할지도** 결정할 수 있습니다.
+
+![pipeline-loop1](./images/pipeline-loop1.png)
 
 * 파이프라인
 * 다양한 파이프라인 관리 방법
   * Web UI
   * Script
-  * 둘다 사용 가능
+  * Groovy File
+
+
+#### Loop로 Job 실행
+
 
 
 
