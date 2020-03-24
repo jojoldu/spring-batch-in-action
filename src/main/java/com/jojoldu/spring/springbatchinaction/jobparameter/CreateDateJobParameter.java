@@ -1,5 +1,6 @@
 package com.jojoldu.spring.springbatchinaction.jobparameter;
 
+import com.jojoldu.spring.springbatchinaction.reader.jpa.ProductStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,9 @@ import java.time.format.DateTimeFormatter;
 public class CreateDateJobParameter {
 
     private LocalDate createDate;
+
+    @Value("#{jobParameters[status]}")
+    private ProductStatus status;
 
     @Value("#{jobParameters[createDate]}")
     public void setCreateDate(String createDate) {

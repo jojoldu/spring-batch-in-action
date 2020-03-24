@@ -3,6 +3,7 @@ package com.jojoldu.spring.springbatchinaction.jobparameter;
 import com.jojoldu.spring.springbatchinaction.TestBatchConfig;
 import com.jojoldu.spring.springbatchinaction.reader.jpa.Product;
 import com.jojoldu.spring.springbatchinaction.reader.jpa.ProductRepository;
+import com.jojoldu.spring.springbatchinaction.reader.jpa.ProductStatus;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,10 +43,16 @@ public class JobParameterExtendsConfigurationTest {
         //given
         LocalDate createDate = LocalDate.of(2019,9,26);
         long price = 1000L;
-        productRepository.save(Product.builder().price(price).createDate(createDate).build());
+        ProductStatus status = ProductStatus.APPROVE;
+        productRepository.save(Product.builder()
+                .price(price)
+                .createDate(createDate)
+                .status(status)
+                .build());
 
         JobParameters jobParameters = new JobParametersBuilder()
                 .addString("createDate", createDate.toString())
+                .addString("status", status.name())
                 .toJobParameters();
         //when
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);

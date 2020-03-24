@@ -64,12 +64,14 @@ public class JobParameterExtendsConfiguration {
 
         Map<String, Object> params = new HashMap<>();
         params.put("createDate", jobParameter.getCreateDate());
+        params.put("status", jobParameter.getStatus());
+        log.info("status={}", jobParameter.getStatus());
 
         return new JpaPagingItemReaderBuilder<Product>()
                 .name(JOB_NAME +"_reader")
                 .entityManagerFactory(entityManagerFactory)
                 .pageSize(chunkSize)
-                .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate")
+                .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate AND p.status =:status")
                 .parameterValues(params)
                 .build();
     }

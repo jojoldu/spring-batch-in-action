@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -35,15 +37,26 @@ public class Product implements BaseEntityId {
     private long price;
     private LocalDate createDate;
 
+    @Enumerated(EnumType.STRING)
+    private ProductStatus status;
+
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "product_id")
     private Store store;
 
-    @Builder
     public Product(String name, long price, LocalDate createDate) {
         this.name = name;
         this.price = price;
         this.createDate = createDate;
+        this.status = ProductStatus.APPROVE;
+    }
+
+    @Builder
+    public Product(String name, long price, LocalDate createDate, ProductStatus status) {
+        this.name = name;
+        this.price = price;
+        this.createDate = createDate;
+        this.status = status;
     }
 
     public void changeStore(Store store) {
