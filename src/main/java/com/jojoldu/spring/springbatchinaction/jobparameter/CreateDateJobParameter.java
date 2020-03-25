@@ -14,14 +14,17 @@ import java.time.format.DateTimeFormatter;
 @NoArgsConstructor
 public class CreateDateJobParameter {
 
+    @Value("#{ T(java.time.LocalDate).parse(jobParameters[createDate], T(java.time.format.DateTimeFormatter).ofPattern('yyyy-MM-dd'))}")
+
+//    @Value("#{ T(java.time.LocalDate).parse(jobParameters[createDate])}")
     private LocalDate createDate;
 
     @Value("#{jobParameters[status]}")
     private ProductStatus status;
 
-    @Value("#{jobParameters[createDate]}")
-    public void setCreateDate(String createDate) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        this.createDate = LocalDate.parse(createDate, formatter);
-    }
+//    @Value("#{jobParameters[createDate]}")
+//    public void setCreateDate(String createDate) {
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//        this.createDate = LocalDate.parse(createDate, formatter);
+//    }
 }
