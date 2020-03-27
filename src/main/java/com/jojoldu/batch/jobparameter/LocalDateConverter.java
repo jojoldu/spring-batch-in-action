@@ -16,7 +16,6 @@ public abstract class LocalDateConverter {
     private static final String LOCAL_DATE_PATTERN = "yyyy-MM-dd";
 
     public static LocalDate convert(String source) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(LOCAL_DATE_PATTERN);
-        return LocalDate.parse(source, formatter);
+        return LocalDate.parse(source, DateTimeFormatter.ofPattern(LOCAL_DATE_PATTERN));
     }
 }

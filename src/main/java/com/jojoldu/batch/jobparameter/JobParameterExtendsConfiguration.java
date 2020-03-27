@@ -28,18 +28,20 @@ import java.util.Map;
 @Configuration
 public class JobParameterExtendsConfiguration {
     public static final String JOB_NAME = "jobParameterExtendsBatch";
+
+    @Value("${chunkSize:1000}")
+    private int chunkSize;
+
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final EntityManagerFactory entityManagerFactory;
     private final CreateDateJobParameter jobParameter;
 
-    @Value("${chunkSize:1000}")
-    private int chunkSize;
-
     @Bean(JOB_NAME + "jobParameter")
     @JobScope
-    public CreateDateJobParameter jobParameter() {
-        return new CreateDateJobParameter();
+    public CreateDateJobParameter jobParameter(@Value("#{jobParameters[createDate]}") String createDateStr,
+                                               @Value("#{jobParameters[status]}") ProductStatus status) {
+        return new CreateDateJobParameter(createDateStr, status);
     }
 
     @Bean(name = JOB_NAME)
@@ -50,61 +52,25 @@ public class JobParameterExtendsConfiguration {
                 .build();
     }
 
-//    @Bean(name = JOB_NAME +"_step")
-//    @JobScope
-//    public Step step() {
-//        return stepBuilderFactory.get(JOB_NAME +"_step")
-//                .<Product, Product>chunk(chunkSize)
-//                .reader(reader())
-//                .writer(writer())
-//                .build();
-//    }
-//
-//
-//    @Bean(name = JOB_NAME +"_reader")
-//    @StepScope
-//    public JpaPagingItemReader<Product> reader() {
-//        validate();
-//
-//        Map<String, Object> params = new HashMap<>();
-//        params.put("createDate", jobParameter.getCreateDate());
-//        params.put("status", jobParameter.getStatus());
-//        log.info(">>>>>>>>>>> createDate={}, status={}", jobParameter.getCreateDate(), jobParameter.getStatus());
-//
-//        return new JpaPagingItemReaderBuilder<Product>()
-//                .name(JOB_NAME +"_reader")
-//                .entityManagerFactory(entityManagerFactory)
-//                .pageSize(chunkSize)
-//                .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate AND p.status =:status")
-//                .parameterValues(params)
-//                .build();
-//    }
-
     @Bean(name = JOB_NAME +"_step")
     @JobScope
     public Step step() {
         return stepBuilderFactory.get(JOB_NAME +"_step")
                 .<Product, Product>chunk(chunkSize)
-                .reader(reader(null, null))
+                .reader(reader())
                 .writer(writer())
                 .build();
     }
 
+
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
-    public JpaPagingItemReader<Product> reader(
-            @Value("#{jobParameters[status]}") ProductStatus status,
-            @Value("#{jobParameters[createDate]}") String createDateStr) {
-
-        validate();
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        LocalDate createDate = LocalDate.parse(createDateStr, formatter);
+    public JpaPagingItemReader<Product> reader() {
 
         Map<String, Object> params = new HashMap<>();
-        params.put("createDate", createDate);
-        params.put("status", status);
-        log.info(">>>>>>>>>>> createDate={}, status={}", createDate, status);
+        params.put("createDate", jobParameter.getCreateDate());
+        params.put("status", jobParameter.getStatus());
+        log.info(">>>>>>>>>>> createDate={}, status={}", jobParameter.getCreateDate(), jobParameter.getStatus());
 
         return new JpaPagingItemReaderBuilder<Product>()
                 .name(JOB_NAME +"_reader")
@@ -115,11 +81,38 @@ public class JobParameterExtendsConfiguration {
                 .build();
     }
 
-    private void validate() {
-        if(jobParameter.getCreateDate() == null) {
-            throw new IllegalArgumentException("createDate가 비어있습니다.");
-        }
-    }
+//    @Bean(name = JOB_NAME +"_step")
+//    @JobScope
+//    public Step step() {
+//        return stepBuilderFactory.get(JOB_NAME +"_step")
+//                .<Product, Product>chunk(chunkSize)
+//                .reader(reader(null, null))
+//                .writer(writer())
+//                .build();
+//    }
+//
+//    @Bean(name = JOB_NAME +"_reader")
+//    @StepScope
+//    public JpaPagingItemReader<Product> reader(
+//            @Value("#{jobParameters[status]}") ProductStatus status,
+//            @Value("#{jobParameters[createDate]}") String createDateStr) {
+//
+//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//        LocalDate createDate = LocalDate.parse(createDateStr, formatter);
+//
+//        Map<String, Object> params = new HashMap<>();
+//        params.put("createDate", createDate);
+//        params.put("status", status);
+//        log.info(">>>>>>>>>>> createDate={}, status={}", createDate, status);
+//
+//        return new JpaPagingItemReaderBuilder<Product>()
+//                .name(JOB_NAME +"_reader")
+//                .entityManagerFactory(entityManagerFactory)
+//                .pageSize(chunkSize)
+//                .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate AND p.status =:status")
+//                .parameterValues(params)
+//                .build();
+//    }
 
     private ItemWriter<Product> writer() {
         return items -> {
