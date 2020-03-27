@@ -170,3 +170,7 @@ public class JobParameterExtendsConfigurationTest {
 
 
 ## 3. LocalDate 를 필드로 사용하기
+
+### 3-1. SpEL만으로 처리하기
+
+### 3-2. SpEL + Converter Class로 처리하기
