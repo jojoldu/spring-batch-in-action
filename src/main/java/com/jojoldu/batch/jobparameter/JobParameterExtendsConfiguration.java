@@ -1,7 +1,7 @@
-package com.jojoldu.spring.springbatchinaction.jobparameter;
+package com.jojoldu.batch.jobparameter;
 
-import com.jojoldu.spring.springbatchinaction.reader.jpa.Product;
-import com.jojoldu.spring.springbatchinaction.reader.jpa.ProductStatus;
+import com.jojoldu.batch.reader.jpa.Product;
+import com.jojoldu.batch.reader.jpa.ProductStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;

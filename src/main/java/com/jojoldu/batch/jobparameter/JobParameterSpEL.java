@@ -1,4 +1,4 @@
-package com.jojoldu.spring.springbatchinaction.jobparameter;
+package com.jojoldu.batch.jobparameter;
 
 /**
  * Created by jojoldu@gmail.com on 25/03/2020

@@ -1,22 +1,22 @@
-package com.jojoldu.spring.springbatchinaction.jobparameter;
+package com.jojoldu.batch.jobparameter;
 
-import com.jojoldu.spring.springbatchinaction.reader.jpa.ProductStatus;
+import com.jojoldu.batch.reader.jpa.ProductStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Getter
 @NoArgsConstructor
 public class CreateDateJobParameter {
 
-    @Value("#{ T(java.time.LocalDate).parse(jobParameters[createDate], T(java.time.format.DateTimeFormatter).ofPattern('yyyy-MM-dd'))}")
+//    @Value("#{ T(java.time.LocalDate).parse(jobParameters[createDate], T(java.time.format.DateTimeFormatter).ofPattern('yyyy-MM-dd'))}")
 
 //    @Value("#{ T(java.time.LocalDate).parse(jobParameters[createDate])}")
+    @Value("#{ T(com.jojoldu.batch.jobparameter.LocalDateConverter).convert(jobParameters[createDate])}")
     private LocalDate createDate;
 
     @Value("#{jobParameters[status]}")
