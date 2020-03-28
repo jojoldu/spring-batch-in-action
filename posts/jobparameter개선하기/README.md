@@ -39,9 +39,7 @@ public Step step() {
 public JpaPagingItemReader<Product> reader(
         @Value("#{jobParameters[status]}") ProductStatus status,
         @Value("#{jobParameters[createDate]}") String createDateStr) { // (2)
-
-    validate();
-
+        
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd"); 
     LocalDate createDate = LocalDate.parse(createDateStr, formatter); // (3)
 
@@ -85,55 +83,15 @@ public JpaPagingItemReader<Product> reader(
 위 문제들의 해결책은 무엇일까요?  
 **JobParameter에 관한 모든 기능을 담당할** Job Parameter 클래스가 있으면 됩니다.  
 그리고 해당 Class는 DI를 받을 수 있게 Spring Bean (```@JobScope```를 가진) 이면 별도의 Reader/Processor/Writer에서도 쉽게 DI 받을 수 있겠죠?  
-
-
-### 테스트 코드
-
-```java
-@RunWith(SpringRunner.class)
-@SpringBatchTest
-@SpringBootTest(classes={JobParameterExtendsConfiguration.class, TestBatchConfig.class})
-public class JobParameterExtendsConfigurationTest {
-
-    @Autowired
-    private ProductRepository productRepository;
-
-    @Autowired
-    private JobLauncherTestUtils jobLauncherTestUtils;
-
-    @After
-    public void tearDown() throws Exception {
-        productRepository.deleteAll();
-    }
-
-    @Test
-    public void jobParameter정상출력_확인() throws Exception{
-        //given
-        LocalDate createDate = LocalDate.of(2019,9,26);
-        long price = 1000L;
-        ProductStatus status = ProductStatus.APPROVE;
-        productRepository.save(Product.builder()
-                .price(price)
-                .createDate(createDate)
-                .status(status)
-                .build());
-
-        JobParameters jobParameters = new JobParametersBuilder()
-                .addString("createDate", createDate.toString())
-                .addString("status", status.name())
-                .toJobParameters();
-        //when
-        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
-
-        //then
-        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
-    }
-}
-```
+  
+자 그래서 Job Parameter를 담고 있는 별도의 클래스를 다루는 방법들을 소개하겠습니다.
 
 ## 2. JobParameter 클래스
 
+Job Parameter를 담을 클래스에서 실제 JobParameter값을 주입 받는 방법에는 **Setter / Constructor / Field** 3가지가 있습니다.  
+
 ### 2-1. Setter 로 주입 받기
+
 
 ```java
 @Slf4j
@@ -141,19 +99,27 @@ public class JobParameterExtendsConfigurationTest {
 @NoArgsConstructor
 public class CreateDateJobParameter {
 
-    @Value("#{jobParameters[status]}")
+    @Value("#{jobParameters[status]}") // (1)
     private ProductStatus status;
     
     private LocalDate createDate;
 
-    @Value("#{jobParameters[createDate]}")
+    @Value("#{jobParameters[createDate]}") // (2)
     public void setCreateDate(String createDate) {
-       DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-       this.createDate = LocalDate.parse(createDate, formatter);
+       this.createDate = LocalDate.parse(createDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
    }
 }
 ```
 
+(1) ```@Value("#{jobParameters[status]}")```
+
+* Enum, Long, String의 타입은 직접 필드로 받아도 형변환이 가능합니다.
+
+(2) ```@Value("#{jobParameters[createDate]}")```
+
+* ```LocalDate```와 같이 자동 형변환이 안되는 경우엔 **Setter**에 ```@Value```를 사용하여 **문자열**로 받은 후, ```LocalDate```로 형변환 합니다.
+
+이렇게 만들어진 클래스는 Job 클래스에서 아래와 같이 ```@JobScope```를 가진 Bean으로 등록하여 사용합니다.
 
 ```java
 @Slf4j
@@ -200,9 +166,51 @@ public class JobParameterExtendsConfiguration {
     }
 }
 
+```
 
 
+#### 테스트 코드
 
+```java
+@RunWith(SpringRunner.class)
+@SpringBatchTest
+@SpringBootTest(classes={JobParameterExtendsConfiguration.class, TestBatchConfig.class})
+public class JobParameterExtendsConfigurationTest {
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private JobLauncherTestUtils jobLauncherTestUtils;
+
+    @After
+    public void tearDown() throws Exception {
+        productRepository.deleteAll();
+    }
+
+    @Test
+    public void jobParameter정상출력_확인() throws Exception{
+        //given
+        LocalDate createDate = LocalDate.of(2019,9,26);
+        long price = 1000L;
+        ProductStatus status = ProductStatus.APPROVE;
+        productRepository.save(Product.builder()
+                .price(price)
+                .createDate(createDate)
+                .status(status)
+                .build());
+
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addString("createDate", createDate.toString())
+                .addString("status", status.name())
+                .toJobParameters();
+        //when
+        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
+
+        //then
+        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+    }
+}
 ```
 
 ### 2-2. Constructor 로 주입 받기
