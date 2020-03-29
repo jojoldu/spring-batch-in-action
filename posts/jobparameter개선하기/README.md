@@ -1,4 +1,4 @@
-# Spring Batch에서 JobParameter 활용 방법
+# Spring Batch의 JobParameter 활용 방법
 
 Spring Batch에서는 Spring Environment Variables (환경 변수) 외에 Batch에서만 사용할 수 있는 JobParameter를 지원합니다.  
 
@@ -88,10 +88,14 @@ public JpaPagingItemReader<Product> reader(
 
 ## 2. JobParameter 클래스
 
-Job Parameter를 담을 클래스에서 실제 JobParameter값을 주입 받는 방법에는 **Setter / Constructor / Field** 3가지가 있습니다.  
+JobParameter를 담을 클래스에서 실제 JobParameter값을 주입 받는 방법에는 **Setter / Constructor / Field** 3가지가 있습니다.  
 
 ### 2-1. Setter 로 주입 받기
 
+JobParameter라고 해서 기존의 다른 Spring Bean처럼 사용 못하는 것은 아닙니다.  
+  
+위 배치 코드에서 사용하는 JobParameter를 클래스로 뽑아내면 다음과 같이 사용할 수 있습니다.  
+  
 
 ```java
 @Slf4j
@@ -114,12 +118,15 @@ public class CreateDateJobParameter {
 (1) ```@Value("#{jobParameters[status]}")```
 
 * Enum, Long, String의 타입은 직접 필드로 받아도 형변환이 가능합니다.
+* 그래서 개별 setter를 사용하지 않고 직접 주입받는것이 가능하다는 것을 보여드리기 위해 필드로 받도록 하였습니다.
+* 일관성을 유지하거나, **Spring 없는 테스트를 위하신다면** ```status```도 Setter로 받으시면 됩니다.
 
 (2) ```@Value("#{jobParameters[createDate]}")```
 
 * ```LocalDate```와 같이 자동 형변환이 안되는 경우엔 **Setter**에 ```@Value```를 사용하여 **문자열**로 받은 후, ```LocalDate```로 형변환 합니다.
 
 이렇게 만들어진 클래스는 Job 클래스에서 아래와 같이 ```@JobScope```를 가진 Bean으로 등록하여 사용합니다.
+
 
 ```java
 @Slf4j
@@ -128,11 +135,11 @@ public class CreateDateJobParameter {
 public class JobParameterExtendsConfiguration {
     
     ...
-    private final CreateDateJobParameter jobParameter;
+    private final CreateDateJobParameter jobParameter; // (1)
     ...
     
     @Bean(JOB_NAME + "jobParameter")
-    @JobScope
+    @JobScope // (2)
     public CreateDateJobParameter jobParameter() {
         return new CreateDateJobParameter();
     }
@@ -142,7 +149,7 @@ public class JobParameterExtendsConfiguration {
     public Step step() {
         return stepBuilderFactory.get(JOB_NAME +"_step")
                 .<Product, Product>chunk(chunkSize)
-                .reader(reader())
+                .reader(reader()) // (3)
                 .writer(writer())
                 .build();
     }
@@ -152,7 +159,7 @@ public class JobParameterExtendsConfiguration {
     public JpaPagingItemReader<Product> reader() {
     
         Map<String, Object> params = new HashMap<>();
-        params.put("createDate", jobParameter.getCreateDate());
+        params.put("createDate", jobParameter.getCreateDate()); // (4)
         params.put("status", jobParameter.getStatus());
         log.info(">>>>>>>>>>> createDate={}, status={}", jobParameter.getCreateDate(), jobParameter.getStatus());
     
@@ -168,8 +175,33 @@ public class JobParameterExtendsConfiguration {
 
 ```
 
+(1) ```private final CreateDateJobParameter jobParameter```
+
+* JobParameter클래스를 Bean 주입 받도록 구성합니다.
+* 롬복의 ```@RequiredArgsConstructor``` 는 ```private final```이 있을 경우 생성자 필드로 선언해줍니다.
+* 이렇게 Job 클래스 내부 필드로 선언된 ```jobParameter``` 변수는 Job 클래스 코드 여러곳에서 편하게 사용할 수 있게 됩니다.
+
+(2) ```@JobScope public CreateDateJobParameter jobParameter```
+
+* JobParameter의 ```@Value```로 값을 받기 위해서는 ```@JobScope, @StepScope``` 가 꼭 필요합니다.
+* 그래서 Bean이 생성되는 메소드 위에 해당 scope 어노테이션을 선언해줍니다.
+* ```@Component```에도 scope 어노테이션을 사용할 수도 있습니다.
+* 대신 이렇게 ```@Bean```으로 선언할 경우 Bean 생성에 대한 여러가지 옵션을 사용할 수 있다는 장점이 있어 저는 위 방식을 선호합니다.
+  * ex) 해당 JobParameter 클래스가 다른 Job에서도 사용할 수 있기 때문에 **서로 다른 Bean name**을 구성할 수 있게 됩니다. 
+
+(3) ```.reader(reader())```
+
+* JobParameter 클래스를 내부 필드로 선언되어있으니 더이상 ```null```을 임시값으로 받을 필요가 없습니다.
+
+(4) ```jobParameter.getCreateDate()```
+
+* Job 클래스 내부에 있는 ```jobParameter``` 변수를 Reader 메소드에서도 바로 사용합니다.
+* 형변환은 이미 JobParameter 생성 시점에 되어있으니 별도로 형변환을 사용할 필요가 없습니다.
+
+자 그럼 위처럼 변경해도 배치 사용엔 문제가 없는지 테스트 코드로 검증해보겠습니다.
 
 #### 테스트 코드
+
 
 ```java
 @RunWith(SpringRunner.class)
@@ -213,10 +245,17 @@ public class JobParameterExtendsConfigurationTest {
 }
 ```
 
+위 테스트 코드를 실행해보면?
+
+테스트가 성공하는 것을 확인할 수 있습니다.
+
+Setter로 Spring Batch의 JobParameter를 주입 받아 원하는 형태로 형변환을 하고 잘 작동되는 것까지 확인해보았습니다.  
+그럼 다른 방법들도 한번 확인해보겠습니다.
+
 ### 2-2. Constructor 로 주입 받기
 
-다만 이럴 경우 JobParameter 클래스에서 ```@Component```가 선언되어있어야만 합니다.  
-Setter처럼 ```@Bean``` 을 사용하려면 결국 생성자에 빈값이라도 넣어줘야해서 
+두번째로 알아볼 방법은 Constructor (생성자) 로 주입받기 입니다.  
+JobParameter 클래스는 아래와 같이 **Setter를 제거**하고, 생성자로 값을 주입 받으시면 됩니다.  
 
 ```java
 @Slf4j
@@ -233,6 +272,9 @@ public class CreateDateJobParameter {
 }
 ```
 
+여기서 ```@Value```는 **JobParameter 클래스의 생성자를 호출하는 쪽**에서 사용합니다.  
+
+
 ```java
 @Slf4j
 @RequiredArgsConstructor
@@ -243,9 +285,9 @@ public class JobParameterExtendsConfiguration {
     
     @Bean(JOB_NAME + "jobParameter")
     @JobScope
-    public CreateDateJobParameter jobParameter(@Value("#{jobParameters[createDate]}") String createDateStr,
+    public CreateDateJobParameter jobParameter(@Value("#{jobParameters[createDate]}") String createDateStr, 
                                                @Value("#{jobParameters[status]}") ProductStatus status) {
-        return new CreateDateJobParameter(createDateStr, status);
+        return new CreateDateJobParameter(createDateStr, status); // (1)
     }
     ...
 
@@ -268,6 +310,28 @@ public class JobParameterExtendsConfiguration {
     }
 }
 ```
-### 2-3. Field로 주입 받기 (SpEL만으로)
 
-### 2-4. Field로 주입 받기 (SpEL + Converter Class로 처리하기)
+(1) ```new CreateDateJobParameter(createDateStr, status);```
+
+* JobParameter 클래스를 생성하는 메소드에서 ```@Value``` 로 받고 이를 생성자 인자로 넘겨 줍니다.
+* 이때는 받은 형태 그대로 (문자열) 넘겨주고, 이를 어떻게 변환할지는 **JobParameter 클래스가 결정**하도록 합니다.
+
+나머지 코드는 Setter를 사용하는 방법과 다를게 없습니다.
+
+* Job 클래스 필드로 생성된 JobParameter Bean을 받아
+* Reader/Processor/Writer 등에선 편하게 해당 변수를 이용해 실행하면 됩니다. 
+
+마찬가지로 이 형태 역시 테스트 코드를 실행해보면?
+
+위 코드 역시 테스트가 잘 통과되는 것을 확인할 수 있습니다.
+
+
+### 2-3. Field로 주입 받기
+
+마지막 3번째 방법인 Field (필드)로 JobParameter 값을 주입 받는 방식을 알아보겠습니다.  
+이번 방법은 2가지로 나눠볼 수 있는데요.  
+하나씩 확인해보겠습니다.
+
+#### SpEL만으로
+
+#### SpEL에서 별도의 Converter 클래스 사용하기
