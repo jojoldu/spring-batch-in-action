@@ -39,9 +39,8 @@ public class JobParameterExtendsConfiguration {
 
     @Bean(JOB_NAME + "jobParameter")
     @JobScope
-    public CreateDateJobParameter jobParameter(@Value("#{jobParameters[createDate]}") String createDateStr,
-                                               @Value("#{jobParameters[status]}") ProductStatus status) {
-        return new CreateDateJobParameter(createDateStr, status);
+    public CreateDateJobParameter jobParameter() {
+        return new CreateDateJobParameter();
     }
 
     @Bean(name = JOB_NAME)

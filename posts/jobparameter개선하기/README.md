@@ -127,6 +127,9 @@ public class CreateDateJobParameter {
 
 이렇게 만들어진 클래스는 Job 클래스에서 아래와 같이 ```@JobScope```를 가진 Bean으로 등록하여 사용합니다.
 
+![1-1](./images/1-1.png)
+
+![1-2](./images/1-2.png)
 
 ```java
 @Slf4j
@@ -247,6 +250,8 @@ public class JobParameterExtendsConfigurationTest {
 
 위 테스트 코드를 실행해보면?
 
+![2](./images/2.png)
+
 테스트가 성공하는 것을 확인할 수 있습니다.
 
 Setter로 Spring Batch의 JobParameter를 주입 받아 원하는 형태로 형변환을 하고 잘 작동되는 것까지 확인해보았습니다.  
@@ -323,15 +328,99 @@ public class JobParameterExtendsConfiguration {
 
 마찬가지로 이 형태 역시 테스트 코드를 실행해보면?
 
-위 코드 역시 테스트가 잘 통과되는 것을 확인할 수 있습니다.
+![3](./images/3.png)
 
+위 코드 역시 테스트가 잘 통과되는 것을 확인할 수 있습니다.
 
 ### 2-3. Field로 주입 받기
 
-마지막 3번째 방법인 Field (필드)로 JobParameter 값을 주입 받는 방식을 알아보겠습니다.  
-이번 방법은 2가지로 나눠볼 수 있는데요.  
-하나씩 확인해보겠습니다.
+마지막 3번째 방법인 **Field** (필드)로 JobParameter 값을 주입 받는 방식을 알아보겠습니다.  
+  
+Spring의 ```@Value``` 어노테이션은 SpEL (Spring Expression Language) 을 지원합니다.  
+SpEL에서는 여러가지 문법을 지원하는데요.  
+그 중 ```T``` 코드를 이용하여 **지정된 클래스의 static Method**를 SpEL 내부에서 호출할 수가 있습니다.
 
-#### SpEL만으로
+![4](./images/4.png)
 
-#### SpEL에서 별도의 Converter 클래스 사용하기
+[expressions-types](https://docs.spring.io/spring/docs/current/spring-framework-reference/core.html#expressions-types)
+
+이를 이용하면 **필드에서 즉시 LocalDate.parse()를 호출**하도록 구성할 수 있습니다.
+
+```java
+@Slf4j
+@Getter
+@NoArgsConstructor
+public class CreateDateJobParameter {
+
+    @Value("#{ T(java.time.LocalDate).parse(jobParameters[createDate])}") // (1)
+    private LocalDate createDate;
+
+    @Value("#{jobParameters[status]}")
+    private ProductStatus status;
+}
+```
+
+(1) ```T(java.time.LocalDate).parse(jobParameters[createDate])```
+
+* ```T(java.time.LocalDate)``` 의 static method인 ```parse```를 호출합니다.
+* 이때 사용되는 클래스는 **패키지를 포함한 전체 경로**를 적어야만 합니다.
+* 해당 호출의 인자값은 ```jobParameters[createDate]```이 됩니다.
+
+이렇게 될 경우 실제 Java 메소드에서 ```LocalDate.parse()``` 를 호출한 것과 동일하게 작동합니다.  
+  
+다만 이 방식의 단점은 기본 포맷 외에 **별도의 포맷을 써야할 경우 코드양이 너무 비대**해지는 것이 있습니다.  
+예를 들어 ```yyyyMMdd``` 로 JobParameter를 받아야 한다면 다음과 같이 SpEL을 작성해야 합니다.
+
+```java
+"#{ T(java.time.LocalDate).parse(jobParameters[createDate], T(java.time.format.DateTimeFormatter).ofPattern('yyyyMMdd'))}";
+```
+
+이런 경우라면 아래와 같이 별도의 Converter 클래스를 사용하기를 추천드립니다.
+
+```java
+@NoArgsConstructor(access = AccessLevel.PRIVATE) // (1)
+public abstract class LocalDateConverter {
+    private static final String LOCAL_DATE_PATTERN = "yyyyMMdd";
+
+    public static LocalDate convert(String source) { // (2)
+        return LocalDate.parse(source, DateTimeFormatter.ofPattern(LOCAL_DATE_PATTERN));
+    }
+}
+```
+
+(1) ```AccessLevel.PRIVATE```
+
+* static method 만 모인 유틸 클래스이므로, 인스턴스 생성을 막기 위해 기본 생성자는 private scope를 가지도록 합니다.
+
+(2) ```static LocalDate convert```
+
+* SpEl의 ```T``` 문법을 사용하기 위해선 static method 가 되어야만 합니다.
+
+이렇게 별도로 만든 Converter 클래스는 다음과 같이 호출해서 사용할 수 있습니다.
+
+```java
+@Slf4j
+@Getter
+@NoArgsConstructor
+public class CreateDateJobParameter {
+
+    @Value("#{ T(com.jojoldu.batch.jobparameter.LocalDateConverter).convert(jobParameters[createDate])}") // (1)
+    private LocalDate createDate;
+
+    @Value("#{jobParameters[status]}")
+    private ProductStatus status;
+}
+```
+
+(1) ```T(com.jojoldu.batch.jobparameter.LocalDateConverter).convert```
+
+* 위에서 만든 유틸 클래스인 ```LocalDateConverter``` 의 전체 경로를 넣어 ```converte``` 메소드를 호출합니다.
+* 이렇게 될 경우 이제 포맷이 변경되거나, 추가 연산이 필요할 경우 해당 Converter 클래스에서 모드 작업을 진행하면 됩니다.
+
+## 3. 마무리
+
+LocalDate와 같이 기본적으로 Spring Batch가 지원하지 않는 타입에 대해 좀 더 잘 관리할 수 있는 방법을 배워보았습니다.  
+이 3가지 중에 팀 혹은 개인에 맞는 방법을 선택하시면 될 것 같습니다.  
+
+> ps. 저 같은 경우엔 Setter 혹은 Constructor를 선호합니다.  
+> 필드 인잭션의 경우 Spring Context가 없는 테스트 코드 작성시 JobParameter 값 변조가 어렵기도 하고 (물론 별도의 테스트용 생성자가 있으면 가능합니다.) SpEL 문법에 어색한 분들이 계실수 있기 때문입니다.

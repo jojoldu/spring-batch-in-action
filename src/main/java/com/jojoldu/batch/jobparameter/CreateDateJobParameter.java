@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Getter
-//@NoArgsConstructor
+@NoArgsConstructor
 public class CreateDateJobParameter {
 
 //    @Value("#{ T(java.time.LocalDate).parse(jobParameters[createDate], T(java.time.format.DateTimeFormatter).ofPattern('yyyy-MM-dd'))}")
@@ -22,17 +22,17 @@ public class CreateDateJobParameter {
 //    @Value("#{ T(com.jojoldu.batch.jobparameter.LocalDateConverter).convert(jobParameters[createDate])}")
     private LocalDate createDate;
 
-//    @Value("#{jobParameters[status]}")
+    @Value("#{jobParameters[status]}")
     private ProductStatus status;
 
-//    @Value("#{jobParameters[createDate]}")
-//    public void setCreateDate(String createDate) {
-//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-//        this.createDate = LocalDate.parse(createDate, formatter);
-//    }
-
-    public CreateDateJobParameter(String createDateStr, ProductStatus status) {
-        this.createDate = LocalDate.parse(createDateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        this.status = status;
+    @Value("#{jobParameters[createDate]}")
+    public void setCreateDate(String createDate) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        this.createDate = LocalDate.parse(createDate, formatter);
     }
+
+//    public CreateDateJobParameter(String createDateStr, ProductStatus status) {
+//        this.createDate = LocalDate.parse(createDateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+//        this.status = status;
+//    }
 }
