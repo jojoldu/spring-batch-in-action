@@ -22,6 +22,8 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import javax.persistence.EntityManagerFactory;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,7 +36,6 @@ public class MultiThreadConfiguration {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final EntityManagerFactory entityManagerFactory;
-    private final MultiThreadJobParameter jobParameter;
 
     private int chunkSize;
 
@@ -61,12 +62,6 @@ public class MultiThreadConfiguration {
         return executor;
     }
 
-    @Bean(JOB_NAME + "jobParameter")
-    @JobScope
-    public MultiThreadJobParameter jobParameter() {
-        return new MultiThreadJobParameter();
-    }
-
     @Bean(name = JOB_NAME)
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
@@ -80,19 +75,21 @@ public class MultiThreadConfiguration {
     public Step step() {
         return stepBuilderFactory.get(JOB_NAME +"_step")
                 .<Product, ProductBackup>chunk(chunkSize)
-                .reader(reader())
+                .reader(reader(null))
                 .processor(processor())
                 .writer(writer())
+                .taskExecutor(executor())
+                .throttleLimit(poolSize)
                 .build();
     }
 
 
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
-    public JpaPagingItemReader<Product> reader() {
+    public JpaPagingItemReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
 
         Map<String, Object> params = new HashMap<>();
-        params.put("createDate", jobParameter.getCreateDate());
+        params.put("createDate", LocalDate.parse(createDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 
         return new JpaPagingItemReaderBuilder<Product>()
                 .name(JOB_NAME +"_reader")
@@ -100,7 +97,7 @@ public class MultiThreadConfiguration {
                 .pageSize(chunkSize)
                 .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate AND p.status =:status")
                 .parameterValues(params)
-                .saveState(false) //     (1)
+                .saveState(false) // (1)
                 .build();
     }
 
