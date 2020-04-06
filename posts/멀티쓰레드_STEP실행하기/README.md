@@ -3,7 +3,13 @@
 
 ![intro](./images/intro.png)
 
+Spring Batch에서 멀티쓰레드 환경을 구성하기 위해서 가장 먼저 해야할 일은 사용하고자 하는 **Reader와 Writer가 멀티쓰레드를 지원하는지** 확인하는 것 입니다.  
 
+![javadoc](./images/javadoc.png)
+
+각 Reader와 Writer의 Javadoc에 항상 저 **thread-safe** 문구가 있는지 확인해보셔야 합니다.  
+
+그러나 다중 스레드 클라이언트에서 사용되는 경우 saveState = false를 사용해야합니다 (다시 시작할 수 없음)
 
 ```java
 
@@ -81,10 +87,21 @@ public class MultithreadedJobApplication {
 
 (2) ```ThreadPoolTaskExecutor```
 
-* ```SimpleAsyncTaskExecutor``` 를 사용할 경우 **매 요청시마다 쓰레드를 생성**하게 됩니다.
+* 쓰레드 풀을 이용한 쓰레드 관리 방식입니다.
+* 옵션
+  * ```corePoolSize```: Pool의 기본 사이즈
+  * ```maxPoolSize```: Pool의 최대 사이즈
+* 이외에도 ```SimpleAsyncTaskExecutor``` 가 있는데, 이를 사용할 경우 **매 요청시마다 쓰레드를 생성**하게 됩니다.
+  * 이때 계속 생성하다가 concurrency limit 을 초과할 경우 이후 요청을 막게되는 현상까지 있어, 일반적으로 잘 사용하진 않습니다.
+* 좀 더 자세한 설명은 [링크](https://github.com/HomoEfficio/dev-tips/blob/master/Java-Spring%20Thread%20Programming%20%EA%B0%84%EB%8B%A8%20%EC%A0%95%EB%A6%AC.md#threadpoolexecutor) 참고
 
 (3) ```throttleLimit(poolSize)```
 
+* 기본값은 4 입니다.
+* 생성된 쓰레드 중 몇개를 실제 작업에 사용할지를 결정합니다.
+* 만약 10개의 쓰레드를 생성하고 ```throttleLimit```을 4로 두었다면, 10개 쓰레드 중 4개만 사용하게 됨을 의미합니다.
+* 일반적으로 ```corePoolSize```, ```maximumPoolSize```, ```throttleLimit``` 를 모두 같은 값으로 맞춥니다.
+  
 ## PagingItemReader
 
 쓰레드에 안전합니다
