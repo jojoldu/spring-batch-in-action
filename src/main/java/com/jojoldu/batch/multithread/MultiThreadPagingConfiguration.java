@@ -30,8 +30,8 @@ import java.util.Map;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-public class MultiThreadConfiguration {
-    public static final String JOB_NAME = "multiThreadStepBatch";
+public class MultiThreadPagingConfiguration {
+    public static final String JOB_NAME = "multiThreadPagingBatch";
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;

@@ -1,67 +1,117 @@
 # Spring Batch에서 MultiThread로 Step 실행하기
 
+일반적으로 Spring Batch는 단일 쓰레드에서 실행됩니다.  
+즉, 모든 것이 순차적으로 실행되는 것을 의미하는데요.  
+Spring Batch에서는 이를 병렬로 실행할 수 있는 방법을 여러가지 지원합니다.  
+이번 시간에는 그 중 하나인 멀티스레드로 Step을 실행하는 방법에 대해서 알아보겠습니다.  
+
+## 1. 소개
+
+Spring Batch의 멀티쓰레드 Step은 Spring의 ```TaskExecutor```를 이용하여 **Chunk 단위로 쓰레드를 생성하여 실행** 하는 방식입니다.  
+  
+> Spring Batch Chunk에 대한 내용은 [이전 포스팅](https://jojoldu.tistory.com/331)에 소개되어있습니다.
 
 ![intro](./images/intro.png)
 
+여기서 어떤 ```TaskExecutor``` 를 선택하냐에 따라 모든 Chunk 단위별로 쓰레드가 새로 생성될 수도 있으며 (```SimpleAsyncTaskExecutor```) 혹은 쓰레드풀 내에서 지정된 갯수의 쓰레드만을 재사용하면서 실행 될 수도 있습니다. (```ThreadPoolTaskExecutor```)  
+  
 Spring Batch에서 멀티쓰레드 환경을 구성하기 위해서 가장 먼저 해야할 일은 사용하고자 하는 **Reader와 Writer가 멀티쓰레드를 지원하는지** 확인하는 것 입니다.  
 
 ![javadoc](./images/javadoc.png)
 
+(```JpaPagingItemReader```의 Javadoc)  
+  
 각 Reader와 Writer의 Javadoc에 항상 저 **thread-safe** 문구가 있는지 확인해보셔야 합니다.  
 
 그러나 다중 스레드 클라이언트에서 사용되는 경우 saveState = false를 사용해야합니다 (다시 시작할 수 없음)
 
 ```java
 
-public class MultithreadedJobApplication {
-        @Autowired
-        private JobBuilderFactory jobBuilderFactory;
-        @Autowired
-        private StepBuilderFactory stepBuilderFactory;
-        @Bean
-        @StepScope
-        public FlatFileItemReader<Transaction> fileTransactionReader(
-                        @Value("#{jobParameters['inputFlatFile']}") Resource resource) {
-                return new FlatFileItemReaderBuilder<Transaction>()
-                                .name("transactionItemReader")
-                                .resource(resource)
-                                .saveState(false) // (1)
-                                .delimited()
-                                .names(new String[] {"account", "amount", "timestamp"})
-                                .fieldSetMapper(fieldSet -> {
-                                        Transaction transaction = new Transaction();
-                                        transaction.setAccount(fieldSet.readString("account"));
-                                        transaction.setAmount(fieldSet.readBigDecimal("amount"));
-                                        transaction.setTimestamp(fieldSet.readDate("timestamp", "yyyy-MM-dd HH:mm:ss"));
-                                        return transaction;
-                                })
-                                .build();
-        }
-        @Bean
-        @StepScope
-        public JdbcBatchItemWriter<Transaction> writer(DataSource dataSource) {
-                return new JdbcBatchItemWriterBuilder<Transaction>()
-                                .dataSource(dataSource)
-                                .sql("INSERT INTO TRANSACTION (ACCOUNT, AMOUNT, TIMESTAMP) VALUES (:account, :amount, :timestamp)")
-                                .beanMapped()
-                                .build();
-        }
-        @Bean
-        public Job multithreadedJob() {
-                return this.jobBuilderFactory.get("multithreadedJob")
-                                .start(step1())
-                                .build();
-        }
-        @Bean
-        public Step step1() {
-                return this.stepBuilderFactory.get("step1")
-                                .<Transaction, Transaction>chunk(100)
-                                .reader(fileTransactionReader(null))
-                                .writer(writer(null))
-                                .taskExecutor(new SimpleAsyncTaskExecutor())
-                                .build();
-        }
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class MultiThreadConfiguration {
+    public static final String JOB_NAME = "multiThreadStepBatch";
 
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory entityManagerFactory;
+
+    private int chunkSize;
+
+    @Value("${chunkSize:1000}")
+    public void setChunkSize(int chunkSize) {
+        this.chunkSize = chunkSize;
+    }
+
+    private int poolSize;
+
+    @Value("${poolSize:10}")
+    public void setPoolSize(int poolSize) {
+        this.poolSize = poolSize;
+    }
+
+    @Bean(name = JOB_NAME+"taskPool")
+    public TaskExecutor executor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(poolSize);
+        executor.setMaxPoolSize(poolSize);
+        executor.setThreadNamePrefix("multi-thread-");
+        executor.setWaitForTasksToCompleteOnShutdown(Boolean.TRUE);
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = JOB_NAME)
+    public Job job() {
+        return jobBuilderFactory.get(JOB_NAME)
+                .start(step())
+                .preventRestart()
+                .build();
+    }
+
+    @Bean(name = JOB_NAME +"_step")
+    @JobScope
+    public Step step() {
+        return stepBuilderFactory.get(JOB_NAME +"_step")
+                .<Product, ProductBackup>chunk(chunkSize)
+                .reader(reader(null))
+                .processor(processor())
+                .writer(writer())
+                .taskExecutor(executor())
+                .throttleLimit(poolSize)
+                .build();
+    }
+
+
+    @Bean(name = JOB_NAME +"_reader")
+    @StepScope
+    public JpaPagingItemReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("createDate", LocalDate.parse(createDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+
+        return new JpaPagingItemReaderBuilder<Product>()
+                .name(JOB_NAME +"_reader")
+                .entityManagerFactory(entityManagerFactory)
+                .pageSize(chunkSize)
+                .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate AND p.status =:status")
+                .parameterValues(params)
+                .saveState(false) // (1)
+                .build();
+    }
+
+    private ItemProcessor<Product, ProductBackup> processor() {
+        return ProductBackup::new;
+    }
+
+    @Bean(name = JOB_NAME +"_writer")
+    @StepScope
+    public JpaItemWriter<ProductBackup> writer() {
+        return new JpaItemWriterBuilder<ProductBackup>()
+                .entityManagerFactory(entityManagerFactory)
+                .build();
+    }
 }
 ```
 
