@@ -22,8 +22,12 @@ Spring Batch에서 멀티쓰레드 환경을 구성하기 위해서 가장 먼�
 (```JpaPagingItemReader```의 Javadoc)  
   
 각 Reader와 Writer의 Javadoc에 항상 저 **thread-safe** 문구가 있는지 확인해보셔야 합니다.  
+만약 없는 경우엔 thread-safe가 지원되는 Reader 와 Writer를 선택해주셔야하며, 꼭 그 Reader를 써야한다면 [SynchronizedItemStreamReader](https://docs.spring.io/spring-batch/docs/current/api/org/springframework/batch/item/support/SynchronizedItemStreamReader.html) 등을 이용해 **thread-safe**로 변환해서 사용해볼 수 있습니다.  
+  
 
-그러나 다중 스레드 클라이언트에서 사용되는 경우 saveState = false를 사용해야합니다 (다시 시작할 수 없음)
+## 2. JpaPagingItemReader 예제
+
+쓰레드에 안전합니다
 
 ```java
 
@@ -115,21 +119,10 @@ public class MultiThreadConfiguration {
 }
 ```
 
-```java
-    @Bean(name = BATCH_NAME+"taskPool")
-    public TaskExecutor executor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(poolSize);
-        executor.setMaxPoolSize(poolSize);
-        executor.setThreadNamePrefix("collect-order-");
-        executor.setWaitForTasksToCompleteOnShutdown(Boolean.TRUE);
-        executor.initialize();
-        return executor;
-    }
-```
 
 (1) ```.saveState(false)```
 
+* 멀티쓰레드 환경에서 사용할 경우 필수적으로 사용해야할 옵션이 ```saveState = false``` 입니다.
 * Spring Batch에서 제공하는 대부분의 ItemReader 는 stateful 입니다. 
 * Spring Batch는 Job을 다시 시작할 때 이 state를 사용하므로 처리가 중단 된 위치를 알 수 있습니다.  
 * 그러나 멀티 스레드 환경에서 여러 스레드가 액세스 할 수 있는 방식 (동기화되지 않은 등)으로 상태를 유지하는 객체는 스레드의 상태를 서로 덮어 쓰는 문제가 발생할 수 있습니다. 
@@ -152,13 +145,7 @@ public class MultiThreadConfiguration {
 * 만약 10개의 쓰레드를 생성하고 ```throttleLimit```을 4로 두었다면, 10개 쓰레드 중 4개만 사용하게 됨을 의미합니다.
 * 일반적으로 ```corePoolSize```, ```maximumPoolSize```, ```throttleLimit``` 를 모두 같은 값으로 맞춥니다.
   
-## PagingItemReader
-
-쓰레드에 안전합니다
-
-* [JdbcPagingItemReader](https://docs.spring.io/spring-batch/docs/current/api/org/springframework/batch/item/database/JdbcPagingItemReader.html)
-
-## CursorItemReader
+## 3. CursorItemReader
 
 SynchronizedItemStreamReader 로 Wrapping 하여 처리한다.
 
