@@ -14,10 +14,15 @@ spring:
 spring.batch.job.names: ${job.name:NONE}
 logging:
   level:
+#    org:
+#      springframework:
+#        batch: DEBUG
+#        jdbc.core.JdbcTemplate: DEBUG
     org:
       springframework:
-        batch: DEBUG
-        jdbc.core.JdbcTemplate: DEBUG
+        batch:
+          item:
+            database: DEBUG
 
 ---
 spring:
