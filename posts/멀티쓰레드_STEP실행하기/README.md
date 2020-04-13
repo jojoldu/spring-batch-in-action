@@ -53,8 +53,8 @@ PagingItemReader는 **Thread Safe** 하기 때문입니다.
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-public class MultiThreadConfiguration {
-    public static final String JOB_NAME = "multiThreadStepBatch";
+public class MultiThreadPagingConfiguration {
+    public static final String JOB_NAME = "multiThreadPagingBatch";
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
@@ -69,14 +69,14 @@ public class MultiThreadConfiguration {
 
     private int poolSize;
 
-    @Value("${poolSize:10}")
+    @Value("${poolSize:10}") // (1)
     public void setPoolSize(int poolSize) {
         this.poolSize = poolSize;
     }
 
     @Bean(name = JOB_NAME+"taskPool")
     public TaskExecutor executor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor(); // (2)
         executor.setCorePoolSize(poolSize);
         executor.setMaxPoolSize(poolSize);
         executor.setThreadNamePrefix("multi-thread-");
@@ -101,8 +101,8 @@ public class MultiThreadConfiguration {
                 .reader(reader(null))
                 .processor(processor())
                 .writer(writer())
-                .taskExecutor(executor())
-                .throttleLimit(poolSize)
+                .taskExecutor(executor()) // (2)
+                .throttleLimit(poolSize) // (3)
                 .build();
     }
 
@@ -118,9 +118,9 @@ public class MultiThreadConfiguration {
                 .name(JOB_NAME +"_reader")
                 .entityManagerFactory(entityManagerFactory)
                 .pageSize(chunkSize)
-                .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate AND p.status =:status")
+                .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate")
                 .parameterValues(params)
-                .saveState(false) // (1)
+                .saveState(false) // (4)
                 .build();
     }
 
@@ -139,16 +139,10 @@ public class MultiThreadConfiguration {
 ```
 
 
-(1) ```.saveState(false)```
+(1) ```@Value("${poolSize:10}")```
 
-* 앞에서도 설명드린것처럼, 멀티쓰레드 환경에서 사용할 경우 필수적으로 사용해야할 옵션이 ```saveState = false``` 입니다.
-* 해당 옵션을 끄게 되면 (```false```) Reader 가 실패한 지점을 저장하지 못하게해, 다음 실행시에도 무조건 처음부터 다시 읽도록 합니다.
-* 이 옵션을 켜놓으면 오히려 더 큰 문제가 발생할 수 있습니다.
-  * 8번째 Chunk 에서 실패했는데, 사실은 4번째 Chunk도 실패했다면 8번째가 기록되어 다음 재실행시 8번째부터 실행될수 있기 때문입니다.
-  * 실패하면 무조건 처음부터 다시 실행될 수 있도록 해당 옵션은 ```false```로 두는 것을 추천합니다.
-* 비슷한 기능으로 Job 옵션에 있는 ```.preventRestart()```가 있는데, 해당 옵션은 Job이 같은 파라미터로 재실행되는것을 금지합니다.
-  * ```.saveState(false)```는 Reader가 실패난 지점을 기록하지 못하게 하는 옵션이라 엄밀히 말하면 둘은 서로 다른 옵션이긴 합니다.
-  * **Step 재실행을 막는다**정도로 봐주시면 됩니다.
+* 생성할 쓰레드 풀의 쓰레드 수를 환경변수로 받아서 사용합니다.
+* ```${poolSize:10}``` 에서 10은 앞에 선언된 변수 ```poolSize```가 없을 경우 10을 사용한다는 기본값으로 보시면 됩니다.
 
 (2) ```ThreadPoolTaskExecutor```
 
@@ -159,14 +153,109 @@ public class MultiThreadConfiguration {
 * 이외에도 ```SimpleAsyncTaskExecutor``` 가 있는데, 이를 사용할 경우 **매 요청시마다 쓰레드를 생성**하게 됩니다.
   * 이때 계속 생성하다가 concurrency limit 을 초과할 경우 이후 요청을 막게되는 현상까지 있어, 일반적으로 잘 사용하진 않습니다.
 * 좀 더 자세한 설명은 [링크](https://github.com/HomoEfficio/dev-tips/blob/master/Java-Spring%20Thread%20Programming%20%EA%B0%84%EB%8B%A8%20%EC%A0%95%EB%A6%AC.md#threadpoolexecutor) 참고
-
+  
 (3) ```throttleLimit(poolSize)```
 
 * 기본값은 4 입니다.
 * 생성된 쓰레드 중 몇개를 실제 작업에 사용할지를 결정합니다.
 * 만약 10개의 쓰레드를 생성하고 ```throttleLimit```을 4로 두었다면, 10개 쓰레드 중 4개만 사용하게 됨을 의미합니다.
 * 일반적으로 ```corePoolSize```, ```maximumPoolSize```, ```throttleLimit``` 를 모두 같은 값으로 맞춥니다.
-  
+ 
+(4) ```.saveState(false)```
+
+* 앞에서도 설명드린것처럼, 멀티쓰레드 환경에서 사용할 경우 필수적으로 사용해야할 옵션이 ```saveState = false``` 입니다.
+* 해당 옵션을 끄게 되면 (```false```) Reader 가 실패한 지점을 저장하지 못하게해, 다음 실행시에도 무조건 처음부터 다시 읽도록 합니다.
+* 이 옵션을 켜놓으면 오히려 더 큰 문제가 발생할 수 있습니다.
+  * 8번째 Chunk 에서 실패했는데, 사실은 4번째 Chunk도 실패했다면 8번째가 기록되어 다음 재실행시 8번째부터 실행될수 있기 때문입니다.
+  * 실패하면 무조건 처음부터 다시 실행될 수 있도록 해당 옵션은 ```false```로 두는 것을 추천합니다.
+* 비슷한 기능으로 Job 옵션에 있는 ```.preventRestart()```가 있는데, 해당 옵션은 Job이 같은 파라미터로 재실행되는것을 금지합니다.
+  * ```.saveState(false)```는 Reader가 실패난 지점을 기록하지 못하게 하는 옵션이라 엄밀히 말하면 둘은 서로 다른 옵션이긴 합니다.
+  * **Step 재실행을 막는다**정도로 봐주시면 됩니다.
+
+
+자 그럼 이제 이 코드가 실제로 멀티쓰레드로 잘 작동하는지 테스트 코드로 검증해보겠습니다.
+
+### 테스트 코드
+
+> 모든 테스트 코드는 JUnit5를 사용합니다.
+> Spring Batch에서 테스트 코드 작성이 처음이신분들은 [앞에 작성된 포스팅](https://jojoldu.tistory.com/455)을 먼저 참고해주세요. 
+
+```java
+@ExtendWith(SpringExtension.class)
+@SpringBatchTest
+@SpringBootTest(classes={MultiThreadPagingConfiguration.class, TestBatchConfig.class})
+@TestPropertySource(properties = {"chunkSize=1", "poolSize=2"}) // (1)
+public class MultiThreadPagingConfigurationTest {
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private ProductBackupRepository productBackupRepository;
+
+    @Autowired
+    private JobLauncherTestUtils jobLauncherTestUtils;
+
+    @AfterEach
+    void after() {
+        productRepository.deleteAll();
+        productBackupRepository.deleteAll();
+    }
+
+    @Test
+    public void 페이징_분산처리_된다() throws Exception {
+        //given
+        LocalDate createDate = LocalDate.of(2020,4,13);
+        ProductStatus status = ProductStatus.APPROVE;
+        long price = 1000L;
+        for (int i = 0; i < 10; i++) {
+            productRepository.save(Product.builder()
+                    .price(i * price)
+                    .createDate(createDate)
+                    .status(status)
+                    .build());
+        }
+
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addString("createDate", createDate.toString())
+                .addString("status", status.name())
+                .toJobParameters();
+        //when
+        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
+
+        //then
+        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        List<ProductBackup> backups = productBackupRepository.findAll();
+        backups.sort(Comparator.comparingLong(ProductBackup::getPrice));
+
+        assertThat(backups).hasSize(10);
+        assertThat(backups.get(0).getPrice()).isEqualTo(0L);
+        assertThat(backups.get(9).getPrice()).isEqualTo(9000L);
+    }
+
+}
+```
+
+(1) ```properties = {"chunkSize=1", "poolSize=2"}```
+
+* 각 옵션은 다음과 같은 의미를 가집니다.
+  * ```chunkSize=1```: 하나의 Chunk가 처리할 데이터가 1건을 의미합니다.
+  * ```poolSize=2```: 생성될 쓰레드 풀의 쓰레드 개수를 2개로 합니다.
+* 이렇게 할 경우 10개의 데이터를 처리할때 **2개의 쓰레드가 각 5회씩** 처리됩니다.
+  * 물론 1개의 쓰레드에서 오랜 시간 동안 처리하게 된다면 다른 1개가 더 많은 건수를 처리할 수도 있습니다.  
+
+위 테스트 코드를 한번 실행해보면?  
+아래 그림처럼 **2개의 쓰레드가 각자 페이지를 읽어서 각자 Write 처리**를 하는것을 확인할 수 있습니다.
+
+![paging-test-1](./images/paging-test-1.png)
+
+이전과 같이 단일 쓰레드 모델이였다면 어떻게 될까요?  
+그럼 아래와 같이 1개페이지에 대해 처리가 끝난 후에야 다음 페이지를 읽게 됩니다.
+(계속 앞에 페이지를 읽는 것을 기다려야 하는 것이죠)
+
+![paging-test-2](./images/paging-test-2.png)
+
+
 ## 3. CursorItemReader
 
 SynchronizedItemStreamReader 로 Wrapping 하여 처리한다.

@@ -95,7 +95,7 @@ public class MultiThreadPagingConfiguration {
                 .name(JOB_NAME +"_reader")
                 .entityManagerFactory(entityManagerFactory)
                 .pageSize(chunkSize)
-                .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate AND p.status =:status")
+                .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate")
                 .parameterValues(params)
                 .saveState(false) // (1)
                 .build();
