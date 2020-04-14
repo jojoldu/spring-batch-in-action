@@ -10,6 +10,7 @@ import com.jojoldu.batch.querydsl.reader.BaseEntityId;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
@@ -24,6 +25,7 @@ import javax.persistence.ManyToOne;
 import java.time.LocalDate;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @Entity
 public class Product implements BaseEntityId {

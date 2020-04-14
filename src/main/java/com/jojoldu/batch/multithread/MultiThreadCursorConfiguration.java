@@ -11,21 +11,19 @@ import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.database.JpaItemWriter;
-import org.springframework.batch.item.database.JpaPagingItemReader;
+import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
-import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import javax.persistence.EntityManagerFactory;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
+import javax.sql.DataSource;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -36,6 +34,7 @@ public class MultiThreadCursorConfiguration {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final EntityManagerFactory entityManagerFactory;
+    private final DataSource dataSource;
 
     private int chunkSize;
 
@@ -83,21 +82,18 @@ public class MultiThreadCursorConfiguration {
                 .build();
     }
 
-
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
-    public JpaPagingItemReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
+    public JdbcCursorItemReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
+        String sql = "SELECT id, name, price, create_date, status FROM product WHERE create_date=':createDate'"
+                .replace(":createDate", createDate);
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("createDate", LocalDate.parse(createDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-
-        return new JpaPagingItemReaderBuilder<Product>()
+        return new JdbcCursorItemReaderBuilder<Product>()
+                .fetchSize(chunkSize)
+                .dataSource(dataSource)
+                .rowMapper(new BeanPropertyRowMapper<>(Product.class))
+                .sql(sql)
                 .name(JOB_NAME +"_reader")
-                .entityManagerFactory(entityManagerFactory)
-                .pageSize(chunkSize)
-                .queryString("SELECT p FROM Product p WHERE p.createDate =:createDate AND p.status =:status")
-                .parameterValues(params)
-                .saveState(false) // (1)
                 .build();
     }
 

@@ -151,14 +151,14 @@ public class MultiThreadPagingConfiguration {
   * ```corePoolSize```: Pool의 기본 사이즈
   * ```maxPoolSize```: Pool의 최대 사이즈
 * 이외에도 ```SimpleAsyncTaskExecutor``` 가 있는데, 이를 사용할 경우 **매 요청시마다 쓰레드를 생성**하게 됩니다.
-  * 이때 계속 생성하다가 concurrency limit 을 초과할 경우 이후 요청을 막게되는 현상까지 있어, 일반적으로 잘 사용하진 않습니다.
-* 좀 더 자세한 설명은 [링크](https://github.com/HomoEfficio/dev-tips/blob/master/Java-Spring%20Thread%20Programming%20%EA%B0%84%EB%8B%A8%20%EC%A0%95%EB%A6%AC.md#threadpoolexecutor) 참고
+  * 이때 계속 생성하다가 concurrency limit 을 초과할 경우 이후 요청을 막게되는 현상까지 있어, 운영 환경에선 잘 사용하진 않습니다.
+* 좀 더 자세한 설명은 [링크](https://github.com/HomoEfficio/dev-tips/blob/master/Java-Spring%20Thread%20Programming%20%EA%B0%84%EB%8B%A8%20%EC%A0%95%EB%A6%AC.md#threadpoolexecutor) 참고하시면 더 좋습니다
   
 (3) ```throttleLimit(poolSize)```
 
-* 기본값은 4 입니다.
+* 기본값은 **4** 입니다.
 * 생성된 쓰레드 중 몇개를 실제 작업에 사용할지를 결정합니다.
-* 만약 10개의 쓰레드를 생성하고 ```throttleLimit```을 4로 두었다면, 10개 쓰레드 중 4개만 사용하게 됨을 의미합니다.
+* 만약 10개의 쓰레드를 생성하고 ```throttleLimit```을 4로 두었다면, 10개 쓰레드 중 4개만 배치에서 사용하게 됨을 의미합니다.
 * 일반적으로 ```corePoolSize```, ```maximumPoolSize```, ```throttleLimit``` 를 모두 같은 값으로 맞춥니다.
  
 (4) ```.saveState(false)```
@@ -245,7 +245,7 @@ public class MultiThreadPagingConfigurationTest {
   * 물론 1개의 쓰레드에서 오랜 시간 동안 처리하게 된다면 다른 1개가 더 많은 건수를 처리할 수도 있습니다.  
 
 위 테스트 코드를 한번 실행해보면?  
-아래 그림처럼 **2개의 쓰레드가 각자 페이지를 읽어서 각자 Write 처리**를 하는것을 확인할 수 있습니다.
+아래 그림처럼 **2개의 쓰레드가 각자 페이지를 Read하고 Write** 하는것을 확인할 수 있습니다.
 
 ![paging-test-1](./images/paging-test-1.png)
 
@@ -255,7 +255,11 @@ public class MultiThreadPagingConfigurationTest {
 
 ![paging-test-2](./images/paging-test-2.png)
 
+JpaPagingItemReader를 예시로 보여드렸지만, 그외 나머지 PagingItemReader들 역시 동일하게 사용하시면 됩니다
 
+![jdbcpaging](./images/jdbcpaging.png)
+
+(JdbcPagingItemReader)
 ## 3. CursorItemReader
 
 SynchronizedItemStreamReader 로 Wrapping 하여 처리한다.
