@@ -15,6 +15,8 @@ import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
+import org.springframework.batch.item.support.SynchronizedItemStreamReader;
+import org.springframework.batch.item.support.builder.SynchronizedItemStreamReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -75,6 +77,7 @@ public class MultiThreadCursorConfiguration {
         return stepBuilderFactory.get(JOB_NAME +"_step")
                 .<Product, ProductBackup>chunk(chunkSize)
                 .reader(reader(null))
+                .listener(new CursorItemReaderListener()) //
                 .processor(processor())
                 .writer(writer())
                 .taskExecutor(executor())
@@ -84,19 +87,38 @@ public class MultiThreadCursorConfiguration {
 
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
-    public JdbcCursorItemReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
+    public SynchronizedItemStreamReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
         String sql = "SELECT id, name, price, create_date, status FROM product WHERE create_date=':createDate'"
                 .replace(":createDate", createDate);
 
-        return new JdbcCursorItemReaderBuilder<Product>()
+        JdbcCursorItemReader<Product> itemReader = new JdbcCursorItemReaderBuilder<Product>()
                 .fetchSize(chunkSize)
                 .dataSource(dataSource)
                 .rowMapper(new BeanPropertyRowMapper<>(Product.class))
                 .sql(sql)
-                .name(JOB_NAME +"_reader")
+                .name(JOB_NAME + "_reader")
+                .build();
+
+        return new SynchronizedItemStreamReaderBuilder<Product>()
+                .delegate(itemReader)
                 .build();
     }
 
+
+//    @Bean(name = JOB_NAME +"_reader")
+//    @StepScope
+//    public JdbcCursorItemReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
+//        String sql = "SELECT id, name, price, create_date, status FROM product WHERE create_date=':createDate'"
+//                .replace(":createDate", createDate);
+//
+//        return new JdbcCursorItemReaderBuilder<Product>()
+//                .fetchSize(chunkSize)
+//                .dataSource(dataSource)
+//                .rowMapper(new BeanPropertyRowMapper<>(Product.class))
+//                .sql(sql)
+//                .name(JOB_NAME + "_reader")
+//                .build();
+//    }
     private ItemProcessor<Product, ProductBackup> processor() {
         return ProductBackup::new;
     }

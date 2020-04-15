@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SpringExtension.class)
 @SpringBatchTest
 @SpringBootTest(classes={MultiThreadCursorConfiguration.class, TestBatchConfig.class})
-@TestPropertySource(properties = {"chunkSize=1", "poolSize=1"})
+@TestPropertySource(properties = {"chunkSize=1", "poolSize=5"})
 public class MultiThreadCursorConfigurationTest {
 
     @Autowired

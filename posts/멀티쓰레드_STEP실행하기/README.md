@@ -143,7 +143,12 @@ public class MultiThreadPagingConfiguration {
 
 * 생성할 쓰레드 풀의 쓰레드 수를 환경변수로 받아서 사용합니다.
 * ```${poolSize:10}``` 에서 10은 앞에 선언된 변수 ```poolSize```가 없을 경우 10을 사용한다는 기본값으로 보시면 됩니다.
-
+* 배치 실행시 PoolSize를 조정하는 이유는 **실행 환경에 맞게 유동적으로 쓰레드풀을 관리하기 위함**입니다.
+  * 개발 환경에서는 1개의 쓰레드로, 운영에선 10개의 쓰레드로 실행할 수도 있습니다.
+  * 혹은 같은 시간대에 수행되는 다른 배치들로 인해서 갑자기 쓰레드 개수를 줄여야 할 수도 있습니다.
+  * 언제든 유동적으로 배치 실행시점에 몇개의 쓰레드를 생성할지 결정할 수 있으니 웬만하면 외부에 받아서 사용하는 방식을 선호합니다.
+* Field가 아닌 Setter로 받는 이유는 Spring Context가 없이 테스트 코드를 작성할때 PoolSize, ChunkSize등을 입력할 방법이 없기 때문입니다.
+ 
 (2) ```ThreadPoolTaskExecutor```
 
 * 쓰레드 풀을 이용한 쓰레드 관리 방식입니다.
@@ -259,21 +264,183 @@ JpaPagingItemReader를 예시로 보여드렸지만, 그외 나머지 PagingItem
 
 ![jdbcpaging](./images/jdbcpaging.png)
 
-(JdbcPagingItemReader)
+(JdbcPagingItemReader)  
+  
+
 ## 3. CursorItemReader
+
+이 클래스는 JDBC ResultSet를 사용하여 데이터를 읽고 스레드 안전성을 보장하지 않습니다. 이런 이유로클래스는 동시성 관리를 구현하지 않기 때문에 여러 스레드에서 사용할 수 없습니다.
+
+첫 번째 ItemReader는 synchronized키워드를 read메소드에 추가하는 인터페이스에 대해 동기화 위임을 구현하는 것입니다.  
+읽기는 일반적으로 쓰기보다 저렴하므로 읽기 동기화가 그렇게 나쁘지는 않습니다.  
+한 스레드가 청크를 (빠르게) 읽고 (시간이 많이 걸리는) 쓰기를 처리하는 다른 스레드로 전달합니다.  
+쓰기 스레드는 읽기 스레드가 다른 청크를 읽을 수 있고 다른 스레드가 새 청크를 쓸 수있을 정도로 오랫동안 사용 중입니다.  
+요약하면, 스레드는 쓰기에 바쁘기 때문에 읽기를 위해 싸울 수 없습니다. 다음 목록은 동기화 된 리더를 구현하는 방법을 보여줍니다.
 
 SynchronizedItemStreamReader 로 Wrapping 하여 처리한다.
 
 > JpaCursorItemReader는 [Spring Batch 4.3](https://github.com/spring-projects/spring-batch/issues/901)에 추가될 예정입니다.
-> 
-## 4. Tip
+ 
+### 3-1. Not Thread Safety 코드
 
-### PoolSize는 Environment Variable (환경변수)로 받기
+```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class MultiThreadCursorConfiguration {
+    public static final String JOB_NAME = "multiThreadCursorBatch";
 
-개발 환경에서는 1개의 쓰레드로, 운영에선 10개의 쓰레드로 실행해야 될 수 있기 때문입니다.  
-몇개의 쓰레드풀을 쓸지를 요청자가 결정할 수 있도록 chunkSize와 마찬가지로 환경변수로 받아서 사용합니다.  
-  
-이렇게 하지 않으면, 로컬/개발/테스트 등에선 1개의 쓰레드로 **순차적으로 로그를 확인하고 싶을때도 동적으로 변경이 어렵습니다**.  
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+    private final EntityManagerFactory entityManagerFactory;
+    private final DataSource dataSource;
+
+    private int chunkSize;
+
+    @Value("${chunkSize:1000}")
+    public void setChunkSize(int chunkSize) {
+        this.chunkSize = chunkSize;
+    }
+
+    private int poolSize;
+
+    @Value("${poolSize:10}")
+    public void setPoolSize(int poolSize) {
+        this.poolSize = poolSize;
+    }
+
+    @Bean(name = JOB_NAME+"taskPool")
+    public TaskExecutor executor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(poolSize);
+        executor.setMaxPoolSize(poolSize);
+        executor.setThreadNamePrefix("multi-thread-");
+        executor.setWaitForTasksToCompleteOnShutdown(Boolean.TRUE);
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = JOB_NAME)
+    public Job job() {
+        return jobBuilderFactory.get(JOB_NAME)
+                .start(step())
+                .preventRestart()
+                .build();
+    }
+
+    @Bean(name = JOB_NAME +"_step")
+    @JobScope
+    public Step step() {
+        return stepBuilderFactory.get(JOB_NAME +"_step")
+                .<Product, ProductBackup>chunk(chunkSize)
+                .reader(reader(null))
+                .processor(processor())
+                .writer(writer())
+                .taskExecutor(executor())
+                .throttleLimit(poolSize)
+                .build();
+    }
+
+    @Bean(name = JOB_NAME +"_reader")
+    @StepScope
+    public JdbcCursorItemReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
+        String sql = "SELECT id, name, price, create_date, status FROM product WHERE create_date=':createDate'"
+                .replace(":createDate", createDate);
+
+        return new JdbcCursorItemReaderBuilder<Product>()
+                .fetchSize(chunkSize)
+                .dataSource(dataSource)
+                .rowMapper(new BeanPropertyRowMapper<>(Product.class))
+                .sql(sql)
+                .name(JOB_NAME +"_reader")
+                .build();
+    }
+
+    private ItemProcessor<Product, ProductBackup> processor() {
+        return ProductBackup::new;
+    }
+
+    @Bean(name = JOB_NAME +"_writer")
+    @StepScope
+    public JpaItemWriter<ProductBackup> writer() {
+        return new JpaItemWriterBuilder<ProductBackup>()
+                .entityManagerFactory(entityManagerFactory)
+                .build();
+    }
+}
+```
+
+#### 테스트 코드
+
+```java
+@ExtendWith(SpringExtension.class)
+@SpringBatchTest
+@SpringBootTest(classes={MultiThreadCursorConfiguration.class, TestBatchConfig.class})
+@TestPropertySource(properties = {"chunkSize=1", "poolSize=5"})
+public class MultiThreadCursorConfigurationTest {
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private ProductBackupRepository productBackupRepository;
+
+    @Autowired
+    private JobLauncherTestUtils jobLauncherTestUtils;
+
+    @AfterEach
+    void after() {
+        productRepository.deleteAll();
+        productBackupRepository.deleteAll();
+    }
+
+    @Test
+    public void Cursor_분산처리_된다() throws Exception {
+        //given
+        LocalDate createDate = LocalDate.of(2020,4,13);
+        ProductStatus status = ProductStatus.APPROVE;
+        long price = 1000L;
+        for (int i = 0; i < 10; i++) {
+            productRepository.save(Product.builder()
+                    .price(i * price)
+                    .createDate(createDate)
+                    .status(status)
+                    .build());
+        }
+
+        JobParameters jobParameters = new JobParametersBuilder()
+                .addString("createDate", createDate.toString())
+                .toJobParameters();
+        //when
+        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
+
+        //then
+        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+        List<ProductBackup> backups = productBackupRepository.findAll();
+        backups.sort(Comparator.comparingLong(ProductBackup::getPrice));
+
+        assertThat(backups).hasSize(10);
+        assertThat(backups.get(0).getPrice()).isEqualTo(0L);
+        assertThat(backups.get(9).getPrice()).isEqualTo(9000L);
+    }
+
+}
+```
+
+![cursor-test-1](./images/cursor-test-1.png)
+
+
+### 3-3. Thread Safety 코드
+
+```java
+
+```
+
+SynchronizedItemStreamReader
+
+![SynchronizedItemStreamReader](./images/SynchronizedItemStreamReader.png)
+
+![SynchronizedItemStreamReader2](./images/SynchronizedItemStreamReader2.png)
 
 ## 마무리
 
