@@ -104,7 +104,6 @@ public class MultiThreadCursorConfiguration {
                 .build();
     }
 
-
 //    @Bean(name = JOB_NAME +"_reader")
 //    @StepScope
 //    public JdbcCursorItemReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
@@ -119,6 +118,7 @@ public class MultiThreadCursorConfiguration {
 //                .name(JOB_NAME + "_reader")
 //                .build();
 //    }
+
     private ItemProcessor<Product, ProductBackup> processor() {
         return ProductBackup::new;
     }

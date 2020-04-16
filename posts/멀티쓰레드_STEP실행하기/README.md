@@ -255,8 +255,7 @@ public class MultiThreadPagingConfigurationTest {
 ![paging-test-1](./images/paging-test-1.png)
 
 이전과 같이 단일 쓰레드 모델이였다면 어떻게 될까요?  
-그럼 아래와 같이 1개페이지에 대해 처리가 끝난 후에야 다음 페이지를 읽게 됩니다.
-(계속 앞에 페이지를 읽는 것을 기다려야 하는 것이죠)
+그럼 아래와 같이 1개페이지에 대해 읽기와 쓰기가 모두 끝난 후에야 다음 페이지를 진행하게 됩니다.
 
 ![paging-test-2](./images/paging-test-2.png)
 
@@ -266,22 +265,36 @@ JpaPagingItemReader를 예시로 보여드렸지만, 그외 나머지 PagingItem
 
 (JdbcPagingItemReader)  
   
+비교적 편하게 작동되는 PagingItemReader들은 쓰레드풀만 지정하면 됩니다.  
+자 그럼 ThreadSafe 하지 않는 Cursor 기반의 Reader들은 어떻게 할지 알아보겠습니다.
 
 ## 3. CursorItemReader
 
-이 클래스는 JDBC ResultSet를 사용하여 데이터를 읽고 스레드 안전성을 보장하지 않습니다. 이런 이유로클래스는 동시성 관리를 구현하지 않기 때문에 여러 스레드에서 사용할 수 없습니다.
+JdbcCursorItemReader를 비롯하여 JDBC ResultSet를 사용하여 데이터를 읽는 CursorItemReader는 Thread Safe하지 않습니다.
 
-첫 번째 ItemReader는 synchronized키워드를 read메소드에 추가하는 인터페이스에 대해 동기화 위임을 구현하는 것입니다.  
-읽기는 일반적으로 쓰기보다 저렴하므로 읽기 동기화가 그렇게 나쁘지는 않습니다.  
-한 스레드가 청크를 (빠르게) 읽고 (시간이 많이 걸리는) 쓰기를 처리하는 다른 스레드로 전달합니다.  
-쓰기 스레드는 읽기 스레드가 다른 청크를 읽을 수 있고 다른 스레드가 새 청크를 쓸 수있을 정도로 오랫동안 사용 중입니다.  
-요약하면, 스레드는 쓰기에 바쁘기 때문에 읽기를 위해 싸울 수 없습니다. 다음 목록은 동기화 된 리더를 구현하는 방법을 보여줍니다.
+![javadoc2](./images/javadoc2.png)
 
-SynchronizedItemStreamReader 로 Wrapping 하여 처리한다.
+(Javadoc어디에도 Thread Safe 단어를 찾을 수가 없습니다.)  
+  
+이와 같이 Thread Safe 하지 않는 Reader들을 Thread Safe하게 변경하기 위해서는 데이터를 읽는 ```read()```에 ```synchronized``` 를 걸어야만 합니다.  
+  
+다만 이렇게 하게 되면 Reader는 멀티 쓰레드로 작동하지 않고, 순차적으로 데이터를 읽게 될텐데요.  
+Reader가 동기화 방식이 된다하더라도, **Processor/Writer는 멀티 쓰레드로** 작동이 됩니다.  
 
+> 일반적으로 배치 과정에서는 Write 단계에서 더 많은 자원과 시간을 소모합니다.  
+> 그래서 Bulk Insert 등의 방법에 대해서 많이 얘기가 나옵니다.
+  
+이미 구현체가 있는 JdbcCursorItemReader나 HibernateCursorItemReader에 ```synchronized``` 를 추가하려면 어떻게 해야할까요?  
+  
+가장 쉬운 방법은 **Spring Batch 4.0부터 추가된 SynchronizedItemStreamReader로 Wrapping 하는 것**입니다.  
+  
 > JpaCursorItemReader는 [Spring Batch 4.3](https://github.com/spring-projects/spring-batch/issues/901)에 추가될 예정입니다.
  
+자 그럼 예제 코드로 실제로 CursorItemReader가 Thread Safe 하지 않는지 확인후, 이를 고치는 과정으로 살펴보겠습니다.
+
 ### 3-1. Not Thread Safety 코드
+
+먼저 멀티쓰레드 환경에서 바로 JdbcCursorItemReader를 사용할 경우 입니다.  
 
 ```java
 @Slf4j
@@ -347,7 +360,7 @@ public class MultiThreadCursorConfiguration {
         String sql = "SELECT id, name, price, create_date, status FROM product WHERE create_date=':createDate'"
                 .replace(":createDate", createDate);
 
-        return new JdbcCursorItemReaderBuilder<Product>()
+        return new JdbcCursorItemReaderBuilder<Product>() // (1)
                 .fetchSize(chunkSize)
                 .dataSource(dataSource)
                 .rowMapper(new BeanPropertyRowMapper<>(Product.class))
@@ -370,7 +383,11 @@ public class MultiThreadCursorConfiguration {
 }
 ```
 
-#### 테스트 코드
+(1) ```JdbcCursorItemReaderBuilder```
+
+* JpaPagingItemReader 코드와 딱 Reader 영역만 교체하여 사용합니다.
+
+위 코드를 테스트 코드로 한번 검증해보겠습니다.
 
 ```java
 @ExtendWith(SpringExtension.class)
@@ -427,13 +444,36 @@ public class MultiThreadCursorConfigurationTest {
 }
 ```
 
+실제로 수행해보면?
+
 ![cursor-test-1](./images/cursor-test-1.png)
+
+![cursor-test-2](./images/cursor-test-2.png)
+
+![cursor-test-3](./images/cursor-test-3.png)
 
 
 ### 3-3. Thread Safety 코드
 
 ```java
+@Bean(name = JOB_NAME +"_reader")
+@StepScope
+public SynchronizedItemStreamReader<Product> reader(@Value("#{jobParameters[createDate]}") String createDate) {
+String sql = "SELECT id, name, price, create_date, status FROM product WHERE create_date=':createDate'"
+        .replace(":createDate", createDate);
 
+JdbcCursorItemReader<Product> itemReader = new JdbcCursorItemReaderBuilder<Product>()
+        .fetchSize(chunkSize)
+        .dataSource(dataSource)
+        .rowMapper(new BeanPropertyRowMapper<>(Product.class))
+        .sql(sql)
+        .name(JOB_NAME + "_reader")
+        .build();
+
+return new SynchronizedItemStreamReaderBuilder<Product>() 
+        .delegate(itemReader) 
+        .build();
+}
 ```
 
 SynchronizedItemStreamReader
@@ -441,6 +481,9 @@ SynchronizedItemStreamReader
 ![SynchronizedItemStreamReader](./images/SynchronizedItemStreamReader.png)
 
 ![SynchronizedItemStreamReader2](./images/SynchronizedItemStreamReader2.png)
+
+
+![cursor-test-4](./images/cursor-test-4.png)
 
 ## 마무리
 
