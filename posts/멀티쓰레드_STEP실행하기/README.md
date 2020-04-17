@@ -444,16 +444,30 @@ public class MultiThreadCursorConfigurationTest {
 }
 ```
 
-실제로 수행해보면?
+10개의 데이터가 정상적으로 백업 테이블로 이관되었는지를 검증합니다.  
+여기서 Thread Safe하지 않으면 10개가 아닌 다른 개수가 있겠죠?  
+  
+위 테스트를 한번 실행해보면!
 
 ![cursor-test-1](./images/cursor-test-1.png)
 
+역시 10개가 아닌 다른 건수가 들어가 있습니다.  
+  
+저장된 12개의 데이터를 확인해보면 이처럼 **똑같은 데이터가 여러개 저장**되어 있음을 알 수 있습니다.
+
 ![cursor-test-2](./images/cursor-test-2.png)
+
+(지정된 Pool Size는 5) 쓰레드들이 모두 같은 ID를 가진 데이터를 읽기 시작한것도 확인할 수 있습니다.
 
 ![cursor-test-3](./images/cursor-test-3.png)
 
+현재 코드에 문제가 있는것이 확인되었으니, 바로 코드를 수정해보겠습니다.
 
 ### 3-3. Thread Safety 코드
+
+Thread Safety 코드는 Reader 영역을 ```SynchronizedItemStreamReader```로 감싸기만 하면 됩니다.
+
+![SynchronizedItemStreamReader2](./images/SynchronizedItemStreamReader2.png)
 
 ```java
 @Bean(name = JOB_NAME +"_reader")
@@ -471,25 +485,32 @@ JdbcCursorItemReader<Product> itemReader = new JdbcCursorItemReaderBuilder<Produ
         .build();
 
 return new SynchronizedItemStreamReaderBuilder<Product>() 
-        .delegate(itemReader) 
+        .delegate(itemReader) // (1)
         .build();
 }
 ```
 
-SynchronizedItemStreamReader
+(1) ```.delegate(itemReader)```
+
+* ```delegate``` 에 감싸고 싶은 ItemReader 객체를 등록 합니다.
+* 감싸진 객체는 아래 사진에 보시다시피 ```synchronized``` 메소드에서 호출되어 동기화된 읽기가 가능하게 됩니다. 
 
 ![SynchronizedItemStreamReader](./images/SynchronizedItemStreamReader.png)
 
-![SynchronizedItemStreamReader2](./images/SynchronizedItemStreamReader2.png)
+> SynchronizedItemStreamReader는 **S**pring Batch 4.0** 부터 지원됩니다.  
+> 그 이하 버전을 사용하시는 분들이라면 SynchronizedItemStreamReader 클래스 코드를 복사하여 프로젝트에 추가하시면 됩니다.
 
+
+자 이제 다시 테스트를 돌려보면?
 
 ![cursor-test-4](./images/cursor-test-4.png)
+
 
 ## 마무리
 
 이제 느린 Batch 작업들은 멀티쓰레드로 해결하면 되는 것일까요!?  
 그렇지는 않습니다.  
-이미 네트워크/DISK IO/CPU/Memory 등 서버 자원이 이미 **단일 쓰레드에서도 한계치에 달했다면** 멀티쓰레드로 진행한다고 해서 성능 향상을 기대할 순 없습니다.  
+이미 네트워크/DISK IO/CPU/Memory 등 서버 자원이 이미 **단일 쓰레드에서도 리소스 사용량이 한계치에 달했다면** 멀티쓰레드로 진행한다고 해서 성능 향상을 기대할 순 없습니다.  
 
 
 * [Spring 공식문서](https://docs.spring.io/spring-batch/docs/current/reference/html/scalability.html#multithreadedStep)
