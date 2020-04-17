@@ -77,7 +77,7 @@ public class MultiThreadCursorConfiguration {
         return stepBuilderFactory.get(JOB_NAME +"_step")
                 .<Product, ProductBackup>chunk(chunkSize)
                 .reader(reader(null))
-                .listener(new CursorItemReaderListener()) //
+                .listener(new CursorItemReaderListener()) // (1)
                 .processor(processor())
                 .writer(writer())
                 .taskExecutor(executor())
@@ -120,7 +120,12 @@ public class MultiThreadCursorConfiguration {
 //    }
 
     private ItemProcessor<Product, ProductBackup> processor() {
-        return ProductBackup::new;
+        return item -> {
+            log.info("Processing Start Item id={}", item.getId());
+            Thread.sleep(1000);
+            log.info("Processing End Item id={}", item.getId());
+            return new ProductBackup(item);
+        };
     }
 
     @Bean(name = JOB_NAME +"_writer")

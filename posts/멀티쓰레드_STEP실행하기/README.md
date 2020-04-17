@@ -347,6 +347,7 @@ public class MultiThreadCursorConfiguration {
         return stepBuilderFactory.get(JOB_NAME +"_step")
                 .<Product, ProductBackup>chunk(chunkSize)
                 .reader(reader(null))
+                .listener(new CursorItemReaderListener()) // (1)
                 .processor(processor())
                 .writer(writer())
                 .taskExecutor(executor())
@@ -360,7 +361,7 @@ public class MultiThreadCursorConfiguration {
         String sql = "SELECT id, name, price, create_date, status FROM product WHERE create_date=':createDate'"
                 .replace(":createDate", createDate);
 
-        return new JdbcCursorItemReaderBuilder<Product>() // (1)
+        return new JdbcCursorItemReaderBuilder<Product>() // (2)
                 .fetchSize(chunkSize)
                 .dataSource(dataSource)
                 .rowMapper(new BeanPropertyRowMapper<>(Product.class))
@@ -370,7 +371,12 @@ public class MultiThreadCursorConfiguration {
     }
 
     private ItemProcessor<Product, ProductBackup> processor() {
-        return ProductBackup::new;
+        return item -> {
+            log.info("Processing Start Item id={}", item.getId());
+            Thread.sleep(1000); // (3)
+            log.info("Processing End Item id={}", item.getId());
+            return new ProductBackup(item);
+        };
     }
 
     @Bean(name = JOB_NAME +"_writer")
@@ -383,11 +389,21 @@ public class MultiThreadCursorConfiguration {
 }
 ```
 
-(1) ```JdbcCursorItemReaderBuilder```
+(1) ```.listener(new CursorItemReaderListener())```
+
+* JdbcCursorItemReader는 별도로 데이터 읽기 수행시 별도의 로그를 남기지 않습니다.  
+* 멀티쓰레드로 데이터를 읽고 있음을 쉽게 확인하기 위해 리스너를 추가합니다.
+
+(2) ```JdbcCursorItemReaderBuilder```
 
 * JpaPagingItemReader 코드와 딱 Reader 영역만 교체하여 사용합니다.
 
-위 코드를 테스트 코드로 한번 검증해보겠습니다.
+(3) ```Thread.sleep(1000);```
+
+* 멀티쓰레드가 진행되는지 명확하게 구분하기 위해 각 Thread의 Processor 단계에서 1초간 Sleep이 발생하도록 합니다.
+* 너무 고속으로 처리될 경우 멀티쓰레드와 단일쓰레드의 차이가 구분이 거의 힘들기 때문에 의도적으로 지연 현상을 발생시킨 것입니다. 
+
+자 그럼 위 코드를 테스트 코드로 한번 검증해보겠습니다.
 
 ```java
 @ExtendWith(SpringExtension.class)
@@ -457,7 +473,7 @@ public class MultiThreadCursorConfigurationTest {
 
 ![cursor-test-2](./images/cursor-test-2.png)
 
-(지정된 Pool Size는 5) 쓰레드들이 모두 같은 ID를 가진 데이터를 읽기 시작한것도 확인할 수 있습니다.
+등록한 리스너를 통해 쓰레드들 (지정된 Pool Size는 5) 이 모두 같은 ID를 가진 데이터를 읽기 시작한 것도 확인할 수 있습니다.
 
 ![cursor-test-3](./images/cursor-test-3.png)
 
@@ -493,24 +509,31 @@ return new SynchronizedItemStreamReaderBuilder<Product>()
 (1) ```.delegate(itemReader)```
 
 * ```delegate``` 에 감싸고 싶은 ItemReader 객체를 등록 합니다.
-* 감싸진 객체는 아래 사진에 보시다시피 ```synchronized``` 메소드에서 호출되어 동기화된 읽기가 가능하게 됩니다. 
+* 감싸진 객체는 아래 사진에 나온것처럼 ```synchronized``` 메소드에서 감싸져 호출되어 동기화된 읽기가 가능하게 됩니다. 
 
 ![SynchronizedItemStreamReader](./images/SynchronizedItemStreamReader.png)
 
 > SynchronizedItemStreamReader는 **S**pring Batch 4.0** 부터 지원됩니다.  
 > 그 이하 버전을 사용하시는 분들이라면 SynchronizedItemStreamReader 클래스 코드를 복사하여 프로젝트에 추가하시면 됩니다.
 
-
-자 이제 다시 테스트를 돌려보면?
+SynchronizedItemStreamReader 로 변경후 다시 테스트를 돌려보면?  
+테스트가 성공적으로 통과하는 것을 확인할 수 있습니다.
 
 ![cursor-test-4](./images/cursor-test-4.png)
 
+실제로 실행 로그에서도 멀티쓰레드 환경에서 잘 작동되었음을 확인할 수 있습니다.
+
+![cursor-test-5](./images/cursor-test-5.png)
+
+정상적으로 Cursor 기반의 멀티쓰레드 Step을 확인하였습니다.
 
 ## 마무리
 
 이제 느린 Batch 작업들은 멀티쓰레드로 해결하면 되는 것일까요!?  
 그렇지는 않습니다.  
 이미 네트워크/DISK IO/CPU/Memory 등 서버 자원이 이미 **단일 쓰레드에서도 리소스 사용량이 한계치에 달했다면** 멀티쓰레드로 진행한다고 해서 성능 향상을 기대할 순 없습니다.  
-
-
-* [Spring 공식문서](https://docs.spring.io/spring-batch/docs/current/reference/html/scalability.html#multithreadedStep)
+  
+멀티 쓰레드는 여러가지 고려사항이 많습니다.  
+그래서 실제 운영 환경에 적용하실때는 [Spring 공식문서](https://docs.spring.io/spring-batch/docs/current/reference/html/scalability.html#multithreadedStep) 를 숙지하시고, 충분히 테스트를 해보신뒤 실행해보시길 권장합니다.  
+  
+긴 글 끝까지 읽어주셔서 감사합니다.
