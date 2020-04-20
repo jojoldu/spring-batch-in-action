@@ -285,11 +285,11 @@ Reader가 동기화 방식이 된다하더라도, **Processor/Writer는 멀티 �
 > 그래서 Bulk Insert 등의 방법에 대해서 많이 얘기가 나옵니다.
   
 이미 구현체가 있는 JdbcCursorItemReader나 HibernateCursorItemReader에 ```synchronized``` 를 추가하려면 어떻게 해야할까요?  
-  
+
+> JpaCursorItemReader는 [Spring Batch 4.3](https://github.com/spring-projects/spring-batch/issues/901)에 추가될 예정입니다.
+   
 가장 쉬운 방법은 **Spring Batch 4.0부터 추가된 SynchronizedItemStreamReader로 Wrapping 하는 것**입니다.  
   
-> JpaCursorItemReader는 [Spring Batch 4.3](https://github.com/spring-projects/spring-batch/issues/901)에 추가될 예정입니다.
- 
 자 그럼 예제 코드로 실제로 CursorItemReader가 Thread Safe 하지 않는지 확인후, 이를 고치는 과정으로 살펴보겠습니다.
 
 ### 3-1. Not Thread Safety 코드
@@ -513,8 +513,8 @@ return new SynchronizedItemStreamReaderBuilder<Product>()
 
 ![SynchronizedItemStreamReader](./images/SynchronizedItemStreamReader.png)
 
-> SynchronizedItemStreamReader는 **S**pring Batch 4.0** 부터 지원됩니다.  
-> 그 이하 버전을 사용하시는 분들이라면 SynchronizedItemStreamReader 클래스 코드를 복사하여 프로젝트에 추가하시면 됩니다.
+> SynchronizedItemStreamReader는 **Spring Batch 4.0** 부터 지원됩니다.  
+> 그 이하 버전을 사용하시는 분들이라면 [SynchronizedItemStreamReader 클래스 코드](https://github.com/spring-projects/spring-batch/blob/230614182667378924ec557913df75b72af0ddc5/spring-batch-infrastructure/src/main/java/org/springframework/batch/item/support/SynchronizedItemStreamReader.java)를 복사하여 프로젝트에 추가하시면 됩니다.
 
 SynchronizedItemStreamReader 로 변경후 다시 테스트를 돌려보면?  
 테스트가 성공적으로 통과하는 것을 확인할 수 있습니다.
