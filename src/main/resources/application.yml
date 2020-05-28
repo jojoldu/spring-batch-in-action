@@ -1,5 +1,7 @@
 spring:
   profiles:
+    include:
+      - real
     active: local
   jpa:
     hibernate:
@@ -11,8 +13,14 @@ spring:
       hibernate.default_batch_fetch_size: ${chunkSize:1000}
     open-in-view: false
 spring.batch.job.names: ${job.name:NONE}
-logging.level.org.springframework.batch: DEBUG
-
+logging.level:
+  org.springframework:
+    jdbc:
+      core:
+        JdbcTemplate: DEBUG
+    batch:
+      item:
+        database: DEBUG
 ---
 spring:
   profiles: local
@@ -29,15 +37,6 @@ spring:
 ---
 spring:
   profiles: mysql
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: false
-    properties:
-      hibernate.dialect: org.hibernate.dialect.MySQL57Dialect
-      hibernate.hbm2ddl.import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor
-      hibernate.default_batch_fetch_size: ${chunkSize:1000}
-    open-in-view: false
   datasource:
     hikari:
       jdbc-url: jdbc:mysql://localhost:3306/spring_batch
