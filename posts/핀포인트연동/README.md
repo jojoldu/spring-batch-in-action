@@ -13,7 +13,7 @@
 profiler.entrypoint=foo.bar.MyBatchClass.jobMethod
 ```
 
-![pinpoint1](./images/pinpoint/pinpoint1.png)
+![pinpoint1](images/pinpoint1.png)
 
 ## 2. SimpleJobLauncher.run() 지정
 
@@ -24,12 +24,12 @@ profiler.entrypoint=org.springframework.batch.core.launch.support.SimpleJobLaunc
 
 
 
-![pinpoint2](./images/pinpoint/pinpoint2.png)
+![pinpoint2](images/pinpoint2.png)
 
 너무 많은 추적이 발생하여 **Corrupted(waiting for packet)** 문제가 발생
 (트레이스가 노출되지 않는다.)
 
-![pinpoint3](./images/pinpoint/pinpoint3.png)
+![pinpoint3](images/pinpoint3.png)
 
 
 ```bash

@@ -21,6 +21,7 @@ dependencies {
     implementation('org.springframework.boot:spring-boot-starter-data-jpa')
     implementation('com.h2database:h2')
     implementation('mysql:mysql-connector-java')
+    implementation 'org.mariadb.jdbc:mariadb-java-client'
     implementation ('com.querydsl:querydsl-jpa')
     implementation ('com.querydsl:querydsl-apt')
 

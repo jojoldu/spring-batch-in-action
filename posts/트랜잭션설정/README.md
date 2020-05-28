@@ -1,6 +1,6 @@
 # Spring Batch에서 트랜잭션 설정하기
 
-![atrribute](./images/transaction/attribute.png)
+![atrribute](images/attribute.png)
 
 * http://opennote46.tistory.com/82
   

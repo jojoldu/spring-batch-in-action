@@ -3,6 +3,7 @@
 !gradle/wrapper/gradle-wrapper.jar
 bin
 generated
+application-real.yml
 
 ### STS ###
 .apt_generated
