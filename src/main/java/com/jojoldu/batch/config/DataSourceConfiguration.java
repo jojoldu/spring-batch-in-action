@@ -33,6 +33,7 @@ public class DataSourceConfiguration {
                 .build();
     }
 
+    @SuppressWarnings("ConfigurationProperties")
     @Bean(OTHER_DATASOURCE)
     @ConfigurationProperties(prefix = PREFIX)
     public DataSource otherDataSource() {
