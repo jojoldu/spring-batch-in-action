@@ -1,14 +1,15 @@
-package com.jojoldu.batch.reader.jpa;
+package com.jojoldu.batch.entity.student;
 
 /**
- * Created by jojoldu@gmail.com on 20/08/2018
+ * Created by jojoldu@gmail.com on 2018. 10. 1.
  * Blog : http://jojoldu.tistory.com
  * Github : https://github.com/jojoldu
  */
 
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
@@ -20,32 +21,29 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-public class Store {
+public class Teacher {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
+    private String subject;
 
-    @OneToMany(mappedBy = "store", cascade = CascadeType.ALL)
-    private List<Product> products = new ArrayList<>();
+    @OneToMany(mappedBy = "teacher", cascade = CascadeType.ALL)
+    private List<Student> students = new ArrayList<>();
 
-    public Store(String name) {
+    @Builder
+    public Teacher(String name, String subject) {
         this.name = name;
+        this.subject = subject;
     }
 
-    public void addProduct(@NonNull Product product){
-        product.changeStore(this);
-        this.products.add(product);
-    }
-
-    public long sumProductsPrice(){
-        return products.stream()
-                .mapToLong(Product::getPrice)
-                .sum();
+    public void addStudent(Student student){
+        students.add(student);
+        student.setTeacher(this);
     }
 
 }

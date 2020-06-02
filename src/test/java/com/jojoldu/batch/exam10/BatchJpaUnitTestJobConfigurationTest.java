@@ -1,6 +1,10 @@
 package com.jojoldu.batch.exam10;
 
 import com.jojoldu.batch.TestBatchConfig;
+import com.jojoldu.batch.entity.sales.Sales;
+import com.jojoldu.batch.entity.sales.SalesRepository;
+import com.jojoldu.batch.entity.sales.SalesSum;
+import com.jojoldu.batch.entity.sales.SalesSumRepository;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;

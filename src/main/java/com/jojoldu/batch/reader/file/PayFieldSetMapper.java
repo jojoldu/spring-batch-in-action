@@ -1,6 +1,6 @@
 package com.jojoldu.batch.reader.file;
 
-import com.jojoldu.batch.reader.jdbc.Pay;
+import com.jojoldu.batch.entity.pay.Pay;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.FieldSet;
 import org.springframework.validation.BindException;

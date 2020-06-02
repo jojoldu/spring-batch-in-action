@@ -1,7 +1,6 @@
 package com.jojoldu.batch.jobparameter;
 
-import com.jojoldu.batch.reader.jpa.Product;
-import com.jojoldu.batch.reader.jpa.ProductStatus;
+import com.jojoldu.batch.entity.product.Product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -18,8 +17,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.persistence.EntityManagerFactory;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 

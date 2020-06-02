@@ -1,4 +1,4 @@
-package com.jojoldu.batch.transaction.domain;
+package com.jojoldu.batch.entity.student;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

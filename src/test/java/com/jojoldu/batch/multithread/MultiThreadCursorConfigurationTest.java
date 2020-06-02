@@ -1,11 +1,11 @@
 package com.jojoldu.batch.multithread;
 
 import com.jojoldu.batch.TestBatchConfig;
-import com.jojoldu.batch.reader.jpa.Product;
-import com.jojoldu.batch.reader.jpa.ProductBackup;
-import com.jojoldu.batch.reader.jpa.ProductBackupRepository;
-import com.jojoldu.batch.reader.jpa.ProductRepository;
-import com.jojoldu.batch.reader.jpa.ProductStatus;
+import com.jojoldu.batch.entity.product.Product;
+import com.jojoldu.batch.entity.product.ProductBackup;
+import com.jojoldu.batch.entity.product.ProductBackupRepository;
+import com.jojoldu.batch.entity.product.ProductRepository;
+import com.jojoldu.batch.entity.product.ProductStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

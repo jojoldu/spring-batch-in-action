@@ -1,4 +1,4 @@
-package com.jojoldu.batch.transaction.domain;
+package com.jojoldu.batch.entity.student;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

@@ -1,9 +1,9 @@
 package com.jojoldu.batch.processor;
 
-import com.jojoldu.batch.transaction.domain.Teacher;
 import com.jojoldu.batch.TestBatchConfig;
-import com.jojoldu.batch.transaction.domain.Student;
-import com.jojoldu.batch.transaction.domain.TeacherRepository;
+import com.jojoldu.batch.entity.student.Student;
+import com.jojoldu.batch.entity.student.Teacher;
+import com.jojoldu.batch.entity.student.TeacherRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.batch.core.BatchStatus;

@@ -1,4 +1,4 @@
-package com.jojoldu.batch.reader.jpa;
+package com.jojoldu.batch.entity.product;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

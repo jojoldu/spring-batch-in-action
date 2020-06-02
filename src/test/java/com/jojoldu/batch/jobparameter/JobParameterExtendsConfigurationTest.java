@@ -1,9 +1,9 @@
 package com.jojoldu.batch.jobparameter;
 
 import com.jojoldu.batch.TestBatchConfig;
-import com.jojoldu.batch.reader.jpa.Product;
-import com.jojoldu.batch.reader.jpa.ProductRepository;
-import com.jojoldu.batch.reader.jpa.ProductStatus;
+import com.jojoldu.batch.entity.product.Product;
+import com.jojoldu.batch.entity.product.ProductRepository;
+import com.jojoldu.batch.entity.product.ProductStatus;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;

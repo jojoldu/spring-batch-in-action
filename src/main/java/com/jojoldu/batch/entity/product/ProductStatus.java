@@ -1,4 +1,4 @@
-package com.jojoldu.batch.reader.jpa;
+package com.jojoldu.batch.entity.product;
 
 /**
  * Created by jojoldu@gmail.com on 24/03/2020

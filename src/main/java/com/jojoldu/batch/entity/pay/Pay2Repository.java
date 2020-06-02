@@ -1,4 +1,4 @@
-package com.jojoldu.batch.reader.jdbc;
+package com.jojoldu.batch.entity.pay;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

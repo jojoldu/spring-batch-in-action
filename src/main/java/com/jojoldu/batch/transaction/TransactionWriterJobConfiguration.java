@@ -6,7 +6,7 @@ package com.jojoldu.batch.transaction;
  * Github : https://github.com/jojoldu
  */
 
-import com.jojoldu.batch.transaction.domain.Teacher;
+import com.jojoldu.batch.entity.student.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;

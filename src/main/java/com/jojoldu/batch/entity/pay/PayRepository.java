@@ -1,4 +1,4 @@
-package com.jojoldu.batch.persistwriter;
+package com.jojoldu.batch.entity.pay;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -8,5 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * Github : https://github.com/jojoldu
  */
 
-public interface PayCopyRepository extends JpaRepository <PayCopy, Long> {
+public interface PayRepository extends JpaRepository<Pay, Long> {
 }

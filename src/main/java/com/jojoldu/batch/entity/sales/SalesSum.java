@@ -1,4 +1,4 @@
-package com.jojoldu.batch.exam10;
+package com.jojoldu.batch.entity.sales;
 
 /**
  * Created by jojoldu@gmail.com on 06/10/2019

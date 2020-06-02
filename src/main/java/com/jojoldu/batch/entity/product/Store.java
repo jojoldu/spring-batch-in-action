@@ -1,15 +1,14 @@
-package com.jojoldu.batch.transaction.domain;
+package com.jojoldu.batch.entity.product;
 
 /**
- * Created by jojoldu@gmail.com on 2018. 10. 1.
+ * Created by jojoldu@gmail.com on 20/08/2018
  * Blog : http://jojoldu.tistory.com
  * Github : https://github.com/jojoldu
  */
 
-import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
@@ -21,29 +20,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @Entity
-public class Teacher {
+public class Store {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String name;
-    private String subject;
 
-    @OneToMany(mappedBy = "teacher", cascade = CascadeType.ALL)
-    private List<Student> students = new ArrayList<>();
+    @OneToMany(mappedBy = "store", cascade = CascadeType.ALL)
+    private List<Product> products = new ArrayList<>();
 
-    @Builder
-    public Teacher(String name, String subject) {
+    public Store(String name) {
         this.name = name;
-        this.subject = subject;
     }
 
-    public void addStudent(Student student){
-        students.add(student);
-        student.setTeacher(this);
+    public void addProduct(@NonNull Product product){
+        product.changeStore(this);
+        this.products.add(product);
+    }
+
+    public long sumProductsPrice(){
+        return products.stream()
+                .mapToLong(Product::getPrice)
+                .sum();
     }
 
 }

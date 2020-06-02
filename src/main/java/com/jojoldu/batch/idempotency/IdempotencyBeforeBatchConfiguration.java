@@ -1,6 +1,6 @@
 package com.jojoldu.batch.idempotency;
 
-import com.jojoldu.batch.reader.jpa.Product;
+import com.jojoldu.batch.entity.product.Product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;

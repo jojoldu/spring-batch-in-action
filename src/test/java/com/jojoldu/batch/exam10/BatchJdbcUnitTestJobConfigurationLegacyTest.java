@@ -1,5 +1,6 @@
 package com.jojoldu.batch.exam10;
 
+import com.jojoldu.batch.entity.sales.SalesSum;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

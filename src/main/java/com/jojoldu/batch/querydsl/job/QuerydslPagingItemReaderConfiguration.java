@@ -1,9 +1,8 @@
 package com.jojoldu.batch.querydsl.job;
 
+import com.jojoldu.batch.entity.product.Product;
+import com.jojoldu.batch.entity.product.ProductBackup;
 import com.jojoldu.batch.querydsl.reader.QuerydslPagingItemReader;
-import com.jojoldu.batch.reader.jpa.Product;
-import com.jojoldu.batch.reader.jpa.ProductBackup;
-import com.jojoldu.batch.reader.jpa.QProduct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;

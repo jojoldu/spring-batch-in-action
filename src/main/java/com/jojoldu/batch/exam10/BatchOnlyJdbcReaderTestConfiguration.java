@@ -1,5 +1,6 @@
 package com.jojoldu.batch.exam10;
 
+import com.jojoldu.batch.entity.sales.SalesSum;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.configuration.annotation.StepScope;

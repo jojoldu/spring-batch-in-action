@@ -1,7 +1,7 @@
 package com.jojoldu.batch.multithread;
 
-import com.jojoldu.batch.reader.jpa.Product;
-import com.jojoldu.batch.reader.jpa.ProductBackup;
+import com.jojoldu.batch.entity.product.Product;
+import com.jojoldu.batch.entity.product.ProductBackup;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;

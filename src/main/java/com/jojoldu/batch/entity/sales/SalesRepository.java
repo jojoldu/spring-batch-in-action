@@ -1,4 +1,4 @@
-package com.jojoldu.batch.exam10;
+package com.jojoldu.batch.entity.sales;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

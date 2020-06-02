@@ -1,7 +1,7 @@
 package com.jojoldu.batch.writer;
 
-import com.jojoldu.batch.reader.jdbc.Pay2;
-import com.jojoldu.batch.reader.jdbc.Pay;
+import com.jojoldu.batch.entity.pay.Pay;
+import com.jojoldu.batch.entity.pay.Pay2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;

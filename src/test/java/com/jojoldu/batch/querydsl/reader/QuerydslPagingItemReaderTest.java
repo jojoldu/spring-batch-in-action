@@ -1,10 +1,10 @@
 package com.jojoldu.batch.querydsl.reader;
 
 import com.jojoldu.batch.TestBatchConfig;
+import com.jojoldu.batch.entity.product.Product;
+import com.jojoldu.batch.entity.product.ProductRepository;
+import com.jojoldu.batch.entity.product.StoreRepository;
 import com.jojoldu.batch.querydsl.job.QuerydslPagingItemReaderConfiguration;
-import com.jojoldu.batch.reader.jpa.Product;
-import com.jojoldu.batch.reader.jpa.ProductRepository;
-import com.jojoldu.batch.reader.jpa.StoreRepository;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.After;
 import org.junit.Test;

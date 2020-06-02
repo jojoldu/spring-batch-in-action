@@ -1,9 +1,9 @@
 package com.jojoldu.batch.querydsl.reader;
 
 import com.jojoldu.batch.TestBatchConfig;
-import com.jojoldu.batch.reader.jpa.StoreRepository;
-import com.jojoldu.batch.reader.jpa.Product;
-import com.jojoldu.batch.reader.jpa.ProductRepository;
+import com.jojoldu.batch.entity.product.Product;
+import com.jojoldu.batch.entity.product.ProductRepository;
+import com.jojoldu.batch.entity.product.StoreRepository;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.NumberPath;

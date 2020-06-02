@@ -1,6 +1,7 @@
 package com.jojoldu.batch.persistwriter;
 
-import com.jojoldu.batch.reader.jdbc.Pay;
+import com.jojoldu.batch.entity.pay.Pay;
+import com.jojoldu.batch.entity.pay.PayCopy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;

@@ -1,4 +1,4 @@
-package com.jojoldu.batch.transaction.domain;
+package com.jojoldu.batch.entity.student;
 
 /**
  * Created by jojoldu@gmail.com on 2018. 10. 1.

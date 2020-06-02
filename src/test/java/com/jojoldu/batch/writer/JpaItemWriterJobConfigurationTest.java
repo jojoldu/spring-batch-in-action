@@ -1,9 +1,9 @@
 package com.jojoldu.batch.writer;
 
 import com.jojoldu.batch.TestBatchConfig;
-import com.jojoldu.batch.reader.jdbc.Pay2Repository;
-import com.jojoldu.batch.reader.jdbc.PayRepository;
-import com.jojoldu.batch.reader.jdbc.Pay;
+import com.jojoldu.batch.entity.pay.Pay;
+import com.jojoldu.batch.entity.pay.Pay2Repository;
+import com.jojoldu.batch.entity.pay.PayRepository;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
