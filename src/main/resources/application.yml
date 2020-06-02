@@ -38,6 +38,8 @@ spring:
       idleTimeout: 10000      #10s
       maxLifetime: 180000     #3m
       maximumPoolSize: 5
+
+
 ---
 spring:
   profiles: mysql
