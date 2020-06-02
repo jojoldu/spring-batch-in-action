@@ -6,7 +6,6 @@ package com.jojoldu.batch.entity.product;
  * Github : https://github.com/jojoldu
  */
 
-import com.jojoldu.batch.querydsl.reader.BaseEntityId;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,7 +27,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @Entity
-public class Product implements BaseEntityId {
+public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

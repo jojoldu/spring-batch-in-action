@@ -3,7 +3,6 @@ package com.jojoldu.batch.config;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,25 +17,24 @@ import javax.sql.DataSource;
  */
 @RequiredArgsConstructor
 @Configuration
-@EnableConfigurationProperties
 public class DataSourceConfiguration {
-    private static final String PREFIX = "spring.datasource.hikari";
-    public static final String MAIN_DATASOURCE = "dataSource";
-    public static final String OTHER_DATASOURCE = "otherDataSource";
+    private static final String PROPERTIES = "spring.datasource.hikari";
 
-    @Bean(MAIN_DATASOURCE)
+    public static final String MASTER_DATASOURCE = "dataSource";
+    public static final String READER_DATASOURCE = "readerDataSource";
+
+    @Bean(MASTER_DATASOURCE)
     @Primary
-    @ConfigurationProperties(prefix = PREFIX)
+    @ConfigurationProperties(prefix = PROPERTIES)
     public DataSource dataSource() {
         return DataSourceBuilder.create()
                 .type(HikariDataSource.class)
                 .build();
     }
 
-    @SuppressWarnings("ConfigurationProperties")
-    @Bean(OTHER_DATASOURCE)
-    @ConfigurationProperties(prefix = PREFIX)
-    public DataSource otherDataSource() {
+    @Bean(READER_DATASOURCE)
+    @ConfigurationProperties(prefix = PROPERTIES)
+    public DataSource readerDataSource() {
         HikariDataSource hikariDataSource = DataSourceBuilder.create()
                 .type(HikariDataSource.class)
                 .build();

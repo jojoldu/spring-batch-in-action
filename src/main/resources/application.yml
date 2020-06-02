@@ -30,10 +30,14 @@ spring:
     show-sql: true
   datasource:
     hikari:
-      jdbc-url: jdbc:h2:mem:testdb;MODE=MYSQL
+      jdbc-url: jdbc:h2:mem:jojoldu;MODE=MYSQL
       username: sa
       password:
       driver-class-name: org.h2.Driver
+      auto-commit: false
+      idleTimeout: 10000      #10s
+      maxLifetime: 180000     #3m
+      maximumPoolSize: 5
 ---
 spring:
   profiles: mysql

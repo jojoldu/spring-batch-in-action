@@ -16,7 +16,7 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import javax.sql.DataSource;
 import java.util.Collection;
 
-import static com.jojoldu.batch.config.DataSourceConfiguration.OTHER_DATASOURCE;
+import static com.jojoldu.batch.config.DataSourceConfiguration.READER_DATASOURCE;
 
 /**
  * Created by jojoldu@gmail.com on 24/05/2020
@@ -27,31 +27,46 @@ import static com.jojoldu.batch.config.DataSourceConfiguration.OTHER_DATASOURCE;
 @Configuration
 @EnableConfigurationProperties({JpaProperties.class, HibernateProperties.class})
 public class BatchJpaConfiguration {
-    public static final String MAIN_ENTITY_MANAGER_FACTORY = "entityManagerFactory";
-    public static final String MAIN_TRANSACTION_MANAGER = "transactionManager";
+    private static final String PACKAGE = "com.jojoldu.batch.entity";
+    public static final String MASTER_ENTITY_MANAGER_FACTORY = "entityManagerFactory";
+    public static final String READER_ENTITY_MANAGER_FACTORY = "readerEntityManagerFactory";
 
-    public static final String OTHER_ENTITY_MANAGER_FACTORY = "otherEntityManagerFactory";
-    public static final String OTHER_TRANSACTION_MANAGER = "otherTransactionManager";
-
-    private final JpaProperties properties;
+    private final JpaProperties jpaProperties;
     private final HibernateProperties hibernateProperties;
     private final ObjectProvider<Collection<DataSourcePoolMetadataProvider>> metadataProviders;
     private final EntityManagerFactoryBuilder entityManagerFactoryBuilder;
 
     @Primary
-    @Bean(name = MAIN_ENTITY_MANAGER_FACTORY)
-    public LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource) {
+    @Bean(name = MASTER_ENTITY_MANAGER_FACTORY)
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory(
+            DataSource dataSource) {
 
-        return new EntityManagerCreator(properties, hibernateProperties, metadataProviders, entityManagerFactoryBuilder, dataSource)
-                .entityManagerFactory("com.jojoldu.blogcode.batch.domain", "main");
+        return EntityManagerFactoryCreator.builder()
+                .properties(jpaProperties)
+                .hibernateProperties(hibernateProperties)
+                .metadataProviders(metadataProviders)
+                .entityManagerFactoryBuilder(entityManagerFactoryBuilder)
+                .dataSource(dataSource)
+                .packages(PACKAGE)
+                .persistenceUnit("master")
+                .build()
+                .create();
     }
 
-    @Bean(name = OTHER_ENTITY_MANAGER_FACTORY)
-    public LocalContainerEntityManagerFactoryBean otherEntityManagerFactory(
-            @Qualifier(OTHER_DATASOURCE) DataSource dataSource) {
+    @Bean(name = READER_ENTITY_MANAGER_FACTORY)
+    public LocalContainerEntityManagerFactoryBean readerEntityManagerFactory(
+            @Qualifier(READER_DATASOURCE) DataSource dataSource) {
 
-        return new EntityManagerCreator(properties, hibernateProperties, metadataProviders, entityManagerFactoryBuilder, dataSource)
-                .entityManagerFactory("com.jojoldu.blogcode.batch.domain", "other");
+        return EntityManagerFactoryCreator.builder()
+                .properties(jpaProperties)
+                .hibernateProperties(hibernateProperties)
+                .metadataProviders(metadataProviders)
+                .entityManagerFactoryBuilder(entityManagerFactoryBuilder)
+                .dataSource(dataSource)
+                .packages(PACKAGE)
+                .persistenceUnit("reader")
+                .build()
+                .create();
     }
 
 
