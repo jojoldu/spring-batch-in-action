@@ -11,7 +11,9 @@ import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 import java.util.Collection;
@@ -30,6 +32,8 @@ public class BatchJpaConfiguration {
     private static final String PACKAGE = "com.jojoldu.batch.entity";
     public static final String MASTER_ENTITY_MANAGER_FACTORY = "entityManagerFactory";
     public static final String READER_ENTITY_MANAGER_FACTORY = "readerEntityManagerFactory";
+
+    public static final String MASTER_TX_MANAGER = "batchTransactionManager";
 
     private final JpaProperties jpaProperties;
     private final HibernateProperties hibernateProperties;
@@ -69,5 +73,22 @@ public class BatchJpaConfiguration {
                 .create();
     }
 
+//    @Bean
+//    public BatchConfigurer batchConfigurer(@Qualifier(MASTER_TX_MANAGER) PlatformTransactionManager transactionManager) {
+//        return new DefaultBatchConfigurer() {
+//            @Override
+//            public PlatformTransactionManager getTransactionManager() {
+//                return transactionManager;
+//            }
+//        };
+//    }
+
+    @Primary
+    @Bean(name = MASTER_TX_MANAGER)
+    public PlatformTransactionManager batchTransactionManager(LocalContainerEntityManagerFactoryBean entityManagerFactory) {
+        JpaTransactionManager transactionManager = new JpaTransactionManager();
+        transactionManager.setEntityManagerFactory(entityManagerFactory.getObject());
+        return transactionManager;
+    }
 
 }

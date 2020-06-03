@@ -5,7 +5,6 @@ import com.jojoldu.batch.entity.product.Product;
 import com.jojoldu.batch.entity.product.ProductBackup;
 import com.jojoldu.batch.entity.product.ProductBackupRepository;
 import com.jojoldu.batch.entity.product.ProductRepository;
-import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +21,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
-import java.sql.Connection;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -82,23 +80,6 @@ public class ProductBackupConfigurationTest {
         //then
         assertThat(autoCommit).isEqualTo("true");
         assertThat(showSql).isEqualTo("true");
-    }
-
-    @Test
-    void readOnly_옵션_적용() throws Exception {
-        //given
-        HikariDataSource ds = (HikariDataSource) dataSource;
-        Connection dsConnection = ds.getConnection();
-
-        HikariDataSource readerDs = (HikariDataSource) readerDataSource;
-        Connection readerDsConnection = readerDs.getConnection();
-
-        //then
-        assertThat(ds.isReadOnly()).isFalse();
-        assertThat(readerDs.isReadOnly()).isTrue();
-
-        assertThat(dsConnection.isReadOnly()).isFalse();
-        assertThat(readerDsConnection.isReadOnly()).isTrue();
     }
 
     @Test
