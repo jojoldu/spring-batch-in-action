@@ -73,16 +73,6 @@ public class BatchJpaConfiguration {
                 .create();
     }
 
-//    @Bean
-//    public BatchConfigurer batchConfigurer(@Qualifier(MASTER_TX_MANAGER) PlatformTransactionManager transactionManager) {
-//        return new DefaultBatchConfigurer() {
-//            @Override
-//            public PlatformTransactionManager getTransactionManager() {
-//                return transactionManager;
-//            }
-//        };
-//    }
-
     @Primary
     @Bean(name = MASTER_TX_MANAGER)
     public PlatformTransactionManager batchTransactionManager(LocalContainerEntityManagerFactoryBean entityManagerFactory) {
