@@ -1,8 +1,7 @@
 package com.jojoldu.batch.reader;
 
 import org.springframework.batch.item.database.JpaPagingItemReader;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Created by jojoldu@gmail.com on 03/06/2020
@@ -11,25 +10,10 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 public class JpaReadOnlyPagingItemReader<T> extends JpaPagingItemReader<T>  {
 
-    private TransactionTemplate readerTransactionTemplate;
-
-    public JpaReadOnlyPagingItemReader(PlatformTransactionManager transactionManager) {
-        setReaderTransactionTemplate(transactionManager);
-    }
-
-    public void setReaderTransactionTemplate(PlatformTransactionManager transactionManager) {
-        TransactionTemplate transactionTemplate = new TransactionTemplate();
-        transactionTemplate.setReadOnly(true);
-        transactionTemplate.setTransactionManager(transactionManager);
-        this.readerTransactionTemplate = transactionTemplate;
-    }
-
+    @Transactional(readOnly = true)
     @Override
     protected void doReadPage() {
-        readerTransactionTemplate.execute(status -> {
-            super.doReadPage();
-            return null;
-        });
+        super.doReadPage();
     }
 
 }

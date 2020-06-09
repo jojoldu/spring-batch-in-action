@@ -2,6 +2,7 @@ package com.jojoldu.batch.example.readonly;
 
 import com.jojoldu.batch.entity.product.Product;
 import com.jojoldu.batch.entity.product.ProductBackup;
+import com.jojoldu.batch.reader.JpaReadOnlyPagingItemReader;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -11,9 +12,7 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.database.JpaItemWriter;
-import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
-import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -90,32 +89,33 @@ public class ProductBackupConfiguration {
                 .build();
     }
 
-    @Bean
-    @StepScope
-    public JpaPagingItemReader<Product> reader() {
-        String query = String.format("SELECT p FROM Product p WHERE p.createDate ='%s'", jobParameter.getTxDate());
-
-        return new JpaPagingItemReaderBuilder<Product>()
-                .entityManagerFactory(readerEmf)
-                .queryString(query)
-                .pageSize(chunkSize)
-                .name("reader")
-                .build();
-    }
-
 //    @Bean
 //    @StepScope
-//    public JpaReadOnlyPagingItemReader<Product> reader() {
+//    public JpaPagingItemReader<Product> reader() {
 //        String query = String.format("SELECT p FROM Product p WHERE p.createDate ='%s'", jobParameter.getTxDate());
 //
-//        JpaReadOnlyPagingItemReader itemReader = new JpaReadOnlyPagingItemReader(batchTransactionManager);
-//        itemReader.setEntityManagerFactory(emf);
-//        itemReader.setQueryString(query);
-//        itemReader.setPageSize(chunkSize);
-//        itemReader.setName("reader");
-//
-//        return itemReader;
+//        return new JpaPagingItemReaderBuilder<Product>()
+//                .entityManagerFactory(readerEmf)
+//                .queryString(query)
+//                .pageSize(chunkSize)
+//                .name("reader")
+//                .build();
 //    }
+
+    @Bean
+    @StepScope
+    public JpaReadOnlyPagingItemReader<Product> reader() {
+        String query = String.format("SELECT p FROM Product p WHERE p.createDate ='%s'", jobParameter.getTxDate());
+
+        JpaReadOnlyPagingItemReader itemReader = new JpaReadOnlyPagingItemReader();
+        itemReader.setEntityManagerFactory(emf);
+        itemReader.setQueryString(query);
+        itemReader.setPageSize(chunkSize);
+        itemReader.setName("reader");
+        itemReader.setTransacted(false);
+
+        return itemReader;
+    }
 
     private ItemProcessor<Product, ProductBackup> processor() {
         return ProductBackup::new;
