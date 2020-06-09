@@ -107,12 +107,11 @@ public class ProductBackupConfiguration {
     public JpaReadOnlyPagingItemReader<Product> reader() {
         String query = String.format("SELECT p FROM Product p WHERE p.createDate ='%s'", jobParameter.getTxDate());
 
-        JpaReadOnlyPagingItemReader itemReader = new JpaReadOnlyPagingItemReader();
+        JpaReadOnlyPagingItemReader<Product> itemReader = new JpaReadOnlyPagingItemReader<>(batchTransactionManager);
         itemReader.setEntityManagerFactory(emf);
         itemReader.setQueryString(query);
         itemReader.setPageSize(chunkSize);
         itemReader.setName("reader");
-        itemReader.setTransacted(false);
 
         return itemReader;
     }
