@@ -5,6 +5,10 @@
 
 ![rds](./images/rds.png)
 
+![properties1](./images/properties1.png)
+
+![properties2](./images/properties2.png)
+
 ```java
 spring:
   datasource:
