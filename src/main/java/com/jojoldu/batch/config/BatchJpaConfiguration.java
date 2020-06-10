@@ -11,13 +11,18 @@ import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 import java.util.Collection;
+import java.util.Objects;
 
+import static com.jojoldu.batch.config.BatchJpaConfiguration.MASTER_ENTITY_MANAGER_FACTORY;
+import static com.jojoldu.batch.config.BatchJpaConfiguration.MASTER_TX_MANAGER;
+import static com.jojoldu.batch.config.BatchJpaConfiguration.PACKAGE;
 import static com.jojoldu.batch.config.DataSourceConfiguration.READER_DATASOURCE;
 
 /**
@@ -28,8 +33,13 @@ import static com.jojoldu.batch.config.DataSourceConfiguration.READER_DATASOURCE
 @RequiredArgsConstructor
 @Configuration
 @EnableConfigurationProperties({JpaProperties.class, HibernateProperties.class})
+@EnableJpaRepositories(
+        basePackages = PACKAGE,
+        entityManagerFactoryRef = MASTER_ENTITY_MANAGER_FACTORY, // default와 같아서 생략도 가능
+        transactionManagerRef = MASTER_TX_MANAGER
+)
 public class BatchJpaConfiguration {
-    private static final String PACKAGE = "com.jojoldu.batch.entity";
+    public static final String PACKAGE = "com.jojoldu.batch.entity";
     public static final String MASTER_ENTITY_MANAGER_FACTORY = "entityManagerFactory";
     public static final String READER_ENTITY_MANAGER_FACTORY = "readerEntityManagerFactory";
 
@@ -76,9 +86,7 @@ public class BatchJpaConfiguration {
     @Primary
     @Bean(name = MASTER_TX_MANAGER)
     public PlatformTransactionManager batchTransactionManager(LocalContainerEntityManagerFactoryBean entityManagerFactory) {
-        JpaTransactionManager transactionManager = new JpaTransactionManager();
-        transactionManager.setEntityManagerFactory(entityManagerFactory.getObject());
-        return transactionManager;
+        return new JpaTransactionManager(Objects.requireNonNull(entityManagerFactory.getObject()));
     }
 
 }

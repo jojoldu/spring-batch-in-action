@@ -1,7 +1,9 @@
 package com.jojoldu.batch.reader;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -9,9 +11,15 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Blog : http://jojoldu.tistory.com
  * Github : http://github.com/jojoldu
  */
-public class JpaReadOnlyPagingItemReader<T> extends JpaPagingItemReader<T>  {
+
+/**
+ * 안되네
+ */
+@Slf4j
+public class JpaReadOnlyPagingItemReader<T> extends JpaPagingItemReader<T> {
 
     private TransactionTemplate readerTransactionTemplate;
+    private PlatformTransactionManager transactionManager;
 
     public JpaReadOnlyPagingItemReader() {
     }
@@ -22,18 +30,23 @@ public class JpaReadOnlyPagingItemReader<T> extends JpaPagingItemReader<T>  {
     }
 
     public void setReaderTransactionTemplate(PlatformTransactionManager transactionManager) {
-        TransactionTemplate transactionTemplate = new TransactionTemplate();
-        transactionTemplate.setReadOnly(true);
-        transactionTemplate.setTransactionManager(transactionManager);
-        this.readerTransactionTemplate = transactionTemplate;
+        this.readerTransactionTemplate = new TransactionTemplate(transactionManager);
+        this.readerTransactionTemplate.setReadOnly(true);
+        this.readerTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.transactionManager = transactionManager;
     }
 
     @Override
     protected void doReadPage() {
-        readerTransactionTemplate.execute(status -> {
-            super.doReadPage();
-            return null;
-        });
+        readerTransactionTemplate.executeWithoutResult(status -> super.doReadPage());
+
+//        DefaultTransactionDefinition definition = new DefaultTransactionDefinition();
+//        definition.setReadOnly(true);
+//        definition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+//        TransactionStatus tx = transactionManager.getTransaction(definition);
+//        super.doReadPage();
+//        tx.flush();
+
     }
 
 }

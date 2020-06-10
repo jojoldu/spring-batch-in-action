@@ -16,4 +16,5 @@ public interface ProductRepository extends JpaRepository <Product, Long> {
 
     @Transactional(readOnly = true)
     List<Product> findAllByCreateDateEquals(LocalDate createDate);
+
 }
