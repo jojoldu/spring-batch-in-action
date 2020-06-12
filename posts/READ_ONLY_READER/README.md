@@ -1,13 +1,15 @@
 # Spring Batch Reader에서 Read DB 사용하기 (feat. AWS Aurora)
 
+
+
 ## 1. AWS Aurora에서의 Read Only
+
+![cluster](./images/cluster.png)
 
 
 ![rds](./images/rds.png)
 
-![properties1](./images/properties1.png)
 
-![properties2](./images/properties2.png)
 
 ```java
 spring:
@@ -23,6 +25,11 @@ spring:
 
 (2) ```org.mariadb.jdbc.Driver```
 
+
+> [AWS ReInvent 영상](https://www.youtube.com/watch?time_continue=1667&v=duf5uUsW3TM&feature=emb_logo)을 보시면 Aurora 페일오버에 관해선 MariaDB Driver를 사용하기를 권장하고 있습니다.  
+> 27분 40초부터 보시면 됩니다.  
+> [mariadb 공식문서](https://mariadb.com/kb/en/failover-and-high-availability-with-mariadb-connector-j/#aurora-failover-implementation)도 함께 참고하시면 좋습니다.
+
 ```java
 public interface ProductRepository extends JpaRepository <Product, Long> {
 
@@ -31,6 +38,14 @@ public interface ProductRepository extends JpaRepository <Product, Long> {
 }
 
 ```
+
+좀 더 자세한 설명이 필요하신 분들은 [권남님의 블로그](http://egloos.zum.com/kwon37xi/v/5364167) 를 참고해보세요.
+
+## 2. 
+
+![properties1](./images/properties1.png)
+
+![properties2](./images/properties2.png)
 
 ```java
     public LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource) {
@@ -45,7 +60,7 @@ public interface ProductRepository extends JpaRepository <Product, Long> {
 ```
 
 
-## 2. 
+## 3. 
 
 ```java
 @Slf4j
@@ -143,3 +158,4 @@ public class ProductBackupJobParameter {
     }
 }
 ```
+

@@ -41,7 +41,7 @@ public class RealRepositoryTest {
         productRepository.save(new Product(name, expected2, txDate));
 
         //when
-        productRepository.findAllByCreateDateEquals(txDate);
+        productRepository.findAllByCreateDate(txDate);
         //then
     }
 
