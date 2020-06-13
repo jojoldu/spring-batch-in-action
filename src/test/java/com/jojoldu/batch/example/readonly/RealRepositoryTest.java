@@ -44,6 +44,4 @@ public class RealRepositoryTest {
         productRepository.findAllByCreateDate(txDate);
         //then
     }
-
-
 }
