@@ -49,3 +49,17 @@ spring:
       username: jojoldu
       password: jojoldu1
       driver-class-name: com.mysql.jdbc.Driver
+
+---
+spring:
+  profiles: aws
+  datasource:
+    hikari:
+      jdbc-url: jdbc:mysql:aurora://cluster주소:포트,reader-cluster주소:포트/jojoldu?connectTimeout=1000&socketTimeout=600000
+      username: jojoldu
+      password: passwd
+      driver-class-name: org.mariadb.jdbc.Driver
+      auto-commit: false
+      idleTimeout: 600000      #10m
+      maxLifetime: 1800000     #30m
+      maximumPoolSize: 10

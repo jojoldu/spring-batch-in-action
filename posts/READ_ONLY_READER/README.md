@@ -19,15 +19,17 @@ AWS의 AuroraDB (MySQL)는 클러스터 모드로 사용할 수 있는데요.
 
 ![rds](./images/rds.png)
 
-Aurora를 클러스터 모드로 사용하게 되면 아래와 같이 Cluster Endpoint(DB접근을 위한 URL이라고 보시면 됩니다)와 Reader용 EndPoint를 모두 제공합니다.
+Aurora를 클러스터 모드로 사용하게 되면 아래와 같이 Cluster Endpoint와 Reader용 EndPoint를 모두 제공합니다.
+
+> EndPoint란 DB접근을 위한 URL이라고 보시면 됩니다
 
 ![cluster](./images/cluster.png)
 
-> Cluster Endpoint는 FailOver 를 제공합니다.  
-> 즉, 마스터 DB에 문제가 발생하면 Replica 인스턴스 중 하나를 마스터 DB로 선택합니다. 
+> Aurora의 Cluster Endpoint는 FailOver 를 제공합니다.  
+> 즉, 마스터 DB에 문제가 발생하면 Replica 인스턴스 중 하나를 마스터 DB로 선택합니다.
 
-일반적으로 Spring Boot 환경에서 Aurora를 사용할 경우 **트랜잭션이 ReadOnly인 경우** (```@Transactional(readOnly=true)```) Reader EndPoint로 요청이 가게 됩니다.  
-  
+일반적으로 Spring Boot 환경에서 Aurora를 **클러스터 모드**로 사용하면서 **트랜잭션이 ReadOnly인 경우** (```@Transactional(readOnly=true)```) Reader EndPoint로 요청이 가게 됩니다.  
+
 즉, 아래와 같이 Service 혹은 Repoisotry에 ```readOnly``` 옵션을 주고 호출하면 Reader EndPoint로 요청이 간다는 것입니다.
 
 ```java
@@ -77,13 +79,15 @@ public class RealRepositoryTest {
 
 > 테스트를 위해서 Aurora의 general Log 옵션을 활성화 시켰습니다.  
 > 일반적으로는 **general Log 옵션을 비활성화**시켜야 합니다.  
-> 치명적인 성능 이슈가 발생합니다.
+> 활성화 될 경우 모든 쿼리 실행 로그를 남기게 되어 치명적인 성능 이슈가 발생합니다.
 
-자 그럼 본격적으로 Spring Batch 환경에서 Aurora ReaderDb를 조회하는 구조로 변경하는 방법을 배워보겠습니다.
+자 그럼 Spring Batch 환경에서 Aurora ReaderDb를 조회하는 구조로 변경하는 방법을 배워보겠습니다.
 
-## 2. 
+## 2. Batch 설정
 
+> Spring Boot 2.2.x에서 진행됩니다.
 
+AWS Aurora (MySQL) 을 사용할 경우 일반적으로 application.yml의 HikariCP 설정은 아래와 같이 합니다.
 
 ```java
 spring:
@@ -95,16 +99,43 @@ spring:
       driver-class-name: org.mariadb.jdbc.Driver (2)
 ```
 
-현재까지는 아래와 같이 **mariadb 드라이버와 mysql url**을 사용할때만 Aurora가 정상적으로 페일오버 되는 것을 확인한 상태입니다.
-
-(1) ```jdbc:mysql:aurora```
-
-(2) ```org.mariadb.jdbc.Driver```
-
+여기서 MySQL을 사용하지만 JDBC드라이버는 MaraiDB를 사용하는 것을 볼 수 있는데요.  
+테스트 결과로 현재까지는 위와 같이 설정할때만 Aurora가 **정상적으로 FailOver** 되는 것을 확인된 상태입니다.
 
 > [AWS ReInvent 영상](https://www.youtube.com/watch?time_continue=1667&v=duf5uUsW3TM&feature=emb_logo)을 보시면 Aurora 페일오버에 관해선 MariaDB Driver를 사용하기를 권장하고 있습니다.  
 > 27분 40초부터 보시면 됩니다.  
 > [mariadb 공식문서](https://mariadb.com/kb/en/failover-and-high-availability-with-mariadb-connector-j/#aurora-failover-implementation)도 함께 참고하시면 좋습니다.
+
+위와 같이 HikariCP 설정을 하신 뒤, 챕터 1에서와 같이 ```@Transactional(readOnly=true)``` 옵션이 잘 적용되는지 먼저 확인 합니다.  
+  
+확인이 되셨다면 본격적으로 설정을 해볼텐데요.  
+전반적인 구조는 아래와 같이 진행 됩니다.
+
+![batch-datasource](./images/batch-datasource.png)
+  
+* Reader EndPoint로 요청을 가게 하는 방법이 꼭 트랜잭션을 ReadOnly로 하는 것만 있는 것은 아닙니다.
+* 실제로 ```@Transactional(readOnly=true)```로 하여 Reader EndPoint 로 요청이 가는 것은 다음의 과정 때문인데요. 
+* ```@Transactional(readOnly=true)``` 로 설정되면 **JDBC 드라이버**에 ReadOnly 힌트를 전달합니다.
+  * 데이터베이스에게 힌트를 주는 게 아닙니다.
+* 스프링은 트랜잭션이 readOnly로 설정이 되면 ```Connection.setReadOnly(true)``` 를 호출합니다.
+* 이를 통해 Reader EndPoint로 호출이 됩니다.
+
+즉, ```Connection.setReadOnly(true)``` 가 설정될 경우 Reader EndPoint 호출이 된다는 것이죠.  
+그래서 트랜잭션을 readOnly로 하기 보다는 DataSource에서 readOnly 설정을 하고, 이를 가진 EntityManagerFactory를 만들어 사용하는 방법으로 가고자 합니다.  
+  
+굳이 이렇게 하는 이유는 주로 사용되는 JpaPagingItemReader의 경우 아래와 같이 이미 **자체적으로 트랜잭션을 만들어** 사용하고 있어서 "이를 감싼 트랜잭션을 또 하나 생성할 필요가 있을까" 란 생각이기 때문입니다.  
+
+**JpaPagingItemReader.doReadPage()**
+
+![doReadPage](./images/doReadPage.png)
+
+> JpaPagingItemReader 에서는 transacted의 기본값이 true입니다.
+
+다만, 앞으로 진행할 설정이 과하다 생각되신다면 ItemReader에서 트랜잭션을 readOnly로 변경하는 방법을 고려해보셔도 될 것 같습니다.  
+  
+### 2-1. DataSourceConfiguration
+
+### 2-2. EntityManagerFactoryCreator
 
 ![properties1](./images/properties1.png)
 
@@ -122,6 +153,7 @@ spring:
     }
 ```
 
+### 2-3. BatchJpaConfiguration
 
 ## 3. 
 
