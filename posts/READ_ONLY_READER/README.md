@@ -135,7 +135,113 @@ spring:
   
 ### 2-1. DataSourceConfiguration
 
-### 2-2. EntityManagerFactoryCreator
+가장 먼저 진행할 설정은 DataSource 입니다.  
+기존에 하던 HikariCP (```spring.datasource.hikari```) 설정을 최대한 사용합니다.
+
+```java
+@RequiredArgsConstructor
+@Configuration
+public class DataSourceConfiguration {
+    private static final String PROPERTIES = "spring.datasource.hikari";
+
+    public static final String MASTER_DATASOURCE = "dataSource";
+    public static final String READER_DATASOURCE = "readerDataSource";
+
+    @Bean(MASTER_DATASOURCE)
+    @Primary
+    @ConfigurationProperties(prefix = PROPERTIES)
+    public DataSource dataSource() {
+        return DataSourceBuilder.create()
+                .type(HikariDataSource.class)
+                .build();
+    }
+
+    @Bean(READER_DATASOURCE)
+    @ConfigurationProperties(prefix = PROPERTIES)
+    public DataSource readerDataSource() {
+        HikariDataSource hikariDataSource = DataSourceBuilder.create()
+                .type(HikariDataSource.class)
+                .build();
+        hikariDataSource.setReadOnly(true);
+        return hikariDataSource;
+    }
+}
+```
+
+Master Datasource의 설정은 기존과 다를바 없으며, Reader Datasource의 경우 Master Datasource와 다른 점은 ```.setReadOnly(true)``` 만 추가되었다는 점입니다. 
+
+![readerDataSource](./images/readerDataSource.png)
+
+어떤 자료에서는 Master와 Reader의 **모든 설정이 동일함**에도 application.yml 에서 Reader용 yml설정을 별도로 하는데요.  
+connectionTimeout 등과 같이 설정을 다르게 해야하는게 아니라면, 하나의 설정을 같이 쓰는게 관리하기에 편합니다.  
+  
+자 이제 1개의 HikariCP 설정으로 2개의 DataSource (Master / Reader) 가 생성이 되었습니다.  
+그리고 이 2개의 DataSource를 통해 각각의 EntityManagerFactory 를 설정해보겠습니다.
+  
+### 2-2. EntityManagerFactory
+
+```java
+@RequiredArgsConstructor
+@Configuration
+@EnableConfigurationProperties({JpaProperties.class, HibernateProperties.class})
+@EnableJpaRepositories(
+        basePackages = PACKAGE,
+        entityManagerFactoryRef = MASTER_ENTITY_MANAGER_FACTORY, // default와 같아서 생략도 가능
+        transactionManagerRef = MASTER_TX_MANAGER
+)
+public class BatchJpaConfiguration {
+    public static final String PACKAGE = "com.jojoldu.batch.entity";
+    public static final String MASTER_ENTITY_MANAGER_FACTORY = "entityManagerFactory";
+    public static final String READER_ENTITY_MANAGER_FACTORY = "readerEntityManagerFactory";
+
+    public static final String MASTER_TX_MANAGER = "batchTransactionManager";
+
+    private final JpaProperties jpaProperties;
+    private final HibernateProperties hibernateProperties;
+    private final ObjectProvider<Collection<DataSourcePoolMetadataProvider>> metadataProviders;
+    private final EntityManagerFactoryBuilder entityManagerFactoryBuilder;
+
+    @Primary
+    @Bean(name = MASTER_ENTITY_MANAGER_FACTORY)
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory(
+            DataSource dataSource) {
+
+        return EntityManagerFactoryCreator.builder()
+                .properties(jpaProperties)
+                .hibernateProperties(hibernateProperties)
+                .metadataProviders(metadataProviders)
+                .entityManagerFactoryBuilder(entityManagerFactoryBuilder)
+                .dataSource(dataSource)
+                .packages(PACKAGE)
+                .persistenceUnit("master")
+                .build()
+                .create();
+    }
+
+    @Bean(name = READER_ENTITY_MANAGER_FACTORY)
+    public LocalContainerEntityManagerFactoryBean readerEntityManagerFactory(
+            @Qualifier(READER_DATASOURCE) DataSource dataSource) {
+
+        return EntityManagerFactoryCreator.builder()
+                .properties(jpaProperties)
+                .hibernateProperties(hibernateProperties)
+                .metadataProviders(metadataProviders)
+                .entityManagerFactoryBuilder(entityManagerFactoryBuilder)
+                .dataSource(dataSource)
+                .packages(PACKAGE)
+                .persistenceUnit("reader")
+                .build()
+                .create();
+    }
+
+    @Primary
+    @Bean(name = MASTER_TX_MANAGER)
+    public PlatformTransactionManager batchTransactionManager(LocalContainerEntityManagerFactoryBean entityManagerFactory) {
+        return new JpaTransactionManager(Objects.requireNonNull(entityManagerFactory.getObject()));
+    }
+}
+```
+
 
 ![properties1](./images/properties1.png)
 
@@ -153,9 +259,87 @@ spring:
     }
 ```
 
-### 2-3. BatchJpaConfiguration
+```java
+@Slf4j
+public class EntityManagerFactoryCreator {
+    private static final String PROVIDER_DISABLES_AUTOCOMMIT = "hibernate.connection.provider_disables_autocommit";
 
-## 3. 
+    private final JpaProperties properties;
+    private final HibernateProperties hibernateProperties;
+    private final ObjectProvider<Collection<DataSourcePoolMetadataProvider>> metadataProviders;
+    private final EntityManagerFactoryBuilder entityManagerFactoryBuilder;
+    private final DataSource dataSource;
+    private final String packages;
+    private final String persistenceUnit;
+
+    @Builder
+    public EntityManagerFactoryCreator(JpaProperties properties, HibernateProperties hibernateProperties, ObjectProvider<Collection<DataSourcePoolMetadataProvider>> metadataProviders, EntityManagerFactoryBuilder entityManagerFactoryBuilder, DataSource dataSource, String packages, String persistenceUnit) {
+        this.properties = properties;
+        this.hibernateProperties = hibernateProperties;
+        this.metadataProviders = metadataProviders;
+        this.entityManagerFactoryBuilder = entityManagerFactoryBuilder;
+        this.dataSource = dataSource;
+        this.packages = packages;
+        this.persistenceUnit = persistenceUnit;
+    }
+
+    public LocalContainerEntityManagerFactoryBean create () {
+        Map<String, Object> vendorProperties = getVendorProperties();
+        customizeVendorProperties(vendorProperties);
+        return entityManagerFactoryBuilder
+                .dataSource(this.dataSource)
+                .packages(packages)
+                .properties(vendorProperties)
+                .persistenceUnit(persistenceUnit)
+                .mappingResources(getMappingResources())
+                .build();
+    }
+
+    private String[] getMappingResources() {
+        List<String> mappingResources = this.properties.getMappingResources();
+        return (!ObjectUtils.isEmpty(mappingResources) ? StringUtils.toStringArray(mappingResources) : null);
+    }
+
+    private Map<String, Object> getVendorProperties() {
+        return new LinkedHashMap<>(this.hibernateProperties.determineHibernateProperties(
+                this.properties.getProperties(),
+                new HibernateSettings()));
+    }
+
+    private void customizeVendorProperties(Map<String, Object> vendorProperties) {
+        if (!vendorProperties.containsKey(PROVIDER_DISABLES_AUTOCOMMIT)) {
+            configureProviderDisablesAutocommit(vendorProperties);
+        }
+    }
+
+    private void configureProviderDisablesAutocommit(Map<String, Object> vendorProperties) {
+        if (isDataSourceAutoCommitDisabled()) {
+            log.info("Hikari auto-commit: false");
+            vendorProperties.put(PROVIDER_DISABLES_AUTOCOMMIT, "true");
+        }
+    }
+
+    private boolean isDataSourceAutoCommitDisabled() {
+        DataSourcePoolMetadataProvider poolMetadataProvider = new CompositeDataSourcePoolMetadataProvider(metadataProviders.getIfAvailable());
+        DataSourcePoolMetadata poolMetadata = poolMetadataProvider.getDataSourcePoolMetadata(this.dataSource);
+        return poolMetadata != null && Boolean.FALSE.equals(poolMetadata.getDefaultAutoCommit());
+    }
+}
+```
+
+
+
+
+* [Hibernate setAutoCommit 최적화를 통한 성능 튜닝](https://pkgonan.github.io/2019/01/hibrnate-autocommit-tuning)
+
+
+HibernateJpaConfiguration 클래스의 scope가 **package private** 이라서 상속받아 사용할 수가 없습니다.  
+
+![HibernateJpaConfiguration](./images/HibernateJpaConfiguration.png)
+
+
+
+## 3. 검증
 
 ```java
 @Slf4j

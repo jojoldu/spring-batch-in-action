@@ -41,6 +41,4 @@ public class DataSourceConfiguration {
         hikariDataSource.setReadOnly(true);
         return hikariDataSource;
     }
-
-
 }
