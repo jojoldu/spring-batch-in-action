@@ -40,7 +40,6 @@ public class ProductBackupConfiguration {
     private final StepBuilderFactory stepBuilderFactory;
     private final EntityManagerFactory emf;
     private final EntityManagerFactory readerEmf;
-    private final PlatformTransactionManager batchTransactionManager;
     private final ProductBackupJobParameter jobParameter;
 
     public ProductBackupConfiguration(
@@ -48,14 +47,12 @@ public class ProductBackupConfiguration {
             StepBuilderFactory stepBuilderFactory,
             EntityManagerFactory emf,
             @Qualifier(READER_ENTITY_MANAGER_FACTORY) EntityManagerFactory readerEmf,
-            PlatformTransactionManager batchTransactionManager,
             ProductBackupJobParameter jobParameter) {
 
         this.jobBuilderFactory = jobBuilderFactory;
         this.stepBuilderFactory = stepBuilderFactory;
         this.emf = emf;
         this.readerEmf = readerEmf;
-        this.batchTransactionManager = batchTransactionManager;
         this.jobParameter = jobParameter;
     }
 
@@ -102,20 +99,6 @@ public class ProductBackupConfiguration {
                 .name("reader")
                 .build();
     }
-
-//    @Bean
-//    @StepScope
-//    public JpaReadOnlyPagingItemReader<Product> reader() {
-//        String query = String.format("SELECT p FROM Product p WHERE p.createDate ='%s'", jobParameter.getTxDate());
-//
-//        JpaReadOnlyPagingItemReader<Product> itemReader = new JpaReadOnlyPagingItemReader<>(batchTransactionManager);
-//        itemReader.setEntityManagerFactory(emf);
-//        itemReader.setQueryString(query);
-//        itemReader.setPageSize(chunkSize);
-//        itemReader.setName("reader");
-//
-//        return itemReader;
-//    }
 
     private ItemProcessor<Product, ProductBackup> processor() {
         return ProductBackup::new;
