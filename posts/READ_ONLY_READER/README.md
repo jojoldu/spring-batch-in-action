@@ -111,6 +111,10 @@ spring:
 확인이 되셨다면 본격적으로 설정을 해볼텐데요.  
 전반적인 구조는 아래와 같이 진행 됩니다.
 
+![batch-cluster](./images/batch-cluster.png)
+
+이를 위해서 Datasource는 아래와 같은 구성이 됩니다.
+
 ![batch-datasource](./images/batch-datasource.png)
   
 * Reader EndPoint로 요청을 가게 하는 방법이 꼭 트랜잭션을 ReadOnly로 하는 것만 있는 것은 아닙니다.
