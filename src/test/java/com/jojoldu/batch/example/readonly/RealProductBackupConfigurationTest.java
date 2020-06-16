@@ -2,9 +2,9 @@ package com.jojoldu.batch.example.readonly;
 
 import com.jojoldu.batch.TestBatchConfig;
 import com.jojoldu.batch.entity.product.Product;
-import com.jojoldu.batch.entity.product.ProductBackup;
-import com.jojoldu.batch.entity.product.ProductBackupRepository;
 import com.jojoldu.batch.entity.product.ProductRepository;
+import com.jojoldu.batch.entity.product.backup.ProductBackup;
+import com.jojoldu.batch.entity.product.backup.ProductBackupRepository;
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

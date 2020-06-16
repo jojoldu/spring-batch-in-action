@@ -1,4 +1,4 @@
-package com.jojoldu.batch.entity.product;
+package com.jojoldu.batch.entity.product.backup;
 
 /**
  * Created by jojoldu@gmail.com on 20/08/2018
@@ -6,6 +6,7 @@ package com.jojoldu.batch.entity.product;
  * Github : https://github.com/jojoldu
  */
 
+import com.jojoldu.batch.entity.product.Product;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,7 +37,7 @@ public class ProductBackup {
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "product_id")
-    private Store store;
+    private StoreBackup store;
 
     @Builder
     public ProductBackup(Product product) {
@@ -46,7 +47,7 @@ public class ProductBackup {
         this.createDate = product.getCreateDate();
     }
 
-    public void changeStore(Store store) {
+    public void changeStore(StoreBackup store) {
         this.store = store;
     }
 }

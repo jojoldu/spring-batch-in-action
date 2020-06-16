@@ -1,4 +1,4 @@
-package com.jojoldu.batch.entity.product;
+package com.jojoldu.batch.entity.product.backup;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

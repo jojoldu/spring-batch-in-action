@@ -1,7 +1,8 @@
-package com.jojoldu.batch.example.readonly;
+package com.jojoldu.batch.example.performancewrite.test1;
 
-import com.jojoldu.batch.entity.product.Product;
-import com.jojoldu.batch.entity.product.backup.ProductBackup;
+import com.jojoldu.batch.entity.product.Store;
+import com.jojoldu.batch.entity.product.backup.StoreBackup;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -14,14 +15,11 @@ import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.persistence.EntityManagerFactory;
-
-import static com.jojoldu.batch.config.BatchJpaConfiguration.READER_ENTITY_MANAGER_FACTORY;
 
 
 /**
@@ -31,41 +29,20 @@ import static com.jojoldu.batch.config.BatchJpaConfiguration.READER_ENTITY_MANAG
  */
 
 @Slf4j
+@RequiredArgsConstructor
 @Configuration
-public class ProductBackupConfiguration {
-    public static final String JOB_NAME = "productBackupJob";
+public class StoreBackup1Configuration {
+    public static final String JOB_NAME = "storeBackupJob1";
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final EntityManagerFactory emf;
-    private final EntityManagerFactory readerEmf;
-    private final ProductBackupJobParameter jobParameter;
-
-    public ProductBackupConfiguration(
-            JobBuilderFactory jobBuilderFactory,
-            StepBuilderFactory stepBuilderFactory,
-            EntityManagerFactory emf,
-            @Qualifier(READER_ENTITY_MANAGER_FACTORY) EntityManagerFactory readerEmf,
-            ProductBackupJobParameter jobParameter) {
-
-        this.jobBuilderFactory = jobBuilderFactory;
-        this.stepBuilderFactory = stepBuilderFactory;
-        this.emf = emf;
-        this.readerEmf = readerEmf;
-        this.jobParameter = jobParameter;
-    }
 
     private int chunkSize;
 
     @Value("${chunkSize:1000}")
     public void setChunkSize(int chunkSize) {
         this.chunkSize = chunkSize;
-    }
-
-    @Bean
-    @JobScope
-    public ProductBackupJobParameter jobParameter() {
-        return new ProductBackupJobParameter();
     }
 
     @Bean
@@ -79,8 +56,8 @@ public class ProductBackupConfiguration {
     @JobScope
     public Step step() {
         return stepBuilderFactory.get("step")
-                .<Product, ProductBackup>chunk(chunkSize)
-                .reader(reader())
+                .<Store, StoreBackup>chunk(chunkSize)
+                .reader(reader(null))
                 .processor(processor())
                 .writer(writer())
                 .build();
@@ -88,24 +65,28 @@ public class ProductBackupConfiguration {
 
     @Bean
     @StepScope
-    public JpaPagingItemReader<Product> reader() {
-        String query = String.format("SELECT p FROM Product p WHERE p.createDate ='%s'", jobParameter.getTxDate());
+    public JpaPagingItemReader<Store> reader(@Value("#{jobParameters[storeName]}") String storeName) {
+        String query = String.format(
+                "SELECT s " +
+                "FROM Store s " +
+                "JOIN FETCH s.products " +
+                "WHERE s.name ='%s'", storeName);
 
-        return new JpaPagingItemReaderBuilder<Product>()
-                .entityManagerFactory(readerEmf)
+        return new JpaPagingItemReaderBuilder<Store>()
+                .entityManagerFactory(emf)
                 .queryString(query)
                 .pageSize(chunkSize)
                 .name("reader")
                 .build();
     }
 
-    private ItemProcessor<Product, ProductBackup> processor() {
-        return ProductBackup::new;
+    private ItemProcessor<Store, StoreBackup> processor() {
+        return StoreBackup::new;
     }
 
     @Bean
-    public JpaItemWriter<ProductBackup> writer() {
-        return new JpaItemWriterBuilder<ProductBackup>()
+    public JpaItemWriter<StoreBackup> writer() {
+        return new JpaItemWriterBuilder<StoreBackup>()
                 .entityManagerFactory(emf)
                 .build();
     }

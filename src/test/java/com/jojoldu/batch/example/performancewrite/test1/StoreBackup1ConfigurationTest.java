@@ -1,10 +1,14 @@
-package com.jojoldu.batch.example.readonly;
+package com.jojoldu.batch.example.performancewrite.test1;
 
 import com.jojoldu.batch.TestBatchConfig;
 import com.jojoldu.batch.entity.product.Product;
 import com.jojoldu.batch.entity.product.ProductRepository;
+import com.jojoldu.batch.entity.product.Store;
+import com.jojoldu.batch.entity.product.StoreRepository;
 import com.jojoldu.batch.entity.product.backup.ProductBackup;
 import com.jojoldu.batch.entity.product.backup.ProductBackupRepository;
+import com.jojoldu.batch.entity.product.backup.StoreBackup;
+import com.jojoldu.batch.entity.product.backup.StoreBackupRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,20 +19,12 @@ import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import javax.persistence.EntityManagerFactory;
-import javax.sql.DataSource;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 
-import static com.jojoldu.batch.config.BatchJpaConfiguration.READER_ENTITY_MANAGER_FACTORY;
-import static com.jojoldu.batch.config.DataSourceConfiguration.READER_DATASOURCE;
-import static java.time.format.DateTimeFormatter.ofPattern;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -37,10 +33,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Github : http://github.com/jojoldu
  */
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {TestBatchConfig.class, ProductBackupConfiguration.class})
+@SpringBootTest(classes = {TestBatchConfig.class, StoreBackup1Configuration.class})
 @SpringBatchTest
-public class ProductBackupConfigurationTest {
-    public static final DateTimeFormatter FORMATTER = ofPattern("yyyy-MM-dd");
+public class StoreBackup1ConfigurationTest {
+
+    @Autowired
+    private StoreRepository storeRepository;
+
+    @Autowired
+    private StoreBackupRepository storeBackupRepository;
 
     @Autowired
     private ProductRepository productRepository;
@@ -51,35 +52,13 @@ public class ProductBackupConfigurationTest {
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
 
-    @Autowired
-    @Qualifier(READER_ENTITY_MANAGER_FACTORY)
-    EntityManagerFactory readerEmf;
-
-    @Autowired
-    DataSource dataSource;
-
-    @Autowired
-    @Qualifier(READER_DATASOURCE)
-    DataSource readerDataSource;
-
     @AfterEach
     public void after() throws Exception {
         productRepository.deleteAllInBatch();
         productBackupRepository.deleteAllInBatch();
-    }
 
-    @Test
-    void readerEmf의_jpaProperties_옵션을_확인한다() throws Exception {
-        //given
-        Map<String, Object> properties = readerEmf.getProperties();
-
-        //when
-        String autoCommit = (String) properties.get("hibernate.connection.provider_disables_autocommit");
-        String showSql = (String) properties.get("hibernate.show_sql");
-
-        //then
-        assertThat(autoCommit).isEqualTo("true");
-        assertThat(showSql).isEqualTo("true");
+        storeRepository.deleteAllInBatch();
+        storeBackupRepository.deleteAllInBatch();
     }
 
     @Test
@@ -87,13 +66,14 @@ public class ProductBackupConfigurationTest {
         //given
         LocalDate txDate = LocalDate.of(2020,10,12);
         String name = "a";
-        int expected1 = 1000;
-        int expected2 = 2000;
-        productRepository.save(new Product(name, expected1, txDate));
-        productRepository.save(new Product(name, expected2, txDate));
+        Store store = new Store(name);
+        store.addProduct(new Product("product", 1000L, txDate));
+        store.addProduct(new Product("product", 1000L, txDate));
+
+        storeRepository.save(store);
 
         JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
-                .addString("txDate", txDate.format(FORMATTER))
+                .addString("storeName", name)
                 .toJobParameters();
 
         //when
@@ -101,7 +81,10 @@ public class ProductBackupConfigurationTest {
 
         //then
         assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
-        List<ProductBackup> backups = productBackupRepository.findAll();
-        assertThat(backups.size()).isEqualTo(2);
+        List<StoreBackup> storeBackups = storeBackupRepository.findAll();
+        assertThat(storeBackups).hasSize(1);
+
+        List<ProductBackup> productBackups = productBackupRepository.findAll();
+        assertThat(productBackups).hasSize(2);
     }
 }
