@@ -1,8 +1,9 @@
 plugins {
-    id 'org.springframework.boot' version '2.2.6.RELEASE' apply false
+    id 'org.springframework.boot' version '2.2.7.RELEASE' apply false
     id 'io.spring.dependency-management' version '1.0.9.RELEASE'
     id 'java'
     id 'com.gorylenko.gradle-git-properties' version '2.2.0'
+    id 'com.ewerk.gradle.plugins.querydsl' version '1.0.10'
 }
 
 group = 'com.jojoldu.spring'
@@ -22,6 +23,9 @@ dependencies {
     implementation('mysql:mysql-connector-java')
     implementation 'org.mariadb.jdbc:mariadb-java-client'
 
+    implementation 'com.querydsl:querydsl-jpa'
+    implementation 'com.querydsl:querydsl-apt'
+
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
@@ -36,16 +40,34 @@ test {
 }
 
 configurations {
+    querydsl.extendsFrom compileClasspath
+    developmentOnly
+    runtimeClasspath {
+        extendsFrom developmentOnly
+    }
     compileOnly {
         extendsFrom annotationProcessor
     }
 }
 
-configurations {
-    developmentOnly
-    runtimeClasspath {
-        extendsFrom developmentOnly
+def querydslSrcDir = 'src/main/generated'
+
+querydsl {
+    library = "com.querydsl:querydsl-apt"
+    jpa = true
+    querydslSourcesDir = querydslSrcDir
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', querydslSrcDir]
+        }
     }
+}
+
+compileQuerydsl{
+    options.annotationProcessorPath = configurations.querydsl
 }
 
 dependencyManagement {
