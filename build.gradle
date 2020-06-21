@@ -25,6 +25,9 @@ dependencies {
 
     implementation 'com.querydsl:querydsl-jpa'
     implementation 'com.querydsl:querydsl-apt'
+    implementation 'com.querydsl:querydsl-sql-spring:4.3.1'
+    implementation 'joda-time:joda-time:2.10.6' // for querydsl-sql
+
 
     annotationProcessor 'org.projectlombok:lombok'
     implementation 'org.projectlombok:lombok'

@@ -15,9 +15,9 @@ spring:
 spring.batch.job.names: ${job.name:NONE}
 logging.level:
   org.springframework:
-    jdbc:
-      core:
-        JdbcTemplate: DEBUG
+#    jdbc:
+#      core:
+#        JdbcTemplate: DEBUG
     batch:
       item:
         database: DEBUG
@@ -39,6 +39,9 @@ spring:
       maxLifetime: 180000     #3m
       maximumPoolSize: 5
 
+logging:
+  level:
+    com.querydsl.sql: DEBUG
 
 ---
 spring:
