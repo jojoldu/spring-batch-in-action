@@ -1,6 +1,7 @@
 package com.jojoldu.batch.example.performancewrite.test3;
 
 import com.jojoldu.batch.entity.product.Store;
+import com.jojoldu.batch.entity.product.backup.QStoreBackup;
 import com.jojoldu.batch.entity.product.backup.StoreBackup;
 import com.querydsl.sql.RelationalPathBase;
 import com.querydsl.sql.SQLQueryFactory;
@@ -93,11 +94,12 @@ public class StoreBackup3Configuration {
     @Bean
     public ItemWriter<StoreBackup> writer() {
         return items -> {
-            RelationalPathBase<StoreBackup> qStoreBackup = new RelationalPathBase<>(
-                    storeBackup.getType(),
-                    storeBackup.getMetadata(),
-                    "jojoldu",
-                    "store_backup");
+
+            RelationalPathBase<QStoreBackup> qStoreBackup = new RelationalPathBase<>(
+                            QStoreBackup.class,
+                            storeBackup.getMetadata(),
+                            "jojoldu",
+                            "store_backup");
 
             SQLInsertClause insert = sqlQueryFactory.insert(qStoreBackup);
 

@@ -3,3 +3,10 @@
 ## 1. Merge vs Persist
 
 ## 2. JPQL vs Querydsl (& JOOQ)
+
+
+```yaml
+logging:
+  level:
+    com.querydsl.sql: DEBUG
+```
