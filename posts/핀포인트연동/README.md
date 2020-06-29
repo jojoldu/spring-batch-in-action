@@ -4,24 +4,18 @@
 하위버전에서는 하이버네이트 등의 ORM 실행시 SQL이 정상적으로 로그가 출력되지 않을 수 있습니다.
 
 ```bash
- PINPOINT_OPTS="-javaagent:pinpoint-bootstrap.jar위치 -Dpinpoint.agentId=에이전트ID -Dpinpoint.applicationName=표기될AppName"
+PINPOINT_OPTS="-javaagent:pinpoint-bootstrap.jar위치 -Dpinpoint.agentId=에이전트ID -Dpinpoint.applicationName=표기될AppName"
 ```
 
-## 1. 단일 Job 메소드 지정
+## 1.  
 
 ```bash
-profiler.entrypoint=foo.bar.MyBatchClass.jobMethod
+profiler.entrypoint=org.springframework.batch.core.step.item.SimpleChunkProvider.doRead,org.springframework.batch.core.step.item.SimpleChunkProcessor.doProcess,org.springframework.batch.core.step.item.SimpleChunkProcessor.doWrite
 ```
-
-![pinpoint1](images/pinpoint1.png)
-
-## 2. SimpleJobLauncher.run() 지정
-
 
 ```bash
-profiler.entrypoint=org.springframework.batch.core.launch.support.SimpleJobLauncher.run
+profiler.entrypoint=org.springframework.batch.core.step.item.ChunkOrientedTasklet.execute
 ```
-
 
 
 ![pinpoint2](images/pinpoint2.png)
