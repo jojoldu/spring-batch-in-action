@@ -17,13 +17,18 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Index;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.Table;
 import java.time.LocalDate;
 
 @Getter
 @NoArgsConstructor
 @Entity
+@Table(indexes = {
+        @Index(name = "idx_product_backup_1", columnList = "store_id")
+})
 public class ProductBackup {
 
     @Id
@@ -36,7 +41,7 @@ public class ProductBackup {
     private LocalDate createDate;
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "store_id")
     private StoreBackup store;
 
     @Builder

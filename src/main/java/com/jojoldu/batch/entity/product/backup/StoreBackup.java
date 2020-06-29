@@ -38,7 +38,7 @@ public class StoreBackup {
     public StoreBackup(Store store) {
         this.name = store.getName();
         this.originId = store.getId();
-        this.addProducts(store.getProducts());
+//        this.addProducts(store.getProducts());
     }
 
     public void addProducts (List<Product> originProducts) {

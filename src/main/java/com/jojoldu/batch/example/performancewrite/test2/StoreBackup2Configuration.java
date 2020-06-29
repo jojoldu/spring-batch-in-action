@@ -69,7 +69,6 @@ public class StoreBackup2Configuration {
         String query = String.format(
                 "SELECT s " +
                 "FROM Store s " +
-                "JOIN FETCH s.products " +
                 "WHERE s.name ='%s'", storeName);
 
         return new JpaPagingItemReaderBuilder<Store>()

@@ -1,11 +1,9 @@
 package com.jojoldu.batch.example.performancewrite.test2;
 
 import com.jojoldu.batch.TestBatchConfig;
-import com.jojoldu.batch.entity.product.Product;
 import com.jojoldu.batch.entity.product.ProductRepository;
 import com.jojoldu.batch.entity.product.Store;
 import com.jojoldu.batch.entity.product.StoreRepository;
-import com.jojoldu.batch.entity.product.backup.ProductBackup;
 import com.jojoldu.batch.entity.product.backup.ProductBackupRepository;
 import com.jojoldu.batch.entity.product.backup.StoreBackup;
 import com.jojoldu.batch.entity.product.backup.StoreBackupRepository;
@@ -67,8 +65,6 @@ public class StoreBackup2ConfigurationTest {
         LocalDate txDate = LocalDate.of(2020,10,12);
         String name = "a";
         Store store = new Store(name);
-        store.addProduct(new Product("product", 1000L, txDate));
-        store.addProduct(new Product("product", 1000L, txDate));
 
         storeRepository.save(store);
 
@@ -83,8 +79,5 @@ public class StoreBackup2ConfigurationTest {
         assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
         List<StoreBackup> storeBackups = storeBackupRepository.findAll();
         assertThat(storeBackups).hasSize(1);
-
-        List<ProductBackup> productBackups = productBackupRepository.findAll();
-        assertThat(productBackups).hasSize(2);
     }
 }
