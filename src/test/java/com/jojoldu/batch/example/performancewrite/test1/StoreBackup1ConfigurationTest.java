@@ -60,12 +60,11 @@ public class StoreBackup1ConfigurationTest {
     }
 
     @Test
-    public void H2_Product가_ProductBackup으로_이관된다() throws Exception {
+    public void H2_Store가_StoreBackup으로_이관된다() throws Exception {
         //given
         LocalDate txDate = LocalDate.of(2020,10,12);
         String name = "a";
         Store store = new Store(name);
-
         //        store.addProduct(new Product("product", 1000L, txDate));
 
         storeRepository.save(store);

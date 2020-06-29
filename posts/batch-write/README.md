@@ -20,6 +20,7 @@ JPA 지속성 컨텍스트에서 항목을 씁니다.
 ## 2. JPQL vs SQL
 
 
-
+[Hibernate 공식문서](https://docs.jboss.org/hibernate/orm/5.4/userguide/html_single/Hibernate_User_Guide.html#batch-session-batch-insert)
+[Why you should never use the TABLE identifier generator with JPA and Hibernate](https://vladmihalcea.com/why-you-should-never-use-the-table-identifier-generator-with-jpa-and-hibernate/)
 
 ## 3. 최종 비교

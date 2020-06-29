@@ -20,7 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,13 +59,12 @@ public class StoreBackup3ConfigurationTest {
     }
 
     @Test
-    public void H2_Product가_ProductBackup으로_이관된다() throws Exception {
+    public void H2_Store가_StoreBackup으로_이관된다() throws Exception {
         //given
-        LocalDate txDate = LocalDate.of(2020,10,12);
         String name = "a";
-        Store store = new Store(name);
 
-        storeRepository.save(store);
+        storeRepository.save(new Store(name));
+        storeRepository.save(new Store(name));
 
         JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
                 .addString("storeName", name)
@@ -78,6 +76,6 @@ public class StoreBackup3ConfigurationTest {
         //then
         assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
         List<StoreBackup> storeBackups = storeBackupRepository.findAll();
-        assertThat(storeBackups).hasSize(1);
+        assertThat(storeBackups).hasSize(2);
     }
 }

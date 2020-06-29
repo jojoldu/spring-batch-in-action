@@ -15,12 +15,8 @@ spring:
 spring.batch.job.names: ${job.name:NONE}
 logging.level:
   org.springframework:
-#    jdbc:
-#      core:
-#        JdbcTemplate: DEBUG
-    batch:
-      item:
-        database: DEBUG
+    jdbc.core.JdbcTemplate: DEBUG
+    batch.item.database: DEBUG
 ---
 spring:
   profiles: local

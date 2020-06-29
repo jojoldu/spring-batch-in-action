@@ -1,10 +1,6 @@
 package com.jojoldu.batch.example.performancewrite.test2;
 
 import com.jojoldu.batch.TestBatchConfig;
-import com.jojoldu.batch.entity.product.ProductRepository;
-import com.jojoldu.batch.entity.product.Store;
-import com.jojoldu.batch.entity.product.StoreRepository;
-import com.jojoldu.batch.entity.product.backup.ProductBackupRepository;
 import com.jojoldu.batch.entity.product.backup.StoreBackup;
 import com.jojoldu.batch.entity.product.backup.StoreBackupRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -18,6 +14,7 @@ import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.List;
@@ -32,39 +29,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {TestBatchConfig.class, StoreBackup2Configuration.class})
 @SpringBatchTest
-public class StoreBackup2ConfigurationTest {
-
-    @Autowired
-    private StoreRepository storeRepository;
+@ActiveProfiles(profiles = "real")
+public class MySqlStoreBackup2ConfigurationTest {
 
     @Autowired
     private StoreBackupRepository storeBackupRepository;
-
-    @Autowired
-    private ProductRepository productRepository;
-
-    @Autowired
-    private ProductBackupRepository productBackupRepository;
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
 
     @AfterEach
     public void after() throws Exception {
-        productRepository.deleteAllInBatch();
-        productBackupRepository.deleteAllInBatch();
-
-        storeRepository.deleteAllInBatch();
         storeBackupRepository.deleteAllInBatch();
     }
 
     @Test
-    public void H2_Store가_StoreBackup으로_이관된다() throws Exception {
+    public void MySQL_Store가_StoreBackup으로_이관된다() throws Exception {
         //given
         String name = "a";
-        Store store = new Store(name);
 
-        storeRepository.save(store);
+        int count = 100_000;
 
         JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
                 .addString("storeName", name)
@@ -76,6 +60,6 @@ public class StoreBackup2ConfigurationTest {
         //then
         assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
         List<StoreBackup> storeBackups = storeBackupRepository.findAll();
-        assertThat(storeBackups).hasSize(1);
+        assertThat(storeBackups).hasSize(count);
     }
 }
