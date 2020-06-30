@@ -4,6 +4,8 @@
 
 [Spring Batch 4.2 버전에 도입](https://spring.io/blog/2019/09/17/spring-batch-4-2-0-rc1-is-released#faster-writes-with-the-code-jpaitemwriter-code) 되었습니다.
 
+> Spring Boot로는 2.2.8 부터 사용 가능
+
 이 함수를 JpaItemWriter사용하여 ```EntityManager.merge```
 JPA 지속성 컨텍스트에서 항목을 씁니다.  
 이는 항목의 지속적 상태를 알 수 없거나 업데이트 된 것으로 알려진 경우에 적합합니다. 그러나 데이터가 새로운 것으로 알려져 있고 삽입으로 간주되어야하는 많은 파일 처리 작업에서는 ```EntityManager.merge```는 효율적이지 않습니다.

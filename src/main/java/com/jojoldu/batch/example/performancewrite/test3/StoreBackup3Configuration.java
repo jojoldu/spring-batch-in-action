@@ -39,6 +39,7 @@ public class StoreBackup3Configuration {
     private final StepBuilderFactory stepBuilderFactory;
     private final EntityManagerFactory emf;
     private final DataSource dataSource;
+    private final BulkInsertRepository bulkInsertRepository;
 
     private int chunkSize;
 
@@ -85,12 +86,20 @@ public class StoreBackup3Configuration {
         return StoreBackup::new;
     }
 
-    @Bean // beanMapped()을 사용할때는 필수
+    @Bean
+    @StepScope
     public JdbcBatchItemWriter<StoreBackup> writer() {
         return new JdbcBatchItemWriterBuilder<StoreBackup>()
                 .dataSource(dataSource)
                 .sql("insert into store_backup(origin_id, name) values (:originId, :name)")
                 .beanMapped()
+                .assertUpdates(false)
                 .build();
     }
+
+//    @Bean
+//    @StepScope
+//    public ItemWriter<StoreBackup> writer () {
+//        return items -> bulkInsertRepository.saveAll(new ArrayList<>(items));
+//    }
 }

@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Github : http://github.com/jojoldu
  */
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {TestBatchConfig.class, StoreBackup3Configuration.class})
+@SpringBootTest(classes = {TestBatchConfig.class, StoreBackup3Configuration.class, BulkInsertRepository.class})
 @SpringBatchTest
 @ActiveProfiles(profiles = "real")
 public class MySqlStoreBackup3ConfigurationTest {
