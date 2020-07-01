@@ -15,6 +15,7 @@ import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.List;
@@ -30,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = {TestBatchConfig.class, StoreBackup3Configuration.class, BulkInsertRepository.class})
 @SpringBatchTest
 @ActiveProfiles(profiles = "real")
+@TestPropertySource(properties = {"logging.level.org.springframework.jdbc.core.JdbcTemplate=debug"})
 public class MySqlStoreBackup3ConfigurationTest {
 
     @Autowired

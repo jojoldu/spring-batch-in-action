@@ -18,6 +18,7 @@ import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.List;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {TestBatchConfig.class, StoreBackup3Configuration.class})
 @SpringBatchTest
+@TestPropertySource(properties = {"logging.level.org.springframework.jdbc.core.JdbcTemplate=debug"})
 public class StoreBackup3ConfigurationTest {
 
     @Autowired
