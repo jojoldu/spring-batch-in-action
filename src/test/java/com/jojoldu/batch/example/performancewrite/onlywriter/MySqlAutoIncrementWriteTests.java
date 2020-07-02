@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional
 @DirtiesContext
 @ActiveProfiles(profiles = "real")
-public class JpaItemWriterTests {
+public class MySqlAutoIncrementWriteTests {
 
     private static final long TEST_COUNT = 10_000;
 
