@@ -14,7 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
+import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,6 +26,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +49,9 @@ public class MySqlNonAutoIncrementWriteTests {
     @Autowired
     private Person2Repository person2Repository;
 
+    @Autowired
+    private DataSource dataSource;
+
     @AfterEach
     public void after() {
         personRepository.deleteAllInBatch();
@@ -66,7 +72,6 @@ public class MySqlNonAutoIncrementWriteTests {
         }
 
         // when
-        log.info(">>>>>>>>>>> Write Start");
         writer.write(items);
     }
 
@@ -85,7 +90,25 @@ public class MySqlNonAutoIncrementWriteTests {
         }
 
         // when
-        log.info(">>>>>>>>>>> Write Start");
+        writer.write(items);
+    }
+
+    @Test
+    public void non_auto_increment_test_jdbc() throws Exception {
+        //given
+        JdbcBatchItemWriter<Person2> writer = new JdbcBatchItemWriterBuilder<Person2>()
+                .dataSource(dataSource)
+                .sql("insert into person(id, name) values (:id, :name)")
+                .beanMapped()
+                .build();
+
+        writer.afterPropertiesSet();
+        List<Person2> items = new ArrayList<>();
+        for (long i = 0; i < TEST_COUNT; i++) {
+            items.add(new Person2(i, "foo" + i));
+        }
+
+        // when
         writer.write(items);
     }
 }

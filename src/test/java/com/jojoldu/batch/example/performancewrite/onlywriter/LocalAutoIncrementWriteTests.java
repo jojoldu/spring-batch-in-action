@@ -21,7 +21,6 @@ import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,10 +36,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = {TestBatchConfig.class})
 @Transactional
 @DirtiesContext
-@ActiveProfiles(profiles = "real")
-public class MySqlAutoIncrementWriteTests {
+public class LocalAutoIncrementWriteTests {
 
-    private static final long TEST_COUNT = 10_000;
+    private static final long TEST_COUNT = 10;
 
     @Autowired
     private EntityManagerFactory entityManagerFactory;
