@@ -1,5 +1,8 @@
 # Spring Batch JPA에서의 Write 성능 향상 전략
 
+
+* AWS RDS Aurora r5.large
+
 ## 1. Merge vs Persist
 
 [Spring Batch 4.2 버전에 도입](https://spring.io/blog/2019/09/17/spring-batch-4-2-0-rc1-is-released#faster-writes-with-the-code-jpaitemwriter-code) 되었습니다.
