@@ -1,7 +1,21 @@
 # Spring Batch JPA에서의 Write 성능 향상 전략
 
+대규모 데이터를 처리하는 Spring Batch 에서 배치 성능은 중요한 요소입니다.  
+배치 성능에 있어서 튜닝 요소는 크게 2가지로 정리 될 수 있는데요.  
+
+* Reader를 통한 데이터 조회
+* Writer를 통한 데이터 등록/수정
+
+> Processor 처리 과정에서 성능 저하 요소는 
+
+모든 테스트는 아래 환경에서 동일하게 수행하였습니다.
 
 * AWS RDS Aurora r5.large
+* Macbook Pro 
+  * 32 GB RAM
+  * 2.9 GHz Intel Core i7 CPU
+  * MacOS Mojave 10.14.6
+
 
 ## 1. Merge vs Persist
 
@@ -38,3 +52,7 @@ batch 형태의 SQL로 재작성 하는 것입니다.
 [Why you should never use the TABLE identifier generator with JPA and Hibernate](https://vladmihalcea.com/why-you-should-never-use-the-table-identifier-generator-with-jpa-and-hibernate/)
 
 ## 3. 최종 비교
+
+* 부모 Entity는 JpaItemWriter를 이용하여 ChunkSize별로 저장하여 PK값과 Entity를 확보
+* PK가 확보된 부모 Entity를 통해 자식 Entity들을 생성 (부모 ID값을 갖고 생성)
+* 자식 Entity들은 JdbcItemWriter를 통해 Bulk Insert
