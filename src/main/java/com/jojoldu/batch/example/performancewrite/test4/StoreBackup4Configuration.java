@@ -1,9 +1,10 @@
-package com.jojoldu.batch.example.performancewrite.test1;
+package com.jojoldu.batch.example.performancewrite.test4;
 
 import com.jojoldu.batch.entity.product.Store;
 import com.jojoldu.batch.entity.product.backup.StoreBackup;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.SessionFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -11,10 +12,10 @@ import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.database.HibernateCursorItemReader;
 import org.springframework.batch.item.database.JpaItemWriter;
-import org.springframework.batch.item.database.JpaPagingItemReader;
+import org.springframework.batch.item.database.builder.HibernateCursorItemReaderBuilder;
 import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
-import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,8 +32,8 @@ import javax.persistence.EntityManagerFactory;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-public class StoreBackup1Configuration {
-    public static final String JOB_NAME = "storeBackupJob1";
+public class StoreBackup4Configuration {
+    public static final String JOB_NAME = "storeBackupJob4";
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
@@ -65,17 +66,19 @@ public class StoreBackup1Configuration {
 
     @Bean
     @StepScope
-    public JpaPagingItemReader<Store> reader(@Value("#{jobParameters[storeName]}") String storeName) {
+    public HibernateCursorItemReader<Store> reader(@Value("#{jobParameters[storeName]}") String storeName) {
+        SessionFactory sessionFactory = emf.unwrap(SessionFactory.class);
+
         String query = String.format(
                 "SELECT s " +
                 "FROM Store s " +
                 "WHERE s.name ='%s'", storeName);
 
-        return new JpaPagingItemReaderBuilder<Store>()
-                .entityManagerFactory(emf)
+        return new HibernateCursorItemReaderBuilder<Store>()
+                .sessionFactory(sessionFactory)
                 .queryString(query)
-                .pageSize(chunkSize)
                 .name("reader")
+                .useStatelessSession(false)
                 .build();
     }
 
