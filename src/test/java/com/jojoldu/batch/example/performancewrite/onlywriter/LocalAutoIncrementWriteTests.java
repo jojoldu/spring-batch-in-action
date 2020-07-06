@@ -72,7 +72,6 @@ public class LocalAutoIncrementWriteTests {
         }
 
         // when
-        log.info(">>>>>>>>>>> Write Start");
         writer.write(items);
 
         // then
