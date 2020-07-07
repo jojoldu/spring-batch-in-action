@@ -146,7 +146,7 @@ Merge와 달리 **Insert쿼리만 발생**한 것을 확인할 수 있습니다.
 
 테스트 결과 **약 2배** (merge: 2m 16s, persist: 1m 9s) 의 성능 차이가 발생하는 것을 확인할 수 있습니다.  
   
-Id 채번 전략이 별도로 없을 경우 압도적으로 Persist가 좋다는 것을 확인할 수 있습니다.
+Id 채번 전략이 별도로 없을 경우 Persist가 좋다는 것을 확인할 수 있습니다.
 
 ### 1-2. Auto Increment
 
@@ -198,11 +198,14 @@ public void auto_increment_test_merge() throws Exception {
 
 이번 테스트부터는 **Id 생성을 Auto Increment에 맡기기 때문에** 직접 생성하지 않도록 하였습니다.  
 
-
 위 코드를 실행해보면?
 
 ![h2-auto-merge](./images/h2-auto-merge.png)
 
+**추가 Select 쿼리 없이** Insert만 수행되는 것을 확인할 수 있습니다.  
+지정된 Id가 없으니 명확하게 새로운 Entity 임을 알 수 있기 때문에 별도의 Select 쿼리가 발생하지 않았습니다.  
+  
+그럼 Persist는 어떻게 될까요?
 
 ```java
 @Test
@@ -227,26 +230,44 @@ public void auto_increment_test_persist() throws Exception {
 }
 ```
 
+Persist 테스트 코드를 수행해보면?  
+
 ![h2-auto-persist](./images/h2-auto-persist.png)
+
+마찬가지로 **Insert쿼리만 수행**되는 것을 확인할 수 있습니다.  
 
 > Persist의 경우 **항상 새로운 객체를 저장할 때만** 사용해야 합니다.  
 > Auto Increment에서 ID가 있는 Entity를 저장할 경우 에러가 발생합니다.
 
+둘 사이에 쿼리가 차이가 없으니 실제로 성능비교를 한번 해보겠습니다.
 
 #### Auto Increment 성능 비교
 
-실제 발생하는 쿼리가 동일하니
+실제 발생하는 쿼리가 동일하니 성능 역시 비슷하게 나옵니다.
+
+**1. Merge**
 
 ![mysql-auto_merge](./images/mysql-auto_merge.png)
 
+**2. Persist**
+
 ![mysql-auto_persist](./images/mysql-auto_persist.png)
 
+
+둘의 수행속도가 비슷하니 Auto Increment인 경우에 써도 되지 않을까? 싶으실텐데요.  
+   
+실제 Merge는 **Entity 복사**를 매번 수행합니다.  
+PersistenceContext에 존재하는 것을 반환하거나 Entity의 새 인스턴스를 만듭니다.  
+어쨌든 제공된 Entity에서 상태를 복사하고 관리되는 **복사본을 반환**합니다.  
+(전달한 인스턴스는 관리되지 않습니다.)  
+  
+그래서 성능이 비슷하다 하더라도 신규 Entity를 사용할때는 Persist를 사용하는 것이 좋습니다.
 
 ## 2. Jdbc Batch Insert
 
 위 테스트들을 거치면서 한가지 의문이 있으셨을 것입니다.  
 
-* Spring Batch JpaItemWriter에서는 왜 Batch Insert (혹은 Bulk Insert) 로 처리하지 않는 것이지?  
+* JpaItemWriter는 왜 Batch Insert (혹은 Bulk Insert) 로 처리하지 않는 것이지?  
 
 일반적으로 Batch Insert라 하면 아래와 같은 쿼리를 이야기 합니다.
 
@@ -257,20 +278,20 @@ INSERT INTO person (name) VALUES
 ('name3');
 ```
 
-이렇게 할 경우 DB와 서비스간의 네트워크 통신 횟수를 비롯하여 MySQL
+이렇게 할 경우 MySQL 매커니즘으로 인해서 고성능으로 대량의 데이터를 처리할 수 있는데요.
 
 > 실제 성능 비교를 아래에서 진행합니다.
 
-JPA에서는 이런 방식을 공식인 옵션으로 지원을 하는데요.
+JPA (정확히는 Hibernate) 에서는 **Auto Increment 일 경우엔 이 방식을 지원하지 않습니다**.  
+
+물론 Auto Increment가 아닐 경우엔 아래와 같은 옵션으로 values 사이즈를 조절하여 Batch Insert를 사용할 수 있습니다.
 
 ```yml
-spring.jpa.properties.hibernate.jdbc.batch_size
+spring.jpa.properties.hibernate.jdbc.batch_size=개수
 ```
 
 * [jpa-hibernate-batch-insert-update](https://www.baeldung.com/jpa-hibernate-batch-insert-update)
 
-JPA에서는 
-JPA에서는 Auto Increment일 경우 Batch Insert가 작동하지 않습니다.  
 이는 
 
 * [Hibernate 공식문서](https://docs.jboss.org/hibernate/orm/5.4/userguide/html_single/Hibernate_User_Guide.html#batch-session-batch-insert)
@@ -289,11 +310,13 @@ IDENTITY 열의 경우 식별자 값을 알 수있는 유일한 방법은 SQL IN
 따라서 INSERT는 persist 메소드가 호출 될 때 실행되며 플러시 시간까지 비활성화 할 수 없습니다.
 이러한 이유로 Hibernate는 IDENTITY 생성기 전략을 사용하여 엔티티에 대한 JDBC 일괄 삽입을 비활성화합니다.
 
-batch 형태의 SQL로 재작성 하는 것입니다. 
+
+
+### 3-1. 성능 비교
+
 
 > 혹시나 MySQL에서 실행중인 쿼리를 확인했을때 Batch Insert 쿼리가 아니라 단일 Insert 쿼리가 실행중이라면 Spring Boot의 Jdbc-url값에 ```rewriteBatchedStatements``` 옵션 (기본값이 ```false```) 이 ```true``` 인지 확인해보시면 좋습니다.
 > 적용방법: ```jdbc:mysql:://DB주소:포트/스키마?rewriteBatchedStatements=true```
-
 
 
 ![mysql-non-jdbc](images/mysql-non-jdbc.png)
