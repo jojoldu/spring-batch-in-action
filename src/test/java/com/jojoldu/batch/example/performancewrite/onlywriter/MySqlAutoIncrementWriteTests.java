@@ -119,8 +119,5 @@ public class MySqlAutoIncrementWriteTests {
 
         // when
         writer.write(items);
-
-        // then
-        assertThat(personRepository.count()).isEqualTo(TEST_COUNT);
     }
 }

@@ -97,7 +97,7 @@ public void non_auto_increment_test_merge() throws Exception {
 기존에 해당 Id로 저장된 Entity가 있을 경우 Update를, 없을 경우엔 Insert를 실행하기 위하여 **저장하는 Entity 개수만큼 Select 쿼리가 발생**합니다.  
   
 반대로 Persist에선 어떻게 작동할까요?  
-
+  
 아래와 같이 테스트 코드를 작성하여 실행해봅니다.  
 
 ```java
@@ -146,7 +146,7 @@ Merge와 달리 **Insert쿼리만 발생**한 것을 확인할 수 있습니다.
 
 테스트 결과 **약 2배** (merge: 2m 16s, persist: 1m 9s) 의 성능 차이가 발생하는 것을 확인할 수 있습니다.  
   
-Id 채번 전략이 별도로 없을 경우 Persist가 좋다는 것을 확인할 수 있습니다.
+Id 생성 전략이 별도로 없을 경우 Persist가 좋다는 것을 확인할 수 있습니다.
 
 ### 1-2. Auto Increment
 
@@ -255,13 +255,13 @@ Persist 테스트 코드를 수행해보면?
 
 
 둘의 수행속도가 비슷하니 Auto Increment인 경우에 써도 되지 않을까? 싶으실텐데요.  
-   
+  
 실제 Merge는 **Entity 복사**를 매번 수행합니다.  
 PersistenceContext에 존재하는 것을 반환하거나 Entity의 새 인스턴스를 만듭니다.  
 어쨌든 제공된 Entity에서 상태를 복사하고 관리되는 **복사본을 반환**합니다.  
 (전달한 인스턴스는 관리되지 않습니다.)  
   
-그래서 성능이 비슷하다 하더라도 신규 Entity를 사용할때는 Persist를 사용하는 것이 좋습니다.
+그래서 성능이 비슷하다 하더라도 **신규 Entity를 생성할때는 Persist**를 사용하는 것이 좋습니다.
 
 ## 2. Jdbc Batch Insert
 
@@ -284,7 +284,9 @@ INSERT INTO person (name) VALUES
 
 JPA (정확히는 Hibernate) 에서는 **Auto Increment 일 경우엔 이 방식을 지원하지 않습니다**.  
 
-물론 Auto Increment가 아닐 경우엔 아래와 같은 옵션으로 values 사이즈를 조절하여 Batch Insert를 사용할 수 있습니다.
+* [Hibernate 공식문서](https://docs.jboss.org/hibernate/orm/5.4/userguide/html_single/Hibernate_User_Guide.html#batch-session-batch-insert)
+  
+물론 **Auto Increment가 아닐 경우**엔 아래와 같은 옵션으로 values 사이즈를 조절하여 Batch Insert를 사용할 수 있습니다.
 
 ```yml
 spring.jpa.properties.hibernate.jdbc.batch_size=개수
@@ -292,49 +294,123 @@ spring.jpa.properties.hibernate.jdbc.batch_size=개수
 
 * [jpa-hibernate-batch-insert-update](https://www.baeldung.com/jpa-hibernate-batch-insert-update)
 
-이는 
+이는 Hibernate의 매커니즘상 Entity의 Id를 알 수 없는 경우 Transactional write behind(트랜잭션을 지원하는 쓰기 지연: 트랜잭션이 커밋 될때까지 내부 쿼리저장소에 모아뒀다가 한번에 실행하는 방식)과 충돌이 발생하기 때문입니다.
 
-* [Hibernate 공식문서](https://docs.jboss.org/hibernate/orm/5.4/userguide/html_single/Hibernate_User_Guide.html#batch-session-batch-insert)
+* [Stackoverflow 답변](https://stackoverflow.com/a/27732138)
 
+예를 들어, OneToMany의 Entity를 insert할 경우 
+
+1) 부모 Entity를 insert 하고 생성된 Id 반환
+2) 자식 Entity에선 1) 에서 생성된 부모 Id를 FK 값으로 채워서 insert
+
+위 과정를 진행하는 쿼리를 모아서 실행하는게 Hibernate의 방식인데, 이때 Batch Insert과 같은 대량 등록의 경우엔 이 방식을 사용할 수가 없습니다.  
+(부모 Entity를 한번에 대량 등록하게 되면, 어느 자식 Entity가 어느 부모 Entity에 매핑되어야하는지 알 수 없겠죠?)  
+  
 그럼 ID 생성 전략을 Auto Increment가 아닌 Table (Sequence)를 선택하면 되지 않을까 생각하게 되는데요.  
 아래 글에서 자세하게 설명하고 있지만, **성능상 이슈**와 **Dead Lock에 대한 이슈**로 Auto Increment를 강력하게 추천합니다.
 
 * [Why you should never use the TABLE identifier generator with JPA and Hibernate](https://vladmihalcea.com/why-you-should-never-use-the-table-identifier-generator-with-jpa-and-hibernate/)
 
-그래서 Batch Insert가 안된다고 하여 ID 생성 전략을 변경하는 것은 더 큰 위험이 발생할 수 있습니다.  
-  
+그래서 이 포스팅에서도 Auto Increment와 직접 생성 방식에 대해서만 성능 비교를 진행해보겠습니다.
 
-엔티티가 지속될 때마다 Hibernate는 엔티티의 Map 역할을하는 현재 실행중인 지속성 컨텍스트에이를 첨부해야합니다.  
-Map 키는 엔티티 유형 (자바 클래스) 및 엔티티 ID로 구성됩니다.
-IDENTITY 열의 경우 식별자 값을 알 수있는 유일한 방법은 SQL INSERT를 실행하는 것입니다.  
-따라서 INSERT는 persist 메소드가 호출 될 때 실행되며 플러시 시간까지 비활성화 할 수 없습니다.
-이러한 이유로 Hibernate는 IDENTITY 생성기 전략을 사용하여 엔티티에 대한 JDBC 일괄 삽입을 비활성화합니다.
-
-
-
-### 3-1. 성능 비교
-
-
-> 혹시나 MySQL에서 실행중인 쿼리를 확인했을때 Batch Insert 쿼리가 아니라 단일 Insert 쿼리가 실행중이라면 Spring Boot의 Jdbc-url값에 ```rewriteBatchedStatements``` 옵션 (기본값이 ```false```) 이 ```true``` 인지 확인해보시면 좋습니다.
+> 혹시나 MySQL에서 실행중인 쿼리를 확인했을때 Batch Insert 쿼리가 아니라 단일 Insert 쿼리가 실행중이라면 Spring Boot의 Jdbc-url 설정에 ```rewriteBatchedStatements``` 옵션 (기본값이 ```false```) 이 ```true``` 인지 확인해보시면 좋습니다.
 > 적용방법: ```jdbc:mysql:://DB주소:포트/스키마?rewriteBatchedStatements=true```
 
+### 3-1. Non Auto Increment 성능
 
-![mysql-non-jdbc](images/mysql-non-jdbc.png)
+먼저 Auto Increment 가 아닐 경우의 성능을 확인해보겠습니다.
+  
+테스트할 코드는 아래와 같습니다.
+
+```java
+@Test
+public void non_auto_increment_test_jdbc() throws Exception {
+    //given
+    JdbcBatchItemWriter<Person2> writer = new JdbcBatchItemWriterBuilder<Person2>()
+            .dataSource(dataSource)
+            .sql("insert into person(id, name) values (:id, :name)")
+            .beanMapped()
+            .build();
+
+    writer.afterPropertiesSet();
+    List<Person2> items = new ArrayList<>();
+    for (long i = 0; i < TEST_COUNT; i++) {
+        items.add(new Person2(i, "foo" + i));
+    }
+
+    // when
+    writer.write(items);
+}
+```
+
+**1만건**을 요청하는 위 코드를 직접 MySQL에 요청을 해보면?
+
+![mysql-non-jdbc](./images/mysql-non-jdbc.png)
+
+**0.586초** 라는 JpaItemWriter에 비해 압도적인 성능을 보여줍니다.  
+
+### 3-2. Auto Increment 성능
+
+그럼 Auto Increment일 경우엔 어떻게 될까요?  
+
+```java
+@Test
+public void auto_increment_test_jdbc() throws Exception {
+    //given
+    JdbcBatchItemWriter<Person> writer = new JdbcBatchItemWriterBuilder<Person>()
+            .dataSource(dataSource)
+            .sql("insert into person(name) values (:name)")
+            .beanMapped()
+            .build();
+
+    writer.afterPropertiesSet();
+    List<Person> items = new ArrayList<>();
+    for (long i = 0; i < TEST_COUNT; i++) {
+        items.add(new Person( "foo" + i));
+    }
+
+    // when
+    writer.write(items);
+}
+```
+
+동일하게 1만건을 요청할 경우에도 마찬가지로 **0.561초**라는 결과를 보여줍니다.
 
 ![mysql-auto_jdbc](images/mysql-auto_jdbc.png)
 
+순수하게 단일 테이블의 등록면에 있어서는 Jdbc Batch Insert의 성능이 비교가 안될 정도로 좋다는 것을 알 수 있습니다.
 
-> 다만 한번에 몇개의 Insert Value를 만들지는 대상이 되는 MySQL의 ```max_allowed_packet```, ```Buffer Size```, ```bulk_insert_buffer_size``` 등 여러 옵션들에 따라 상이하니 적절한 성능 테스트를 통해 값을 찾아야 합니다.
+> 다만 무조건 많은 양의 row를 한번에 요청하는게 빠른 방법은 아닙니다.  
+> 한번에 몇개의 insert value를 만들지 MySQL의 ```max_allowed_packet```, ```Buffer Size```, ```bulk_insert_buffer_size``` 등 여러 옵션들에 따라 상이하니 적절한 성능 테스트를 통해 값을 찾아야 합니다.
 
 ## 3. 최종 비교
 
-| ItemWriter Mode   | Non Auto Increment | Auto Increment |
+최종적으로 Spring Batch ItemWriter들의 성능을 비교하면 다음과 같습니다.
+
+| ItemWriter Mode   | Non Auto Increment (10,000 row) | Auto Increment (10,000 row) |
 |-------------------|--------------------|----------------|
 | Jpa.Merge         | 2m 16s             | 1m 1s          |
 | Jpa.Persist       | 1m 9s              | 1m 2s          |
 | Jdbc Batch Insert | 0.586s             | 0.586s         |
 
 
+순수하게 **단일 테이블**에 대량으로 등록할 경우 Jdbc의 Batch Insert 방식이 압도적인 성능을 보여줍니다.  
+다만, 무조건 Jdbc Batch Insert 방식을 사용하기엔 아래와 같은 단점들이 있습니다.
+
+* OneToMany, ManyToMany와 같이 복잡한 Entity 관계가 insert가 필요할 경우 직접 구현해야할 부분이 너무나 많이 존재
+* 컴파일체크, 타입힌트, 자동완성등 유지보수가 어려운 개발 환경
+
+그래서 다음과 같이 **혼합 방식**을 선택하기도 합니다.  
+  
+이를 테면 OneToMany의 관계가 등록이 필요할 경우 
+
 * 부모 Entity는 JpaItemWriter를 이용하여 ChunkSize별로 저장하여 PK값과 Entity를 확보
 * PK가 확보된 부모 Entity를 통해 자식 Entity들을 생성 (부모 ID값을 갖고 생성)
-* 자식 Entity들은 JdbcItemWriter를 통해 Bulk Insert
+* 자식 Entity들은 JdbcItemWriter를 통해 Jdbc Batch Insert
+
+와 같이 구현해서 처리하기도 합니다.  
+  
+결국 성능과 유지보수 사이에서 어느것을 좀 더 우선 순위에 둘 것이냐에 따라 개발자 본인이 선택하면 될 것 같습니다.  
+  
+이후에는 최대한 Jdbc Batch Insert를 쉽게 사용할 수 있는 방법을 정리해보겠습니다.  
+긴 글 끝까지 봐주셔서 감사합니다.
