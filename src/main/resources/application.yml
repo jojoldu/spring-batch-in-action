@@ -31,9 +31,6 @@ spring:
       password:
       driver-class-name: org.h2.Driver
       auto-commit: false
-      idleTimeout: 10000      #10s
-      maxLifetime: 180000     #3m
-      maximumPoolSize: 5
 
 logging:
   level:
@@ -59,6 +56,6 @@ spring:
       password: passwd
       driver-class-name: org.mariadb.jdbc.Driver
       auto-commit: false
-      idleTimeout: 600000      #10m
-      maxLifetime: 1800000     #30m
-      maximumPoolSize: 10
+      idleTimeout: 30000      #30s
+      maxLifetime: 58000     #58s
+      connectionTimeout: 3000 # 3s
