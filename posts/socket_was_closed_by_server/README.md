@@ -1,6 +1,6 @@
 # Spring Batch 사용시 socket was closed by server 발생한다면
 
-
+AWS 이관 
 
 ```java
 Caused by: java.io.EOFException: unexpected end of stream, read 0 bytes from 4 (socket was closed by server)
@@ -16,3 +16,7 @@ MySQL은 기본적으로 자신에게 맺어진 커넥션 중 일정 시간이�
 * HikariCP maxLifeTime: Connection Pool레벨에서 maxLifeTime이 지나도록 idle 상태인 connection 객체를 pool에서 제거합니다.
 * MySQL wait_timeout: MySQL DBMS에서 wait_timeout 시간이 지나도록 사용하지 않은 Connection에 대해 Connection 연결을 해제합니다.
     * 사용하지 않았다는 의미는 Connection을 이용하여 어떠한 Query도 실행하지 않았음을 의미합니다.
+
+
+> pkgonan님이 작성하신 [HikariCP는 test-while-idle과 같은 커넥션 갱신 기능이 없을까?s](https://pkgonan.github.io/2018/04/HikariCP-test-while-idle)를 꼭 정독해보시길 추천드립니다.  
+> (너무 좋은 글입니다.)  
