@@ -22,16 +22,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Github : http://github.com/jojoldu
  */
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {TestBatchConfig.class, SocketCloseJobConfiguration.class})
+@SpringBootTest(classes = {TestBatchConfig.class, SocketCloseTaskletJobConfiguration.class})
 @SpringBatchTest
 @ActiveProfiles(profiles = "dev")
-public class RealSocketCloseConfigurationTest {
+public class RealSocketCloseTaskletConfigurationTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
 
     @Test
-    public void Reader_타임아웃발생() throws Exception {
+    public void Tasklet_타임아웃발생() throws Exception {
         //given
         JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
                 .toJobParameters();
