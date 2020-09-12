@@ -23,6 +23,18 @@ MySQL은 기본적으로 자신에게 맺어진 커넥션 중 일정 시간이�
 
 
 
+## socket Time out
+
+
+* ```socketTimeout=120000``` (120초)
+* ```maxLifetime: 58000``` (58초)
+* ```wait_timeout: 60``` (60초)
+
+
+```java
+Communications link failure with primary host settler-beta.cluster-cdfmjscyqe71.ap-northeast-2.rds.amazonaws.com:6025. Connection timed out
+```
+
 ## Reader의 조회는 이미 60초를 초과했는데?
 
 maxLifetime은 사용하지 않는 커넥션 한정으로 적용

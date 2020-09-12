@@ -82,7 +82,8 @@ public class SocketCloseJobConfiguration {
         queryProvider.setDataSource(dataSource);
         queryProvider.setSelectClause("id, name");
         queryProvider.setFromClause("FROM store");
-        queryProvider.setWhereClause("WHERE name :name AND SLEEP(60)=0"); // 1개 조회시마다 sleep(60) => 즉, 60초
+        queryProvider.setWhereClause("WHERE name=:name AND SLEEP(121)=0"); // 1개 조회시마다 sleep(61) => 즉, 61초
+        queryProvider.setSortKey("id");
 
         return queryProvider.getObject();
     }
