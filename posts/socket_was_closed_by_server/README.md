@@ -20,3 +20,7 @@ MySQL은 기본적으로 자신에게 맺어진 커넥션 중 일정 시간이�
 
 > pkgonan님이 작성하신 [HikariCP는 test-while-idle과 같은 커넥션 갱신 기능이 없을까?s](https://pkgonan.github.io/2018/04/HikariCP-test-while-idle)를 꼭 정독해보시길 추천드립니다.  
 > (너무 좋은 글입니다.)  
+
+
+
+## Reader의 조회는 이미 60초를 초과했는데?
