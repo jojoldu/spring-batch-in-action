@@ -35,7 +35,7 @@ public class SocketCloseTaskletJobConfiguration {
     public Step step() {
         return stepBuilderFactory.get(BEAN_PREFIX+"_step")
                 .tasklet((contribution, chunkContext) -> {
-                    Thread.sleep(60000); // Tasklet만으로 60초
+                    Thread.sleep(60_000); // Tasklet만으로 60초
                     return RepeatStatus.FINISHED;
                 })
                 .build();
