@@ -9,22 +9,21 @@ Caused by: java.io.EOFException: unexpected end of stream, read 0 bytes from 4 (
 ![cause](./images/cause.png)
 
 MySQL은 기본적으로 자신에게 맺어진 커넥션 중 일정 시간이상 사용하지 않은 커넥션을 종료하는 프로세스가 존재합니다.  
-(```show global variables like 'wait_timeout';``` 으로 확인할 수 있고 default 8시간)
+
 
 이를 위해 기존 커넥션풀은 대부분 연결을 맺은 커넥션들이 끊기는 것을 방지하기 위해 ```SELECT 1``` 등의 validation query를 주기적으로 날려 이 문제를 회피하는 반면 HikariCP는 maxLifetime 설정값에 따라 스스로 미사용된 커넥션을 제거하고 새로 생성하는 방식으로 동작한다고 합니다.
 
 * ```wait_timeout``` (MySQL)
-  * MySQL 와 클라이언트 가 연결을 맺은 후, 다음 쿼리까지 기다리는
-최대 시간을 의미합니다.
+  * MySQL과 클라이언트가 연결을 맺은 후, **다음 쿼리까지 기다리는 최대 시간**을 의미합니다.
   * MySQL에 연결된 클라이언트 (여기서는 WAS등)가 지정된 wait_timeout 시간 동안 쿼리 요청이 없는 경우 MySQL은 해당 커넥션(connection) 을 강제로 종료해버립니다.
   * 기본값은 28800이며, 단위는 초(s) 라서 실제 기본 값은 8시간입니다.
+    * ```show global variables like 'wait_timeout';``` 로 확인 할 수 있습니다.
 * ```maxLifeTime``` (HikariCP)
   * 커넥션 풀에서 살아있을 수 있는 커넥션의 최대 수명시간. 
-  * 사용중인 커넥션은 maxLifetime에 상관없이 제거되지않음. 
+  * 사용중인 커넥션은 maxLifetime에 상관없이 **제거되지 않음**. 
     * 사용중이지 않을 때만 제거됨.
-    * 
-  * 풀 전체가아닌 커넥션 별로 적용이되는데 그 이유는 풀에서 대량으로 커넥션들이 제거되는 것을 방지하기 위함
-  * 기본값은 1800000이며, 단위는 초(ms) 라서 실제 기본 값은 30분입니다.
+  * 커넥션 풀 (Connection Pool) 전체가 아닌 커넥션 별로 적용이되는데 그 이유는 풀에서 대량으로 커넥션들이 제거되는 것을 방지하기 위함
+  * 기본값은 1800000이며, 단위는 초(ms)라서 실제 기본 값은 30분입니다.
     * 0으로 지정하시면 무한대가 됩니다 (주의)
   * Connection Pool레벨에서 maxLifeTime이 지나도록 idle 상태인 connection 객체를 pool에서 제거합니다.
     * 사용하지 않았다는 의미는 Connection을 이용하여 어떠한 Query도 실행하지 않았음을 의미합니다.
@@ -41,6 +40,14 @@ logging:
 ![hikaripool-log](./images/hikaripool-log.png)
 
 > HouseKeeper란 HikariCP에서 사용하는 Connection Pool 관리 Thread입니다.
+
+## Socket was closed by server
+
+
+### Processor에서 오래걸릴 경우
+
+![processor_1](./images/processor_1.png)
+
 
 
 ## Reader / Processor / Writer에서 DB를 사용하지 않을때
