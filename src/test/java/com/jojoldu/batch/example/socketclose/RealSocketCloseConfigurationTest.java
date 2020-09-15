@@ -1,6 +1,9 @@
 package com.jojoldu.batch.example.socketclose;
 
 import com.jojoldu.batch.TestBatchConfig;
+import com.jojoldu.batch.entity.product.Store;
+import com.jojoldu.batch.entity.product.StoreRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.batch.core.BatchStatus;
@@ -24,15 +27,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {TestBatchConfig.class, SocketCloseJobConfiguration.class})
 @SpringBatchTest
-@ActiveProfiles(profiles = "dev")
+@ActiveProfiles(profiles = "real")
 public class RealSocketCloseConfigurationTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
 
+    @Autowired
+    private StoreRepository storeRepository;
+
+    @AfterEach
+    void after() {
+        storeRepository.deleteAll();
+    }
+
     @Test
     public void Reader_타임아웃발생() throws Exception {
         //given
+        storeRepository.save(new Store("jojoldu"));
+
         JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
                 .toJobParameters();
 

@@ -1,9 +1,6 @@
 package com.jojoldu.batch.example.socketclose;
 
-import com.jojoldu.batch.entity.pay.Pay;
-import com.jojoldu.batch.entity.pay.Pay2;
 import com.jojoldu.batch.entity.product.Store;
-import com.jojoldu.batch.entity.product.backup.StoreBackup;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -11,7 +8,6 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.PagingQueryProvider;
@@ -56,6 +52,7 @@ public class SocketCloseJobConfiguration {
         return stepBuilderFactory.get(BEAN_PREFIX+"_step")
                 .<Store, Store>chunk(chunkSize)
                 .reader(reader())
+//                .listener(new SocketCloseReaderListener())
                 .processor(processor())
                 .writer(writer())
                 .build();
