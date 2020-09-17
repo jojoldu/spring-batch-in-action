@@ -52,7 +52,7 @@ public class SocketCloseJobConfiguration {
         return stepBuilderFactory.get(BEAN_PREFIX+"_step")
                 .<Store, Store>chunk(chunkSize)
                 .reader(reader())
-//                .listener(new SocketCloseReaderListener())
+                .listener(new SocketCloseReaderListener())
                 .processor(processor())
                 .writer(writer())
                 .build();
