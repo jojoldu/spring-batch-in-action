@@ -9,7 +9,8 @@ import org.springframework.batch.core.ItemReadListener;
  * Github : http://github.com/jojoldu
  */
 @Slf4j
-public class SocketCloseReaderListener<Store> implements ItemReadListener {
+public class SocketCloseReaderListener<T> implements ItemReadListener<T> {
+
     @Override
     public void beforeRead() {
         log.info("beforeRead start");

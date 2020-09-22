@@ -52,7 +52,7 @@ public class SocketCloseJobConfiguration {
         return stepBuilderFactory.get(BEAN_PREFIX+"_step")
                 .<Store, Store>chunk(chunkSize)
                 .reader(reader())
-                .listener(new SocketCloseReaderListener())
+//                .listener(new SocketCloseReaderListener<>())
                 .processor(processor())
                 .writer(writer())
                 .build();
@@ -96,7 +96,7 @@ public class SocketCloseJobConfiguration {
         queryProvider.setDataSource(dataSource);
         queryProvider.setSelectClause("id, name");
         queryProvider.setFromClause("FROM store");
-        queryProvider.setWhereClause("WHERE name=:name AND SLEEP(1)=0"); // 1개 조회시마다 sleep(65) => 즉, 65초
+        queryProvider.setWhereClause("WHERE name=:name AND SLEEP(70)=0"); // 1개 조회시마다 sleep(70) => 즉, 70초
         queryProvider.setSortKey("id");
 
         return queryProvider.getObject();

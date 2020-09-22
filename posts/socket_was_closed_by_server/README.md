@@ -18,6 +18,9 @@ MySQL은 기본적으로 자신에게 맺어진 커넥션 중 일정 시간이�
   * MySQL에 연결된 클라이언트 (여기서는 WAS등)가 지정된 wait_timeout 시간 동안 쿼리 요청이 없는 경우 MySQL은 해당 커넥션(connection) 을 강제로 종료해버립니다.
   * 기본값은 28800이며, 단위는 초(s) 라서 실제 기본 값은 8시간입니다.
     * ```show global variables like 'wait_timeout';``` 로 확인 할 수 있습니다.
+
+![wait_timeout](./images/wait_timeout.png)
+
 * ```maxLifeTime``` (HikariCP)
   * 커넥션 풀에서 살아있을 수 있는 커넥션의 최대 수명시간. 
   * 사용중인 커넥션은 maxLifetime에 상관없이 **제거되지 않음**. 
