@@ -1,4 +1,4 @@
-# Spring Batch 사용시 socket was closed by server 발생한다면
+# Spring Batch 사용시 "socket was closed by server" 발생시
 
 AWS 이관 
 
@@ -43,6 +43,12 @@ logging:
 ![hikaripool-log](./images/hikaripool-log.png)
 
 > HouseKeeper란 HikariCP에서 사용하는 Connection Pool 관리 Thread입니다.
+
+
+
+**이전에 사용한 이력이 있으며, close 되지 않았으며, 현재 다른 쓰레드에서 사용하지 않는 connection**일 경우 해당 connection을 재사용 합니다.
+
+[우아한형제들 기술 블로그 - HikariCP Dead lock에서 벗어나기 (이론편)](https://woowabros.github.io/experience/2020/02/06/hikaricp-avoid-dead-lock.html)
 
 ## Socket was closed by server
 

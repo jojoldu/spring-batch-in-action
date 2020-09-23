@@ -25,7 +25,7 @@ public class SocketCloseTaskletJobConfiguration {
     private final StepBuilderFactory stepBuilderFactory;
 
     @Bean(BEAN_PREFIX+"_job")
-    public Job job() throws Exception {
+    public Job job(){
         return jobBuilderFactory.get(BEAN_PREFIX+"_job")
                 .start(step())
                 .build();

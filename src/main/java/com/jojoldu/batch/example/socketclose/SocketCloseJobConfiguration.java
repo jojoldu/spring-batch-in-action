@@ -60,16 +60,16 @@ public class SocketCloseJobConfiguration {
 
     @Bean(BEAN_PREFIX+"_reader")
     public JdbcPagingItemReader<Store> reader() throws Exception {
-        Map<String, Object> parameterValues = new HashMap<>();
-        parameterValues.put("name", "jojoldu");
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", "jojoldu");
 
         return new JdbcPagingItemReaderBuilder<Store>()
                 .pageSize(chunkSize)
                 .fetchSize(chunkSize)
                 .dataSource(dataSource)
                 .rowMapper(new BeanPropertyRowMapper<>(Store.class))
-                .queryProvider(createQueryProvider())
-                .parameterValues(parameterValues)
+                .queryProvider(queryProvider())
+                .parameterValues(params)
                 .name(BEAN_PREFIX+"_reader")
                 .build();
     }
@@ -77,7 +77,7 @@ public class SocketCloseJobConfiguration {
     public ItemProcessor<Store, Store> processor() {
         return item -> {
             log.info("processor start");
-            Thread.sleep(70_000);// 2.5% 버퍼 대비 넉넉하게 70초로
+            Thread.sleep(120_000);// 2.5% 버퍼 대비 넉넉하게 70초로
             log.info("processor end");
             return item;
         };
@@ -91,12 +91,12 @@ public class SocketCloseJobConfiguration {
     }
 
     @Bean
-    public PagingQueryProvider createQueryProvider() throws Exception {
+    public PagingQueryProvider queryProvider() throws Exception {
         SqlPagingQueryProviderFactoryBean queryProvider = new SqlPagingQueryProviderFactoryBean();
         queryProvider.setDataSource(dataSource);
         queryProvider.setSelectClause("id, name");
         queryProvider.setFromClause("FROM store");
-        queryProvider.setWhereClause("WHERE name=:name AND SLEEP(70)=0"); // 1개 조회시마다 sleep(70) => 즉, 70초
+        queryProvider.setWhereClause("WHERE name=:name AND SLEEP(0)=0"); // 1개 조회시마다 sleep(70) => 즉, 70초
         queryProvider.setSortKey("id");
 
         return queryProvider.getObject();
