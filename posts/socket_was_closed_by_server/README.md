@@ -50,7 +50,28 @@ logging:
 
 [우아한형제들 기술 블로그 - HikariCP Dead lock에서 벗어나기 (이론편)](https://woowabros.github.io/experience/2020/02/06/hikaricp-avoid-dead-lock.html)
 
+
+
+### 중간에 다시 query가 실행되면?
+
+```java
+  public ItemProcessor<Store, Store> processor() {
+      return item -> {
+          log.info("processor start");
+          Thread.sleep(50_000);// 50초
+
+          storeRepository.findById(1L);
+          log.info("connection refresh");
+          
+          Thread.sleep(50_000);// 50초
+          log.info("processor end");
+          return item;
+      };
+  }
+```
+
 ## Socket was closed by server
+
 
 
 ### Processor에서 오래걸릴 경우

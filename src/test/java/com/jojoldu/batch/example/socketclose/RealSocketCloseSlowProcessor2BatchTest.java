@@ -25,10 +25,10 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Github : http://github.com/jojoldu
  */
 @ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = {TestBatchConfig.class, SocketCloseJobConfiguration.class})
+@SpringBootTest(classes = {TestBatchConfig.class, SocketCloseSlowProcessor2Batch.class})
 @SpringBatchTest
 @ActiveProfiles(profiles = "real")
-public class RealSocketCloseConfigurationTest {
+public class RealSocketCloseSlowProcessor2BatchTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
