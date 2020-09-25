@@ -76,7 +76,7 @@ public class SocketCloseSlowProcessorBatch {
     public ItemProcessor<Store, Store> processor() {
         return item -> {
             log.info("processor start");
-            Thread.sleep(100_000);// 2.5% 버퍼 대비 넉넉하게 100초로
+            Thread.sleep(150_000);// 2.5% 버퍼 대비 넉넉하게 100초로
             log.info("processor end");
             return item;
         };

@@ -79,9 +79,15 @@ public class SocketCloseSlowProcessor2Batch {
         return item -> {
             log.info("processor start");
             Thread.sleep(50_000);// 50초
+
             storeRepository.findById(1L);
-            log.info("connection refresh");
+            log.info("connection refresh1");
             Thread.sleep(50_000);// 50초
+
+            storeRepository.findById(1L);
+            log.info("connection refresh2");
+            Thread.sleep(50_000);// 50초
+
             log.info("processor end");
             return item;
         };

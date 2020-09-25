@@ -42,7 +42,7 @@ public class RealSocketCloseSlowProcessorBatchTest {
     }
 
     @Test
-    public void Reader_타임아웃발생() throws Exception {
+    public void processor가_waittimeout_보다_길면_실패한다() throws Exception {
         //given
         storeRepository.save(new Store("jojoldu"));
 
