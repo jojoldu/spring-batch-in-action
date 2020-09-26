@@ -1,6 +1,6 @@
 # Spring Batch 사용시 "socket was closed by server" 발생시
 
-AWS 이관 
+AWS 이관을 진행하면서 
 
 ```java
 Caused by: java.io.EOFException: unexpected end of stream, read 0 bytes from 4 (socket was closed by server)
@@ -8,7 +8,7 @@ Caused by: java.io.EOFException: unexpected end of stream, read 0 bytes from 4 (
 
 ![cause](./images/cause.png)
 
-MySQL은 기본적으로 자신에게 맺어진 커넥션 중 일정 시간이상 사용하지 않은 커넥션을 종료하는 프로세스가 존재합니다.  
+MySQL은 기본적으로 자신에게 맺어진 커넥션 중 일정 시간 이상 사용하지 않은 커넥션을 종료하는 프로세스가 존재합니다.  
 
 
 이를 위해 기존 커넥션풀은 대부분 연결을 맺은 커넥션들이 끊기는 것을 방지하기 위해 ```SELECT 1``` 등의 validation query를 주기적으로 날려 이 문제를 회피하는 반면 HikariCP는 maxLifetime 설정값에 따라 스스로 미사용된 커넥션을 제거하고 새로 생성하는 방식으로 동작한다고 합니다.
@@ -54,21 +54,51 @@ logging:
 
 ### 중간에 다시 query가 실행되면?
 
-```java
-  public ItemProcessor<Store, Store> processor() {
-      return item -> {
-          log.info("processor start");
-          Thread.sleep(50_000);// 50초
+여기서 한가지 의문이 드실 분이 계실텐데요.  
+"음? 우리 프로젝트는 chunk 처리 시간이 wait_timeout보다 길어도 실패하지 않았는데?"  
+  
+  
 
-          storeRepository.findById(1L);
-          log.info("connection refresh");
-          
-          Thread.sleep(50_000);// 50초
-          log.info("processor end");
-          return item;
-      };
-  }
+그럼 무조건 Chunk 처리는 wait_timeout 보다 짧은 시간안에 처리되어야할까요?  
+processor 코드를 아래와 같이 **DB에 쿼리를 요청하는 코드**를 50초 단위로 호출해봅니다.
+
+> 50초는 MySQL의 ```wait_timeout``` (60초) 보다 짧은 시간입니다.
+
+
+```java
+private final StoreRepository storeRepository;
+
+...
+
+public ItemProcessor<Store, Store> processor() {
+    return item -> {
+        log.info("processor start");
+        Thread.sleep(50_000);// 50초
+
+        storeRepository.findById(1L);
+        log.info("connection refresh1");
+        Thread.sleep(50_000);// 50초
+
+        storeRepository.findById(1L);
+        log.info("connection refresh2");
+        Thread.sleep(50_000);// 50초
+
+        log.info("processor end");
+        return item;
+    };
+}
 ```
+
+앞선 테스트와 마찬가지로 **Processor에서 총 처리시간은 150초**입니다.  
+
+
+![test-success](./images/test-success.png)
+
+
+### MySQL Connection 모니터링
+
+
+![mysql-connection](./images/mysql-connection.png)
 
 ## Socket was closed by server
 
