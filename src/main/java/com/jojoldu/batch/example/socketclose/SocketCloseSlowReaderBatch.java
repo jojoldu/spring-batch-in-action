@@ -7,7 +7,6 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.batch.item.database.PagingQueryProvider;
@@ -53,7 +52,6 @@ public class SocketCloseSlowReaderBatch {
                 .<Store, Store>chunk(chunkSize)
                 .reader(reader())
                 .listener(new SocketCloseReaderListener<>())
-                .processor(processor())
                 .writer(writer())
                 .build();
     }
@@ -74,14 +72,6 @@ public class SocketCloseSlowReaderBatch {
                 .build();
     }
 
-    public ItemProcessor<Store, Store> processor() {
-        return item -> {
-            log.info("processor start");
-            log.info("processor end");
-            return item;
-        };
-    }
-
     @Bean(BEAN_PREFIX+"_writer")
     public JpaItemWriter<Store> writer() {
         return new JpaItemWriterBuilder<Store>()
@@ -95,7 +85,7 @@ public class SocketCloseSlowReaderBatch {
         queryProvider.setDataSource(dataSource);
         queryProvider.setSelectClause("id, name");
         queryProvider.setFromClause("FROM store");
-        queryProvider.setWhereClause("WHERE name=:name AND SLEEP(0)=0"); // 1개 조회시마다 sleep(120) => 즉, 120초
+        queryProvider.setWhereClause("WHERE name=:name");
         queryProvider.setSortKey("id");
 
         return queryProvider.getObject();

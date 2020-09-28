@@ -1,7 +1,6 @@
 package com.jojoldu.batch.example.socketclose;
 
 import com.jojoldu.batch.entity.product.Store;
-import com.jojoldu.batch.entity.product.StoreRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -18,7 +17,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
-import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,8 +36,6 @@ public class SocketCloseSlowWriterBatch {
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final DataSource dataSource; // DataSource DI
-    private final EntityManagerFactory emf;
-    private final StoreRepository storeRepository;
 
     @Bean(BEAN_PREFIX+"_job")
     public Job job() throws Exception {
@@ -94,7 +90,7 @@ public class SocketCloseSlowWriterBatch {
         queryProvider.setDataSource(dataSource);
         queryProvider.setSelectClause("id, name");
         queryProvider.setFromClause("FROM store");
-        queryProvider.setWhereClause("WHERE name=:name AND SLEEP(0)=0"); // 1개 조회시마다 sleep(0) => 즉, 0초
+        queryProvider.setWhereClause("WHERE name=:name");
         queryProvider.setSortKey("id");
 
         return queryProvider.getObject();
