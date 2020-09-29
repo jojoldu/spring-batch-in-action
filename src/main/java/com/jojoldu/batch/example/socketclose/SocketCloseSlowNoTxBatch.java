@@ -14,12 +14,14 @@ import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
+import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.batch.support.transaction.ResourcelessTransactionManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
 import javax.sql.DataSource;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -57,20 +59,25 @@ public class SocketCloseSlowNoTxBatch {
                 .build();
     }
 
-    @Bean(BEAN_PREFIX+"_reader")
-    public JdbcPagingItemReader<Store> reader() throws Exception {
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "jojoldu");
+//    @Bean(BEAN_PREFIX+"_reader")
+//    public JdbcPagingItemReader<Store> reader() throws Exception {
+//        Map<String, Object> params = new HashMap<>();
+//        params.put("name", "jojoldu");
+//
+//        return new JdbcPagingItemReaderBuilder<Store>()
+//                .pageSize(chunkSize)
+//                .fetchSize(chunkSize)
+//                .dataSource(dataSource)
+//                .rowMapper(new BeanPropertyRowMapper<>(Store.class))
+//                .queryProvider(queryProvider())
+//                .parameterValues(params)
+//                .name(BEAN_PREFIX+"_reader")
+//                .build();
+//    }
 
-        return new JdbcPagingItemReaderBuilder<Store>()
-                .pageSize(chunkSize)
-                .fetchSize(chunkSize)
-                .dataSource(dataSource)
-                .rowMapper(new BeanPropertyRowMapper<>(Store.class))
-                .queryProvider(queryProvider())
-                .parameterValues(params)
-                .name(BEAN_PREFIX+"_reader")
-                .build();
+    @Bean(BEAN_PREFIX+"_reader")
+    public ListItemReader<Store> reader() throws Exception {
+        return new ListItemReader<>(Arrays.asList(new Store("jojoldu")));
     }
 
     public ItemProcessor<Store, Store> processor() {

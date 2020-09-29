@@ -1,4 +1,4 @@
-# Spring Batch 사용시 "socket was closed by server" 발생시
+# Spring Batch에서 socket was closed by server 발생시
 
 시스템 이관을 진행하면서 각종 설정들이 기존 설정들과 달라 운영 테스트에서 여러 이슈를 만나게 되는데요.  
   
@@ -96,7 +96,9 @@ logging:
 
 * MySQL ```wait_timeout```: 60초
 * HikariCP ```maxLifetime```: 58초
-  * 위에서 공유 드린 [pkgonan님의 글](https://pkgonan.github.io/2018/04/HikariCP-test-while-idle) 에서 소개 되었지만 HikariCP는 **max-lifetime를 wait_timeout 설정보다 2~3초 정도 짧게 줄 것**을 권고하고 있어 58초로 설정하였습니다.
+  * 위에서 공유 드린 [pkgonan님의 글](https://pkgonan.github.io/2018/04/HikariCP-test-while-idle) 에서 소개 되었지만 HikariCP는 **max-lifetime를 wait_timeout 설정보다 2~3초 정도 짧게 줄 것**을 권고하고 있어 60초보다 2초 짧은 58초로 설정하였습니다.
+
+### 3-1. Processor가 timeout보다 오래 수행될 때 (추가 쿼리 X)
 
 먼저 의도한대로 에러가 발생하는지 확인하기 위해 아래와 같은 배치 코드를 사용하겠습니다.
 
@@ -140,7 +142,7 @@ public class SocketCloseSlowProcessorBatch {
     public ItemProcessor<Store, Store> processor() {
         return item -> {
             log.info("processor start");
-            Thread.sleep(150_000);// 2.5% 버퍼 대비 넉넉하게 100초로
+            Thread.sleep(150_000);// 2.5% 버퍼 대비 넉넉하게 150초로
             log.info("processor end");
             return item;
         };
@@ -155,46 +157,129 @@ public class SocketCloseSlowProcessorBatch {
 }
 ```
 
-그리고 이를 테스트할 코드는 아래와 같습니다.
+여기서 주요하게 보셔야 할 코드는 Processor와 Writer인데요.  
+  
+**Processor**
 
 ```java
-    @Test
-    public void processor가_waittimeout_보다_길면_실패한다() throws Exception {
-        //given
-        storeRepository.save(new Store("jojoldu"));
-
-        JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
-                .toJobParameters();
-
-        //when
-        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
-
-        //then
-        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
-    }
+public ItemProcessor<Store, Store> processor() {
+    return item -> {
+        log.info("processor start");
+        Thread.sleep(150_000);// 2.5% 버퍼 대비 넉넉하게 150초로
+        log.info("processor end");
+        return item;
+    };
+}
 ```
 
+설정된 ```wait_timeout```, ```maxLifetime``` 보다 한참 초과된 시간을 processor에서 사용하도록 설정한 상태입니다.  
 
-> Chunk 지향 처리에 대해서 좀 더 자세히 알고 싶으신 분들은 이전에 작성한 [Chunk 지향 처리](https://jojoldu.tistory.com/331) 를 참고해보시면 좋습니다.
+> Processor가 한번만 수행되도록 Reader에서는 1개의 row만 조회되도록 설정된 상태입니다.
 
-**이전에 사용한 이력이 있으며, close 되지 않았으며, 현재 다른 쓰레드에서 사용하지 않는 connection**일 경우 해당 connection을 재사용 합니다.
+**Writer**
 
-[우아한형제들 기술 블로그 - HikariCP Dead lock에서 벗어나기 (이론편)](https://woowabros.github.io/experience/2020/02/06/hikaricp-avoid-dead-lock.html)
+```java
+@Bean(BEAN_PREFIX+"_writer")
+public JpaItemWriter<Store> writer() {
+    return new JpaItemWriterBuilder<Store>()
+            .entityManagerFactory(emf)
+            .build();
+}
+```
 
-
-
-### 중간에 다시 query가 실행되면?
-
-여기서 한가지 의문이 드실 분이 계실텐데요.  
-"음? 우리 프로젝트는 chunk 처리 시간이 wait_timeout보다 길어도 실패하지 않았는데?"  
+그리고 Processor에서 설정된 timeout들 보다 초과된 이후에 DB를 사용가능한지 확인하기 위해 ```JpaItemWriter``` 를 사용하였습니다.  
   
+이를 검증하기 위한 테스트 코드는 아래와 같습니다.
+
+```java
+@Test
+public void processor가_waittimeout_보다_길면_실패한다() throws Exception {
+    //given
+    storeRepository.save(new Store("jojoldu")); // 1개만 조회되도록
+
+    JobParameters jobParameters = new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())
+            .toJobParameters();
+
+    //when
+    JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
+
+    //then
+    assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+}
+```
+
+실제로 테스트를 수행해보면?
+
+![test-fail](./images/test-fail.png)
+
+아래와 같은 에러 메세지와 함께 테스트가 실패함을 확인할 수 있습니다.
+
+```java
+PreparedStatementCallback; SQL [insert into store(name) values (?)]; (conn=322) (conn=322) unexpected end of stream, read 0 bytes from 4 (socket was closed by server); 
+```
+
+자 그럼 위 코드들을 기반으로 하여 자세히 살펴보겠습니다.  
   
+Spring Batch는 기본적으로 [Chunk 단위로 트랜잭션](https://jojoldu.tistory.com/331)이 수행됩니다.  
+  
+그래서 위 코드의 경우 처음 시작시 아래와 같은 상태가 되는데요.
 
-그럼 무조건 Chunk 처리는 wait_timeout 보다 짧은 시간안에 처리되어야할까요?  
-processor 코드를 아래와 같이 **DB에 쿼리를 요청하는 코드**를 50초 단위로 호출해봅니다.
+![processor1](./images/processor1.png)
 
-> 50초는 MySQL의 ```wait_timeout``` (60초) 보다 짧은 시간입니다.
+Reader까지는 지속적으로 쿼리가 수행된 이후에 Processor 단계가 되면 Processor 코드에서 wait_timeout을 초과하여 수행됩니다.  
+  
+이로 인해 HikariCP의 Connection 객체는 active 상태이지만 MySQL과의 Connection은 MySQL 프로세스로 인해 Close가 된 상태가 됩니다.
 
+![processor2](./images/processor2.png)
+
+150초가 지나 Processor 가 끝난뒤, Writer가 실행되는 시점에서 HikariCP의 Connection을 이용하여 Save 쿼리를 요청하는데요.  
+**이전에 사용한 이력이 있으며, close 되지 않았으며, 현재 다른 쓰레드에서 사용하지 않는 connection**일 경우 해당 Connection을 재사용 하다보니 이미 Close된 상태로 인해 Exception이 발생하게 됩니다.
+
+![processor3](./images/processor3.png)
+
+> HikariCP의 자세한 작동 방법은 [우아한형제들 기술 블로그 - HikariCP Dead lock에서 벗어나기 (이론편)](https://woowabros.github.io/experience/2020/02/06/hikaricp-avoid-dead-lock.html)를 참고해보시면 좋습니다.
+
+실제로 이렇게 작동하는지 확인하기 위해 RDS의 모니터링을 보면 **1개의 Connection이 먼저 Close 되고** (Processor 150초 수행되는 동안) 이후 Batch 종료로 인해 전체 Connection이 종료되는 것을 확인할 수 있습니다.
+
+![mysql-connection1](./images/mysql-connection1.png)
+
+자 그럼 만약에 Writer에서 DB를 사용하지 않으면 어떻게 될까요?
+
+### 3-2. Writer가 DB를 사용하지 않을때
+
+위 배치 코드에서 Writer 부분만 아래와 같이 **DB를 사용하지 않는 코드**로 변경해보겠습니다.
+
+```java
+@Bean(BEAN_PREFIX+"_writer")
+public ItemWriter<Store> writer() {
+    return items -> log.info("items.size={}", items.size());
+}
+```
+
+그리고 다시 테스트를 수행해보면?
+
+![test-fail-writer](./images/test-fail-writer.png)
+
+아래와 같이 **Step Execution 등 메타 테이블의 쓰기 작업**으로 인해 실패되는 것을 확인해 볼 수 있습니다.
+
+```java
+DataAccessResourceFailureException: PreparedStatementCallback; SQL [UPDATE BATCH_STEP_EXECUTION_CONTEXT SET SHORT_CONTEXT = ?, SERIALIZED_CONTEXT = ? WHERE STEP_EXECUTION_ID = ?]; (conn=87) (conn=87) unexpected end of stream, read 0 bytes from 4 (socket was closed by server);
+```
+
+즉, 이미 Processor가 ```wait_timeout```을 초과한 시점에는 이후 DB작업들은 어떤 것들이라도 실패하는 것을 확인할 수 있는데요.  
+Writer가 DB를 쓰지 않더라도, Spring Batch 내부에서 작동하는 Chunk 단위의 쓰기 작업 (Step Execution 등)으로 인해 실패할 수 밖에 없습니다.  
+  
+### 3-3. Processor가 timeout보다 오래 수행될 때 (추가 쿼리 O)
+
+자 여기서 한가지 의문이 드실 분이 계실텐데요.  
+"그럼 무조건 Chunk 처리는 wait_timeout 보다 짧은 시간안에 처리되어야겠네?"  
+"근데 우리 프로젝트는 Chunk 처리 시간이 wait_timeout보다 길어도 실패하지 않았는데?"  
+  
+위 실험들만 보면 **Chunk 처리 시간이 wait_timeout보다 짧아야만**할 것으로 보이는데, 실제론 무조건 그렇지는 않습니다.  
+어떤 경우가 예외인지 확인해보겠습니다.  
+  
+Processor 코드를 아래와 같이 **DB에 쿼리를 요청하는 코드**를 50초 (```wait_timeout```: 60초 보다 짧은 시간) 단위로 호출해봅니다.  
+즉, Processor에서 전체 소모되는 시간은 기존과 동일하게 150초지만, MySQL의 Connection이 Close 되기 전에 쿼리를 추가적으로 수행하는 경우입니다.
 
 ```java
 private final StoreRepository storeRepository;
@@ -220,64 +305,41 @@ public ItemProcessor<Store, Store> processor() {
 }
 ```
 
-앞선 테스트와 마찬가지로 **Processor에서 총 처리시간은 150초**입니다.  
-
+위 코드를 수행해보면!  
+똑같이 Processor에서 150초를 수행하였지만, 테스트가 통과하는 것을 볼 수 있습니다.  
 
 ![test-success](./images/test-success.png)
 
-
-### MySQL Connection 모니터링
-
-
-![mysql-connection](./images/mysql-connection.png)
-
-### Writer가 DB를 안쓴다면?
-
-```java
-DataAccessResourceFailureException: PreparedStatementCallback; SQL [UPDATE BATCH_STEP_EXECUTION_CONTEXT SET SHORT_CONTEXT = ?, SERIALIZED_CONTEXT = ? WHERE STEP_EXECUTION_ID = ?]; (conn=87) (conn=87) unexpected end of stream, read 0 bytes from 4 (socket was closed by server);
-```
-
-
-
-### Processor에서 오래걸릴 경우
-
-
-
-
-## Reader / Processor / Writer에서 DB를 사용하지 않을때
-
-외부 API 연동이라던가, 혹은 트랜잭션 롤백이 보장되지 않아도 되는 경우에 위와 같은 예외가 발생할 수 있는데요.  
+즉, ```test-while-idle``` 옵션처럼 ```wait_timeout```이 되기전 쿼리가 수행되어 Connection 시간이 계속 갱신되어 Exception이 발생하지 않게 되었습니다.  
   
-이를 해결할 수 있는 방법은 2가지가 있습니다.
+그래서 "우리 Batch는 Chunk 시간이 ```wait_timeout```보다 초과되어도 오류가 없어" 하는 경우는 대부분은 이렇게 **초과되기전 쿼리가 수행된 경우**라고 보시면 됩니다.  
+  
+실제로 RDS 모니터링을 확인해보면 기존에 Connection이 먼저 -1 되었다가 전체 close되는 형태에서 중간에 먼저 close 되는 Connection이 없이 Batch 종료와 함께 전체 Close 되는 형태인 것을 확인할 수 있습니다.
 
-* MySQL의 ```wait_timeout```와 HikariCP의 ```maxLifeTime``` 를 충분히 늘려놓기
-  * 저 같은 경우 대량의 데이터를 처리하는 프로젝트의 경우
-  * API 서버는 HikariCP의 ```maxLifeTime```를 58초로, Batch 서버는 HikariCP의 ```maxLifeTime```를 30분 (기본값)으로 맞춥니다.
-  * 둘 다 같은 DB를 보고 있어 MySQL의 ```wait_timeout```를 32분으로 맞춥니다.
-* ```ResourcelessTransactionManager``` 사용하기
-  * 트랜잭션 롤백/커밋이 필요 없는 경우 굳이 Spring Batch의 트랜잭션 매니저가 필요로 하진 않습니다.
-  * 그럴때를 대비해 
-  * [참고 - KSUG 그룹](https://groups.google.com/g/ksug/c/jxcvvn1UXMk/m/EyBs83QhIr4J)
-에는 굳이 Spring Batch의 트랜잭션 매니저를 사용하지 않아도 됩니다.
+![mysql-connection2](./images/mysql-connection2.png)
 
 
+### 3-4. ResourcelessTransactionManager
 
+위 실험 내용을 정리하면 다음과 같습니다.
 
+* 추가적인 쿼리 요청 없이 ```wait_timeout```을 초과하게 되는 경우 해당 Batch는 실패한다.
+  * Connection 재사용 단게에서 실패한다.
+* 단, ```wait_timeout``` 초과하기전 쿼리가 수행되는 경우 갱신되어 정상 작동한다.
 
-## Socket Close 테스트
+여기서 그럼 오래 걸리는 Batch면 무작정 ```wait_timeout```을 늘리는게 맞는건가 하는 의문이 드실 수도 있습니다.  
+이를테면 다음과 같은 경우인데요.
 
+* Reader/Processor/Writer에서 DB를 사용하지 않고
+* 트랜잭션 롤백/커밋과 Batch 실패지점 재수행을 고려하지 않는 경우
+  * 실패나면 무조건 처음부터 다시 수행하는 경우
 
-* ```socketTimeout=120000``` (120초)
-* ```maxLifetime: 58000``` (58초)
-* ```wait_timeout: 60``` (60초)
-
-
-```java
-Communications link failure with primary host settler-beta.cluster-cdfmjscyqe71.ap-northeast-2.rds.amazonaws.com:6025. Connection timed out
-```
-
-### ResourcelessTransactionManager 주의사항
-
+이런 경우 DB의 사용이 거의 없음에도 ```wait_timeout```을 무조건 늘려야 한다면 납득하기 어렵습니다.  
+  
+그래서 Spring Batch에서는 이런 경우에 사용할 수 있도록 별도의 **트랜잭션 매니저**를 제공하는데요.  
+해당 클래스의 이름은 ```ResourcelessTransactionManager``` 입니다.  
+  
+사용법은 다음과 같습니다.
 
 ```java
 @Bean(BEAN_PREFIX+"_step")
@@ -292,16 +354,113 @@ public Step step() throws Exception {
 }
 ```
 
+* Step의 ```transactionManager``` 항목에 ```ResourcelessTransactionManager``` 인스턴스를 등록하면 됩니다.
+
+실제로 해당 기능이 잘 작동하는지 기존에 DB를 사용하던 Batch 코드를 DB를 사용하지 않는 형태로 변경해서 테스트 해보겠습니다.
+
 ```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class SocketCloseSlowNoTxBatch {
+    private static final String BEAN_PREFIX = "SocketCloseSlowNoTxBatch";
+    private static final int chunkSize = 1;
+
+    private final JobBuilderFactory jobBuilderFactory;
+    private final StepBuilderFactory stepBuilderFactory;
+
+    @Bean(BEAN_PREFIX+"_job")
+    public Job job() throws Exception {
+        return jobBuilderFactory.get(BEAN_PREFIX+"_job")
+                .start(step())
+                .build();
+    }
+
+    @Bean(BEAN_PREFIX+"_step")
+    public Step step() throws Exception {
+        return stepBuilderFactory.get(BEAN_PREFIX+"_step")
+                .<Store, Store>chunk(chunkSize)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
+                .transactionManager(new ResourcelessTransactionManager()) // No Transaction
+                .build();
+    }
+
+    @Bean(BEAN_PREFIX+"_reader")
+    public ListItemReader<Store> reader() throws Exception {
+        return new ListItemReader<>(Arrays.asList(new Store("jojoldu")));
+    }
+
+    public ItemProcessor<Store, Store> processor() {
+        return item -> {
+            log.info("processor start");
+            Thread.sleep(150_000);// 150초
+            log.info("processor end");
+            return item;
+        };
+    }
+
+    @Bean(BEAN_PREFIX+"_writer")
+    public ItemWriter<Store> writer() {
+        return items -> log.info("items.size={}", items.size());
+    }
+}
+```
+
+똑같이 Processor 에서 150초가 수행되었지만!  
+
+![test-success-notx](./images/test-success-notx.png)
+
+테스트가 정상적으로 성공하였습니다.  
+  
+여기서 ```ResourcelessTransactionManager```에 대해 좀 더 소개드리자면
+
+* Chunk 앞뒤로 수행되는 트랜잭션 및 메타테이블 쓰기가 없는 것일 뿐 Connection 작동은 동일하게 적용됩니다.
+  * 그래서 Reader에서 DB를 읽은 후, **Processor에서 시간 초과**하여 Writer에서 DB 쓰기 작업이 있으면 기존과 동일하게 오류가 발생합니다.
+* 단, **Connection을 재사용하지 않는 경우**엔 오류가 발생하지 않습니다.
+  * 이는 ```wait_timeout```으로 인한 Exception이 이미 Close된 Connection을 재사용하려고 했기 때문에 발생한 경우라서, **처음 Connection을 맺고 실행되는 쿼리**는 문제 없이 수행됩니다.
+    * Reader에서 DB를 사용하고 Writer에선 DB를 사용하지 않는 경우 
+    * Reader에선 DB를 사용하지 않고 Writer에서만 DB 작업이 있는 경우 등
+
+
+**Reader에서 DB를 사용하고 Writer에선 DB를 사용하지 않는 경우**
+
+```java
+...
+@Bean(BEAN_PREFIX+"_reader")
+public JdbcPagingItemReader<Store> reader() throws Exception {
+    Map<String, Object> params = new HashMap<>();
+    params.put("name", "jojoldu");
+
+    return new JdbcPagingItemReaderBuilder<Store>()
+            .pageSize(chunkSize)
+            .fetchSize(chunkSize)
+            .dataSource(dataSource)
+            .rowMapper(new BeanPropertyRowMapper<>(Store.class))
+            .queryProvider(queryProvider())
+            .parameterValues(params)
+            .name(BEAN_PREFIX+"_reader")
+            .build();
+}
+
+...
+
 @Bean(BEAN_PREFIX+"_writer")
 public ItemWriter<Store> writer() {
     return items -> log.info("items.size={}", items.size());
 }
 ```
 
-![test-success-notx](./images/test-success-notx.png)
+**Reader에선 DB를 사용하지 않고 Writer에서만 DB 작업이 있는 경우**
 
 ```java
+@Bean(BEAN_PREFIX+"_reader")
+public ListItemReader<Store> reader() throws Exception {
+    return new ListItemReader<>(Arrays.asList(new Store("jojoldu")));
+}
+
+...
 @Bean(BEAN_PREFIX+"_writer")
 public JdbcBatchItemWriter<Store> writer() {
     return new JdbcBatchItemWriterBuilder<Store>()
@@ -312,13 +471,22 @@ public JdbcBatchItemWriter<Store> writer() {
 }
 ```
 
-```java
-PreparedStatementCallback; SQL [insert into store(name) values (?)]; (conn=322) (conn=322) unexpected end of stream, read 0 bytes from 4 (socket was closed by server); 
-```
+위와 같은 경우에도 마찬가지로 ```ResourcelessTransactionManager``` 를 사용하면 Exception이 발생하지 않습니다.
 
-JobRepository로 
+> DB를 사용하지 않는 예제코드는 실제로 외부 API를 호출하는 형태로 치환해도 동일한 결과가 나옵니다.
 
-## 참고
+## 4. 정리
+
+위 실험들을 정리하면 다음과 같습니다.
+
+* 추가적인 쿼리 요청 없이 애플리케이션이 수행시간이 ```wait_timeout```을 초과하는 경우 Exception이 발생한다.
+  * 이미 Close된 Connection을 재사용 요청하게 되어 실패한다.
+* 단, ```wait_timeout``` 초과하기 전 쿼리가 수행되는 경우 Connection이 갱신되어 정상 작동한다.
+* 만약 DB 사용이 최소화된 경우라면 (트랜잭션 롤백/커밋과 Batch 실패지점 재수행이 필요없고, Reader/Processor/Writer에서 DB를 한군데에서만 사용하는 경우)
+  * ```ResourcelessTransactionManager```를 통해 ```wait_timeout``` 변경 없이 배치를 수행할 수 있다.
+
+## 5. 참고
 
 * [카카오커머스 기술 블로그 - JDBC Connection Pool들의 리소스 관리 방식 이해하기](https://kakaocommerce.tistory.com/45)
 * [pkgonan - HikariCP는 test-while-idle과 같은 Connection 갱신 기능이 없을까?](https://pkgonan.github.io/2018/04/HikariCP-test-while-idle)
+* [우아한형제들 기술 블로그 - HikariCP Dead lock에서 벗어나기 (이론편)](https://woowabros.github.io/experience/2020/02/06/hikaricp-avoid-dead-lock.html)
