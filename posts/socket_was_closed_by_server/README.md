@@ -19,7 +19,7 @@ Caused by: java.io.EOFException: unexpected end of stream, read 0 bytes from 4 (
 * Java 8
 * Spring Boot Data & Batch 2.3.2
   * Spring Batch 4.2.4
-  * HikariCP 3.4.5 (Spring Boot 2.x부터 HikariCP가 기본 라이브러리입니다.)
+  * HikariCP 3.4.5 (Spring Boot 2.x부터 HikariCP가 기본 라이브러리입니다.)  
 * AWS RDS Aurora (MySQL 5.7) r5.large
 * MariaDB client 2.6.2
 
