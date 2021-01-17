@@ -100,7 +100,7 @@ public class SocketCloseSlowProcessor2Batch {
                 .build();
     }
 
-    @Bean
+    @Bean(name = BEAN_PREFIX+"_queryProvider")
     public PagingQueryProvider queryProvider() throws Exception {
         SqlPagingQueryProviderFactoryBean queryProvider = new SqlPagingQueryProviderFactoryBean();
         queryProvider.setDataSource(dataSource);

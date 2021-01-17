@@ -68,14 +68,14 @@ public class ProductBackupConfiguration {
         return new ProductBackupJobParameter();
     }
 
-    @Bean
+    @Bean(name = JOB_NAME)
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
                 .start(step())
                 .build();
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_step")
     @JobScope
     public Step step() {
         return stepBuilderFactory.get("step")
@@ -86,7 +86,7 @@ public class ProductBackupConfiguration {
                 .build();
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_reader")
     @StepScope
     public JpaPagingItemReader<Product> reader() {
         String query = String.format("SELECT p FROM Product p WHERE p.createDate ='%s'", jobParameter.getTxDate());
@@ -103,7 +103,7 @@ public class ProductBackupConfiguration {
         return ProductBackup::new;
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_writer")
     public JpaItemWriter<ProductBackup> writer() {
         return new JpaItemWriterBuilder<ProductBackup>()
                 .entityManagerFactory(emf)

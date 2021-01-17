@@ -78,7 +78,7 @@ public class JdbcPagingItemReaderJobConfiguration {
         };
     }
 
-    @Bean
+    @Bean(name = "JdbcPagingItemReader_queryProvider")
     public PagingQueryProvider createQueryProvider() throws Exception {
         SqlPagingQueryProviderFactoryBean queryProvider = new SqlPagingQueryProviderFactoryBean();
         queryProvider.setDataSource(dataSource); // Database에 맞는 PagingQueryProvider를 선택하기 위해

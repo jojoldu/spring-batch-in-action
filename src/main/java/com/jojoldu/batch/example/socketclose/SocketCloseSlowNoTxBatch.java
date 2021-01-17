@@ -9,21 +9,16 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
-import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
-import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.batch.support.transaction.ResourcelessTransactionManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
 import javax.sql.DataSource;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created by jojoldu@gmail.com on 11/09/2020
@@ -103,7 +98,7 @@ public class SocketCloseSlowNoTxBatch {
                 .build();
     }
 
-    @Bean
+    @Bean(name = BEAN_PREFIX+"_queryProvider")
     public PagingQueryProvider queryProvider() throws Exception {
         SqlPagingQueryProviderFactoryBean queryProvider = new SqlPagingQueryProviderFactoryBean();
         queryProvider.setDataSource(dataSource);

@@ -48,14 +48,14 @@ public class StoreBackup3Configuration {
         this.chunkSize = chunkSize;
     }
 
-    @Bean
+    @Bean(name = JOB_NAME)
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
                 .start(step())
                 .build();
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_step")
     @JobScope
     public Step step() {
         return stepBuilderFactory.get("step")
@@ -66,7 +66,7 @@ public class StoreBackup3Configuration {
                 .build();
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_reader")
     @StepScope
     public JpaPagingItemReader<Store> reader(@Value("#{jobParameters[storeName]}") String storeName) {
         String query = String.format(
@@ -86,7 +86,7 @@ public class StoreBackup3Configuration {
         return StoreBackup::new;
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_writer")
     @StepScope
     public JdbcBatchItemWriter<StoreBackup> writer() {
         return new JdbcBatchItemWriterBuilder<StoreBackup>()
