@@ -7,16 +7,16 @@
 이런 문제를 고려해서 Spring Batch 에서는 여러 Scalling 기능들을 지원하는데요.  
 대표적으로 다음과 같습니다.
 
-* [Multi-threaded Step](https://jojoldu.tistory.com/493) (single process)
+* [Multi-threaded Step](https://jojoldu.tistory.com/493) (Single process / Local)
   * **단일 Step**을 수행할 때, 해당 Step 내의 **각 Chunk를 별도의 여러 쓰레드에서 실행** 하는 방법
-* Parallel Steps (single process)
+* Parallel Steps (Single Process / Local)
   * **여러개의 Step**을 **병렬**로 실행하는 방법
   * **단일 Step의 성능 향상은 없음**
-* Remote Chunking (multi process)
+* Remote Chunking (Multi process / Remote)
   * 일종의 분산환경처럼 Step 처리가 여러 프로세스로 분할되어 외부의 다른 서버로 전송되어 처리하는 방식
     * ex) A서버에서 ItemReader 구현체를 사용하여 데이터를 읽고, B 서버에서 ItemWriter 구현체를 갖고 있어 A 서버에서 보낸 데이터를 저장하는 등
   * 다만, **어느 서버에서 어느 데이터를 처리하고 있는지 메타 데이터 관리를 하지 않기 때문에** 메세지 유실이 안되는 것이 100% 보장되어야 한다 (ex: AWS SQS, 카프카 등의 메세지큐 사용을 권장)
-* Partitioning (single or multi process)
+* Partitioning (Single or Multi process / Local or Remote)
   * 마스터를 이용해 데이터를 더 작은 Chunk (파티션이라고 함)로 나눈 다음 파티션에서 슬레이브가 독립적으로 작동하는 방식 (이번 시간에 해볼 것)
   * 슬레이브가 로컬일 필요가 없어 확장된 JVM 환경에서의 실행을 해볼 수 있음. 
     * 원격 슬레이브와 통신하기 위해 다양한 통신 메커니즘을 지원
@@ -38,4 +38,31 @@
   
 다양한 Scalling 기능을 **기존의 스프링 배치 코드 변경 없이**, 그리고 많은 레퍼런스로 인해 안정적으로 구현이 가능한 기능들이기 때문에 대량의 데이터 처리가 필요한 상황에서는 꼭 사용해봐야한다고 봅니다.  
   
+## 소개
 
+파티셔닝은 마스터 단계 팜이 처리를 위해 여러 작업자 단계로 작업하는 개념입니다.  
+파티션 된 단계에서 큰 데이터 세트 (예 : 백만 개의 행이있는 데이터베이스 테이블)는 더 작은 파티션으로 나뉩니다.  
+각 파티션은 작업자가 병렬로 처리합니다.  
+각 작업자는 자체 읽기, 처리, 쓰기 등을 담당하는 완전한 Spring Batch 단계입니다.  
+이 모델에는 큰 장점이 있습니다.  
+예를 들어, 이 모델에서는 다시 시작 가능성과 같은 모든 기능을 즉시 사용할 수 있습니다.  
+작업자의 구현은 또 다른 단계이기 때문에 자연스럽게 느껴집니다.
+
+Remote Chunking 과의 차이는?
+
+Remote Chunking과 달리 파티셔닝은 메세지 유실에 대해 개발자가 직접 고려해야할 필요가 없습니다.  
+파티셔닝을 통해 Spring Batch는 자체 단계 실행에서 각 파티션을 처리합니다. 실패 후 다시 시작하면 Spring Batch는 파티션을 다시 생성하고 다시 처리합니다.  
+Spring Batch는 데이터를 처리되지 않은 상태로 두지 않습니다.
+
+## 설계
+
+## 예제
+
+### 로컬
+
+### 원격
+
+A: Spring Batch 파티셔닝
+B: Post API
+
+시나리오: A에서 파티셔닝으로 B 

@@ -11,7 +11,11 @@ sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
+    jcenter()
+    maven { url 'https://jitpack.io' }
 }
+
+apply plugin: "io.spring.dependency-management"
 
 dependencies {
     implementation 'org.springframework:spring-web' // For RestTemplate
