@@ -4,6 +4,7 @@
 bin
 generated
 application-real.yml
+application-real-db.yml
 
 ### STS ###
 .apt_generated

@@ -1,7 +1,7 @@
 spring:
   profiles:
     include:
-      - real
+      - real-db
     active: local
   jpa:
     hibernate:
@@ -19,7 +19,9 @@ logging.level:
     batch.item.database: DEBUG
 ---
 spring:
-  profiles: local
+  config:
+    activate:
+      on-profile: local
   jpa:
     hibernate:
       ddl-auto: update
@@ -38,7 +40,9 @@ logging:
 
 ---
 spring:
-  profiles: mysql
+  config:
+    activate:
+      on-profile: mysql
   datasource:
     hikari:
       jdbc-url: jdbc:mysql://localhost:3306/spring_batch
@@ -48,7 +52,9 @@ spring:
 
 ---
 spring:
-  profiles: aws
+  config:
+    activate:
+      on-profile: aws
   datasource:
     hikari:
       jdbc-url: jdbc:mysql:aurora://cluster주소:포트,reader-cluster주소:포트/jojoldu?connectTimeout=1000&socketTimeout=600000
