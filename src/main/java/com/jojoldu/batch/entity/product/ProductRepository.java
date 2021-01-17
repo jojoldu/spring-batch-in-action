@@ -22,4 +22,15 @@ public interface ProductRepository extends JpaRepository <Product, Long> {
             "WHERE p.createDate =:createDate")
     List<String> findAllByCreateDate(@Param("createDate") LocalDate createDate);
 
+    @Query("SELECT MAX(p.id) " +
+            "FROM Product p " +
+            "WHERE p.createDate BETWEEN :startDate AND :endDate")
+    Long findMaxId(@Param("startDate") LocalDate startDate,
+                   @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT MIN(p.id) " +
+            "FROM Product p " +
+            "WHERE p.createDate BETWEEN :startDate AND :endDate")
+    Long findMinId(@Param("startDate") LocalDate startDate,
+                   @Param("endDate") LocalDate endDate);
 }

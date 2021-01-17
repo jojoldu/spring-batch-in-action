@@ -56,8 +56,29 @@ Spring Batch는 데이터를 처리되지 않은 상태로 두지 않습니다.
 
 ## 설계
 
+### Partitioner
+
+Partitioner 인터페이스는 partition (int gridSize) 라는 단일 메서드로 구성됩니다 . Map <String, ExecutionContext>를 반환합니다 . gridSize는 더에 대한 힌트보다 전체 클러스터에 대한 효율적인 방법으로 데이터를 분할 할 수있을 것으로 얼마나 많은 노동자에 관해서 아무것도 아니다. 즉, 해당 값을 동적으로 결정하는 Spring Batch에는 아무것도 없습니다. 계산하거나 설정하는 것은 귀하에게 달려 있습니다. 메서드가 반환 하는 Map 은 키가 파티션의 이름이고 고유해야하는 키 값 쌍으로 구성되어야합니다. 의 ExecutionContext는 , 전술 한 바와 같이, 처리하는 어떤 식별 파티션 메타 데이터의 표현이다.
+
+### PartitionHandler
+
+이 인터페이스는 작업자와 통신하는 방법을 이해하는 인터페이스입니다. 각 작업자에게 작업 할 작업을 알리는 방법과 모든 작업이 완료되는시기를 식별하는 방법. Spring Batch를 사용할 때 자신 만의 Partitioner 구현을 작성할 수 있지만 , 자신 만의 PartitionHandler를 작성하지는 않을 것입니다 .
+
+* TaskExecutorPartitionHandler
+  * 단일 JVM 내에서 분할 개념을 사용할 수 있도록 같은 JVM 내에서 스레드로 분할 실행
+* MessageChannelPartitionHandler
+  * 원격의 JVM에 메타 데이터를 전송
+  
 ## 예제
 
+보통의 예제는 **여러 파일을 파티션 단위로 나눠서 읽어서 처리하는 방식**를 소개하는데요.  
+
+* [baeldung - Spring Batch using Partitioner](https://www.baeldung.com/spring-batch-partitioner)
+
+이미 기존에 많이 나온 예제라서 이번 시간에는 **특정 기간의 DB 데이터를 집계**하는 파티셔닝 배치를 진행해보겠습니다.  
+
+ 
+ 파티 셔 너는 테이블을 파티셔닝하지 않으며 번호가 매겨진 파티션 이름을 키로 사용하는 "빈"실행 컨텍스트 만 생성합니다. 따라서 작업자는 실제로보고있는 행동을 설명하는 동일한 데이터를 읽습니다.
 ### 로컬
 
 ### 원격
