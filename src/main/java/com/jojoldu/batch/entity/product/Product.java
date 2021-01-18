@@ -49,6 +49,13 @@ public class Product {
     @JoinColumn(name = "store_id")
     private Store store;
 
+    public Product(long price, LocalDate createDate) {
+        this.name = String.valueOf(price);
+        this.price = price;
+        this.createDate = createDate;
+        this.status = ProductStatus.APPROVE;
+    }
+
     public Product(String name, long price, LocalDate createDate) {
         this.name = name;
         this.price = price;

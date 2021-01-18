@@ -231,7 +231,7 @@ spring:
       jdbc-url: jdbc:mysql://localhost:3306/spring_batch
       username: jojoldu
       password: jojoldu1
-      driver-class-name: com.mysql.jdbc.Driver
+      driver-class-name: com.mysql.cj.jdbc.Driver
 ```
 
 * ```spring.datasource.hikari```

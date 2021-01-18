@@ -12,11 +12,14 @@ spring:
       hibernate.hbm2ddl.import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor
       hibernate.default_batch_fetch_size: ${chunkSize:1000}
     open-in-view: false
-spring.batch.job.names: ${job.name:NONE}
+  batch:
+    job:
+      names: ${job.name:NONE}
+
 logging.level:
   org.springframework:
 #    jdbc.core.JdbcTemplate: DEBUG
-    batch.item.database: DEBUG
+#    batch.item.database: DEBUG
 ---
 spring:
   config:
@@ -33,6 +36,7 @@ spring:
       password:
       driver-class-name: org.h2.Driver
       auto-commit: false
+      maximumPoolSize: 10
 
 logging:
   level:
@@ -48,7 +52,7 @@ spring:
       jdbc-url: jdbc:mysql://localhost:3306/spring_batch
       username: jojoldu
       password: jojoldu1
-      driver-class-name: com.mysql.jdbc.Driver
+      driver-class-name: com.mysql.cj.jdbc.Driver
 
 ---
 spring:

@@ -2,6 +2,7 @@ package com.jojoldu.batch.example.partition;
 
 import com.jojoldu.batch.entity.product.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.partition.support.Partitioner;
 import org.springframework.batch.item.ExecutionContext;
 
@@ -15,6 +16,7 @@ import java.util.Map;
  * Github : http://github.com/jojoldu
  */
 
+@Slf4j
 @RequiredArgsConstructor
 public class ProductIdRangePartitioner implements Partitioner {
 
@@ -42,7 +44,7 @@ public class ProductIdRangePartitioner implements Partitioner {
             }
 
             value.putLong("minId", start); // 각 파티션마다 사용될 minId
-            value.putLong("maxMax", end); // 각 파티션마다 사용될 maxId
+            value.putLong("maxId", end); // 각 파티션마다 사용될 maxId
             start += targetSize;
             end += targetSize;
             number++;

@@ -23,6 +23,7 @@ dependencies {
     implementation('org.springframework.boot:spring-boot-starter-batch')
     implementation('org.springframework.boot:spring-boot-starter-data-jpa')
     implementation('com.h2database:h2')
+    implementation('org.bgee.log4jdbc-log4j2:log4jdbc-log4j2-jdbc4.1:1.16')
     implementation('mysql:mysql-connector-java')
     implementation 'org.mariadb.jdbc:mariadb-java-client'
 

@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.partition.support.TaskExecutorPartitionHandler;
@@ -50,7 +49,7 @@ public class PartitionLocalConfiguration {
 
     private int poolSize;
 
-    @Value("${poolSize:10}")
+    @Value("${poolSize:5}")
     public void setPoolSize(int poolSize) {
         this.poolSize = poolSize;
     }
@@ -71,13 +70,14 @@ public class PartitionLocalConfiguration {
         TaskExecutorPartitionHandler partitionHandler = new TaskExecutorPartitionHandler();
         partitionHandler.setStep(step1());
         partitionHandler.setTaskExecutor(executor());
+        partitionHandler.setGridSize(poolSize);
         return partitionHandler;
     }
 
     @Bean(name = JOB_NAME)
     public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
-                .start(step1())
+                .start(step1Manager())
                 .preventRestart()
                 .build();
     }
@@ -99,21 +99,16 @@ public class PartitionLocalConfiguration {
         LocalDate startLocalDate = LocalDate.parse(startDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         LocalDate endLocalDate = LocalDate.parse(endDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-        ProductIdRangePartitioner partitioner = new ProductIdRangePartitioner(productRepository, startLocalDate, endLocalDate);
-        partitioner.partition(5);
-        return partitioner;
+        return new ProductIdRangePartitioner(productRepository, startLocalDate, endLocalDate);
     }
 
     @Bean(name = JOB_NAME +"_step")
-    @JobScope
     public Step step1() {
         return stepBuilderFactory.get(JOB_NAME +"_step")
                 .<Product, ProductBackup>chunk(chunkSize)
                 .reader(reader(null, null))
                 .processor(processor())
                 .writer(writer(null, null))
-                .taskExecutor(executor())
-                .throttleLimit(poolSize)
                 .build();
     }
 
@@ -127,11 +122,16 @@ public class PartitionLocalConfiguration {
         params.put("minId", minId);
         params.put("maxId", maxId);
 
+        log.info("reader minId={}, maxId={}", minId, maxId);
+
         return new JpaPagingItemReaderBuilder<Product>()
                 .name(JOB_NAME +"_reader")
                 .entityManagerFactory(entityManagerFactory)
                 .pageSize(chunkSize)
-                .queryString("SELECT p FROM Product p WHERE p.id BETWEEN :minId AND :maxId")
+                .queryString(
+                        "SELECT p " +
+                        "FROM Product p " +
+                        "WHERE p.id BETWEEN :minId AND :maxId")
                 .parameterValues(params)
                 .build();
     }
