@@ -38,38 +38,58 @@
   
 다양한 Scalling 기능을 **기존의 스프링 배치 코드 변경 없이**, 그리고 많은 레퍼런스로 인해 안정적으로 구현이 가능한 기능들이기 때문에 대량의 데이터 처리가 필요한 상황에서는 꼭 사용해봐야한다고 봅니다.  
   
-## 소개
+## 1. 소개
 
-파티셔닝은 마스터 단계 팜이 처리를 위해 여러 작업자 단계로 작업하는 개념입니다.  
-파티션 된 단계에서 큰 데이터 세트 (예 : 백만 개의 행이있는 데이터베이스 테이블)는 더 작은 파티션으로 나뉩니다.  
-각 파티션은 작업자가 병렬로 처리합니다.  
-각 작업자는 자체 읽기, 처리, 쓰기 등을 담당하는 완전한 Spring Batch 단계입니다.  
-이 모델에는 큰 장점이 있습니다.  
-예를 들어, 이 모델에서는 다시 시작 가능성과 같은 모든 기능을 즉시 사용할 수 있습니다.  
-작업자의 구현은 또 다른 단계이기 때문에 자연스럽게 느껴집니다.
+파티셔닝은 마스터 (혹은 매니저) Step이 대량의 데이터 처리를 위해 지정된 수의 작업자 (Worker) Step으로 일감을 분할처리하는 방식.
 
-Remote Chunking 과의 차이는?
+![intro1](./images/intro1.png)
 
-Remote Chunking과 달리 파티셔닝은 메세지 유실에 대해 개발자가 직접 고려해야할 필요가 없습니다.  
-파티셔닝을 통해 Spring Batch는 자체 단계 실행에서 각 파티션을 처리합니다. 실패 후 다시 시작하면 Spring Batch는 파티션을 다시 생성하고 다시 처리합니다.  
-Spring Batch는 데이터를 처리되지 않은 상태로 두지 않습니다.
+(이미지출처: [Spring Batch 공식문서](https://docs.spring.io/spring-batch/docs/current/reference/html/scalability.html#partitioning))
 
-## 설계
+컨셉만 들었을 때는 이게 Multithread Step과 무엇이 다른건지 궁금하실텐데요.  
+  
+* Multithread Step은 **단일 Step을 Chunk 단위로 쓰레드를 생성해 분할 처리** 하게 됩니다.
+  * 어떤 쓰레드에서 어떤 데이터들을 처리하게 할지 세밀한 조정이 불가능합니다.
+  * 또한, 해당 Step의 ItemReader/ItemWriter 등이 **Multithread 환경을 지원하는지** 유무가 굉장히 중요합니다.
+* 반면 Partitioning의 경우는 각각 별도의 StepExecution 파라미터를 가진 여러개의 Worker Step으로 실행합니다. 
+  * (Local로 실행할 경우) Multithread으로 작동하나, Multithread Step과는 별개로 ItemReader/ItemWriter의 **Multithread 환경 지원 여부가 중요하지 않습니다**
+ 
+예를 들어 Partitioning Step에서 백만 개의 데이터를 더 작은 파티션으로 나누어 각 파티션을 Worker Step들이 병렬로 처리합니다.  
+  
+각각의 Worker는 ItemReader / ItemProcessor / ItemWriter 등을 담당하는 완전한 Spring Batch Step이기 때문에 기존의 Spring Batch 코드 변경이 거의 없는채로 병렬 실행 환경을 구성할 수 있습니다.  
+  
+## 2. 주요 인터페이스 소개
 
 ### Partitioner
 
-Partitioner 인터페이스는 partition (int gridSize) 라는 단일 메서드로 구성됩니다 . Map <String, ExecutionContext>를 반환합니다 . gridSize는 더에 대한 힌트보다 전체 클러스터에 대한 효율적인 방법으로 데이터를 분할 할 수있을 것으로 얼마나 많은 노동자에 관해서 아무것도 아니다. 즉, 해당 값을 동적으로 결정하는 Spring Batch에는 아무것도 없습니다. 계산하거나 설정하는 것은 귀하에게 달려 있습니다. 메서드가 반환 하는 Map 은 키가 파티션의 이름이고 고유해야하는 키 값 쌍으로 구성되어야합니다. 의 ExecutionContext는 , 전술 한 바와 같이, 처리하는 어떤 식별 파티션 메타 데이터의 표현이다.
+Partitioner 인터페이스는 파티셔닝된 Step (Worker Step)을 위한 Step Executions을 생성하는 인터페이스 입니다.  
+  
+기본 구현은 SimplePartitioner로, 빈 Step Executions를 생성합니다.  
+  
+인터페이스가 갖고 있는 메소드는 1개로 ```partition (int gridSize)``` 입니다.  
+  
+해당 파라미터로 넘기는 ```gridSize```는 Spring Batch에서 기본적으로 **1**로 두며, 이를 변경하기 위해서는 PartitionHandler 등을 통해서 변경 가능합니다.  
+  
+다만, 이렇게 ```gridSize```만 지정했다고 하여, Worker Step이 자동으로 구성되진 않습니다.  
+  
+해당 ```gridSize```를 이용하여 각 Worker Step마다 어떤 Step Executions 환경을 갖게 할지는 오로지 개발자들의 몫 입니다.  
+
 
 ### PartitionHandler
 
-이 인터페이스는 작업자와 통신하는 방법을 이해하는 인터페이스입니다. 각 작업자에게 작업 할 작업을 알리는 방법과 모든 작업이 완료되는시기를 식별하는 방법. Spring Batch를 사용할 때 자신 만의 Partitioner 구현을 작성할 수 있지만 , 자신 만의 PartitionHandler를 작성하지는 않을 것입니다 .
+PartitionHandler 인터페이스는 매니저 Step이 어떻게 Worker Step를 다룰지를 정의하는 인터페이스입니다.  
+이를테면, 어느 Step을 Worker step의 코드로 두고 병렬로 실행하게할지, 병렬로 실행한다면 쓰레드풀 관리는 어떻게 할지, ```gridSize```는 몇으로 둘지 등등을 비롯하여 모든 작업이 완료되었는지를 식별하는지를 다룹니다.  
+  
+일반적으로는 Partitioner의 구현체는 개발자가 요구사항에 따라 별도 생성해서 사용하곤 하지만, 자신만의 PartitionHandler를 작성하지는 않을 것입니다.  
+  
+구현체로는 크게 2가지가 있습니다.
 
 * TaskExecutorPartitionHandler
   * 단일 JVM 내에서 분할 개념을 사용할 수 있도록 같은 JVM 내에서 스레드로 분할 실행
 * MessageChannelPartitionHandler
   * 원격의 JVM에 메타 데이터를 전송
   
-## 예제
+## 3. 예제
 
 보통의 예제는 **여러 파일을 파티션 단위로 나눠서 읽어서 처리하는 방식**를 소개하는데요.  
 
