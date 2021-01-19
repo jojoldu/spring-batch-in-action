@@ -260,7 +260,25 @@ public class PartitionLocalConfiguration {
 ```
 
 * [ColumnRangePartitioner.java](https://github.com/spring-projects/spring-batch/blob/d8fc58338d3b059b67b5f777adc132d2564d7402/spring-batch-samples/src/main/java/org/springframework/batch/sample/common/ColumnRangePartitioner.java)
- 
+
+
+```sql
+Hibernate: select ... from product product0_ where product0_.id between ? and ? limit ?
+Hibernate: select ... from product product0_ where product0_.id between ? and ? limit ?
+Hibernate: select ... from product product0_ where product0_.id between ? and ? limit ?
+Hibernate: select ... from product product0_ where product0_.id between ? and ? limit ?
+Hibernate: select ... from product product0_ where product0_.id between ? and ? limit ?
+```
+
+```bash
+Step: [partitionLocalBatch_step:partition4] executed in 75ms
+Step: [partitionLocalBatch_step:partition2] executed in 75ms
+Step: [partitionLocalBatch_step:partition3] executed in 76ms
+Step: [partitionLocalBatch_step:partition0] executed in 75ms
+Step: [partitionLocalBatch_step:partition1] executed in 79ms
+Step: [step1.manager] executed in 181ms
+```
+
 ### 원격
 
 A: Spring Batch 파티셔닝
