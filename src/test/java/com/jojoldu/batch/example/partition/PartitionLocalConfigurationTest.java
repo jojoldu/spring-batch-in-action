@@ -14,17 +14,14 @@ import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import javax.sql.DataSource;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.jojoldu.batch.config.DataSourceConfiguration.READER_DATASOURCE;
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -47,10 +44,6 @@ public class PartitionLocalConfigurationTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
-
-    @Autowired
-    @Qualifier(READER_DATASOURCE)
-    DataSource readerDataSource;
 
     @AfterEach
     public void after() throws Exception {

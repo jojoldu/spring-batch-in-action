@@ -54,7 +54,7 @@ public class PartitionLocalConfiguration {
         this.poolSize = poolSize;
     }
 
-    @Bean(name = JOB_NAME+"taskPool")
+    @Bean(name = JOB_NAME+"_taskPool")
     public TaskExecutor executor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(poolSize);
@@ -65,7 +65,7 @@ public class PartitionLocalConfiguration {
         return executor;
     }
 
-    @Bean
+    @Bean(name = JOB_NAME+"_partitionHandler")
     public TaskExecutorPartitionHandler partitionHandler() {
         TaskExecutorPartitionHandler partitionHandler = new TaskExecutorPartitionHandler();
         partitionHandler.setStep(step1());
