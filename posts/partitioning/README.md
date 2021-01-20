@@ -161,7 +161,11 @@ public TaskExecutor executor() {
 
 #### partitioner
 
-Partitioner는 각 Worker Step들이 어떤 Step Executions 변수를 가지게 할지를 결정합니다.  
+Partitioner는 각 Worker Step들에게 어떤 Step Executions 변수를 가지게 할지를 결정합니다.  
+  
+이번 예제의 경우 "특정 기간의 DB 데이터를 파티션으로 나눠서 집계" 가 주제인데, 여기서 Partitioner는 **특정 기간의 DB 데이터의 시작 PK값과 끝 PK값을 조회해 파티션별로 분할해서 할당**하는 일을 할 예정입니다.
+
+> 일반적으로 클러스터 Key인 PK값을 활용하면 조회 성능이 개선됩니다.
 
 
 ```java
@@ -214,24 +218,26 @@ public class ProductIdRangePartitioner implements Partitioner {
 }
 ```
 
-* [ColumnRangePartitioner.java](https://github.com/spring-projects/spring-batch/blob/d8fc58338d3b059b67b5f777adc132d2564d7402/spring-batch-samples/src/main/java/org/springframework/batch/sample/common/ColumnRangePartitioner.java)
+> 위 예제 코드는 **Spring Batch 공식 샘플 코드**인 [ColumnRangePartitioner.java](https://github.com/spring-projects/spring-batch/blob/d8fc58338d3b059b67b5f777adc132d2564d7402/spring-batch-samples/src/main/java/org/springframework/batch/sample/common/ColumnRangePartitioner.java)를 참고하여 만들었습니다.
+
+로직 자체는 심플합니다.  
+조회 대상인 Product의 Repository (```productRepository```)를 통해 **Job Parameter로 받은 시작일과 종료일**로 전체 조회 대상의 맨 첫 PK값과 맨 끝 PK값을 가져옵니다.  
+  
+그리고 이를 gridSize에 맞게 각 파티션 ExecutionContext으로 할당합니다.  
+  
+예를 들어 ```2021.1.12 ~ 2021.1.13``` 기간에 해당하는 Product의 PK가 1부터 10까지 있다면 ```partition(5)``` (gridSize=5)를 수행시 다음과 같은 결과가 리턴됩니다.
 
 ```java
-public interface ProductRepository extends JpaRepository <Product, Long> {
-
-    @Query("SELECT MAX(p.id) " +
-            "FROM Product p " +
-            "WHERE p.createDate BETWEEN :startDate AND :endDate")
-    Long findMaxId(@Param("startDate") LocalDate startDate,
-                   @Param("endDate") LocalDate endDate);
-
-    @Query("SELECT MIN(p.id) " +
-            "FROM Product p " +
-            "WHERE p.createDate BETWEEN :startDate AND :endDate")
-    Long findMinId(@Param("startDate") LocalDate startDate,
-                   @Param("endDate") LocalDate endDate);
-}
+partition0 (minId:1, maxId:2)
+partition1 (minId:3, maxId:4)
+partition2 (minId:5, maxId:6)
+partition3 (minId:7, maxId:8)
+partition4 (minId:9, maxId:10)
 ```
+
+실제로 로직이 잘 작동하는지 테스트 코드로 검증해보겠습니다.  
+  
+**ProductIdRangePartitionerTest**
 
 ```java
 import com.jojoldu.batch.entity.product.ProductRepository;
@@ -285,6 +291,7 @@ public class ProductIdRangePartitionerTest {
 ```
 
 
+
 ```java
 @Bean(name = JOB_NAME +"_partitioner")
 @StepScope
@@ -300,6 +307,9 @@ public ProductIdRangePartitioner partitioner(
 
 
 #### ItemReader
+
+기존의 경우 ```@Value("#{jobParameters['minId']}") Long minId```와 같이 **JobParameter**를 통해 동적인 값을 받았는데요.  
+
 
 ```java
 @Bean(name = JOB_NAME +"_reader")
