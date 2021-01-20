@@ -17,7 +17,7 @@
     * ex) A서버에서 ItemReader 구현체를 사용하여 데이터를 읽고, B 서버에서 ItemWriter 구현체를 갖고 있어 A 서버에서 보낸 데이터를 저장하는 등
   * 다만, **어느 서버에서 어느 데이터를 처리하고 있는지 메타 데이터 관리를 하지 않기 때문에** 메세지 유실이 안되는 것이 100% 보장되어야 한다 (ex: AWS SQS, 카프카 등의 메세지큐 사용을 권장)
 * 파티셔닝 (Partitioning) (Single or Multi process / Local or Remote)
-  * 마스터 (매니저)를 이용해 데이터를 더 작은 Chunk (파티션이라고 함)로 나눈 다음 파티션에서 슬레이브가 독립적으로 작동하는 방식 (이번 시간에 해볼 것)
+  * 매니저 (마스터)를 이용해 데이터를 더 작은 Chunk (파티션이라고 함)로 나눈 다음 파티션에서 슬레이브가 독립적으로 작동하는 방식 (이번 시간에 해볼 것)
   * 슬레이브가 로컬과 원격을 모두 지원하여 확장된 JVM 환경에서의 실행을 해볼 수 있음
     * 원격 슬레이브와 통신하기 위해 다양한 통신 메커니즘을 지원
 * ```AsyncItemProcessor```/```AsyncItemWriter```
@@ -42,7 +42,7 @@
 
 ## 1. 소개
 
-파티셔닝은 마스터 (매니저) (혹은 매니저) Step이 대량의 데이터 처리를 위해 지정된 수의 작업자 (Worker) Step으로 **일감을 분할 처리**하는 방식을 이야기 합니다.
+파티셔닝은 매니저 (마스터) Step이 대량의 데이터 처리를 위해 지정된 수의 작업자 (Worker) Step으로 **일감을 분할 처리**하는 방식을 이야기 합니다.
 
 ![intro1](./images/intro1.png)
 
@@ -83,7 +83,7 @@ Spring Batch에서 기본적으로 **1**로 두며, 이를 변경하기 위해�
 
 ### PartitionHandler
 
-PartitionHandler 인터페이스는 매니저 Step이 Worker Step를 어떻게 다룰지를 정의합니다.  
+PartitionHandler 인터페이스는 매니저 (마스터) Step이 Worker Step를 어떻게 다룰지를 정의합니다.  
 이를테면, 어느 Step을 Worker step의 코드로 두고 병렬로 실행하게할지, 병렬로 실행한다면 쓰레드풀 관리는 어떻게 할지, ```gridSize```는 몇으로 둘지 등등을 비롯하여 모든 작업이 완료되었는지를 식별하는지를 다룹니다.  
   
 일반적으로는 Partitioner의 구현체는 개발자가 요구사항에 따라 별도 생성해서 사용하곤 하지만, 자신만의 PartitionHandler를 작성하지는 않을 것입니다.  
@@ -112,7 +112,7 @@ PartitionHandler 인터페이스는 매니저 Step이 Worker Step를 어떻게 �
 
 #### partitionHandler
 
-"2. 주요 인터페이스 소개" 에서 소개드린대로, PartitionHandler는 매니저 Step이 Worker Step를 어떻게 다룰지를 정의합니다.
+"2. 주요 인터페이스 소개" 에서 소개드린대로, PartitionHandler는 매니저 (마스터) Step이 Worker Step를 어떻게 다룰지를 정의합니다.
 
 ```java
 @Bean(name = JOB_NAME+"_partitionHandler")
@@ -159,13 +159,64 @@ public TaskExecutor executor() {
 }
 ```
 
+기본 예제로 ```SimpleAsyncTaskExecutor```를 사용할 수도 있겠지만, ```SimpleAsyncTaskExecutor```를 사용할 경우 **쓰레드를 계속해서 생성할 수 있기 때문에** 실제 운영 환경에서는 대형 장애를 발생시킬 수 있습니다.  
+  
+그래서 쓰레드풀 내에서 지정된 갯수만큼의 쓰레드만 생성할 수 있도록 ```ThreadPoolTaskExecutor```를 사용합니다.  
+
+#### 매니저 (마스터) Step
+
+마스터 Step은 **어떤 Step을 Worker로 지정하여 파티셔닝을 할 것인지**를 결정하고, 이때 사용할 ```PartitionHandler``` 를 등록합니다.  
+
+```java
+@Bean(name = JOB_NAME +"_step1Manager")
+public Step step1Manager() {
+    return stepBuilderFactory.get("step1.manager") // (1)
+            .partitioner("step1", partitioner(null, null)) // (2)
+            .step(step1()) // (3)
+            .partitionHandler(partitionHandler()) // (4)
+            .build();
+}
+
+...
+
+@Bean(name = JOB_NAME +"_step")
+public Step step1() {
+    return stepBuilderFactory.get(JOB_NAME +"_step")
+            .<Product, ProductBackup>chunk(chunkSize)
+            .reader(reader(null, null))
+            .processor(processor())
+            .writer(writer(null, null))
+            .build();
+}
+```
+
+(1) ```stepBuilderFactory.get("step1.manager")```
+
+* 1개의 Job에 여러 Step이 있을 수 있고, 여러 Step들이 각각의 파티셔닝이 될 수도 있으니 마스터 Step의 이름은 파티셔닝 대상 Step과 연관지어 짓습니다.
+* 여기서는 ```step1``` Step의 매니저 Step이기 때문에 ```step1.manager```로 합니다.
+
+(2) ```.partitioner("step1", partitioner(null, null))```
+
+* step1에 사용될 ```Partitioner``` 구현체를 등록합니다.
+* 예제에서는 같은 클래스내 ```partitioner``` 메소드를 통해서 생성되기 때문에 해당 메소드를 호출합니다.
+
+(3) ```.step(step1())```
+
+* 파티셔닝될 Step을 등록합니다.
+* step1이 ```Partitioner``` 로직에 따라 **서로 다른 StepExecutions**를 가진 여러개로 생성됩니다. 
+
+(4) ```.partitionHandler(partitionHandler())```
+
+* 사용할 ```PartitionHandler``` 를 등록합니다.
+
+
 #### partitioner
 
-Partitioner는 각 Worker Step들에게 어떤 Step Executions 변수를 가지게 할지를 결정합니다.  
+Partitioner는 각 Worker Step들에게 어떤 Step Executions 변수를 가지게 할지를 결정하고, 그에 따라 생성할 Worker Step 수를 결정합니다.  
   
 이번 예제의 경우 "특정 기간의 DB 데이터를 파티션으로 나눠서 집계" 가 주제인데, 여기서 Partitioner는 **특정 기간의 DB 데이터의 시작 PK값과 끝 PK값을 조회해 파티션별로 분할해서 할당**하는 일을 할 예정입니다.
 
-> 일반적으로 클러스터 Key인 PK값을 활용하면 조회 성능이 개선됩니다.
+> 일반적으로 [클러스터 Key인 PK값을 활용하면 조회 성능이 개선](https://jojoldu.tistory.com/476)됩니다.
 
 
 ```java
@@ -267,22 +318,24 @@ public class ProductIdRangePartitionerTest {
         //given
         Mockito.lenient()
                 .when(productRepository.findMinId(any(LocalDate.class), any(LocalDate.class)))
-                .thenReturn(1L);
+                .thenReturn(1L); // (1)
 
         Mockito.lenient()
                 .when(productRepository.findMaxId(any(LocalDate.class), any(LocalDate.class)))
-                .thenReturn(10L);
+                .thenReturn(10L); 
 
-        partitioner = new ProductIdRangePartitioner(productRepository, LocalDate.of(2021,1,20), LocalDate.of(2021,1,21));
+        partitioner = new ProductIdRangePartitioner(productRepository, LocalDate.of(2021,1,20), LocalDate.of(2021,1,21)); // (2)
 
         //when
-        Map<String, ExecutionContext> executionContextMap = partitioner.partition(5);
+        Map<String, ExecutionContext> executionContextMap = partitioner.partition(5); // (3)
 
         //then
+        // (4)
         ExecutionContext partition1 = executionContextMap.get("partition0");
-        assertThat(partition1.getLong("minId")).isEqualTo(1L);
-        assertThat(partition1.getLong("maxId")).isEqualTo(2L);
+        assertThat(partition1.getLong("minId")).isEqualTo(1L); 
+        assertThat(partition1.getLong("maxId")).isEqualTo(2L); 
 
+        // (5)
         ExecutionContext partition5 = executionContextMap.get("partition4");
         assertThat(partition5.getLong("minId")).isEqualTo(9L);
         assertThat(partition5.getLong("maxId")).isEqualTo(10L);
@@ -290,7 +343,38 @@ public class ProductIdRangePartitionerTest {
 }
 ```
 
+(1) ```Mockito ~ findMinId (findMaxId) ~ thenReturn```
 
+* Mockito 라이브러리를 이용하여 ```ProductRepository```의 특정 메소드 (```findMinId```, ```findMaxId```) 호출시에 지정된 값들 (```1```, ```10```)이 반환되도록 설정합니다.
+* 즉, 테스트가 실행되는 동안에는 ```ProductRepository```의 해당 메소드를 호출하면 항상 지정된 값들이 반환됩니다.
+
+(2) ```new ProductIdRangePartitioner(productRepository, ...)```
+
+* 테스트 대상인 ```ProductIdRangePartitioner``` 인스턴스를 생성합니다.
+* (1)에서 Mockito로 생성한 ```ProductRepository``` 인스턴스도 주입시켜, 의도한 대로 테스트가 실행되도록 합니다.
+
+(3) ```partitioner.partition(5)```
+
+* ```ProductIdRangePartitioner```의 인스턴스인 ```partitioner```의 메소드를 gridSize(```5```)를 넣고 실행합니다.
+* 반환된 ```executionContextMap``` 에는 ```"partition"+num``` 을 key로 하여 ```minId, maxId```가 Value로 들어가 있습니다.
+
+(4) ```executionContextMap.get("partition0"); assertThat...```
+
+* 첫번째 파티션에 등록된 ```minId, maxId```를 검증합니다.
+* 예상한대로 결과가 나온다면 ```minId=1```, ```maxId=2```가 됩니다.
+
+(5) ```executionContextMap.get("partition4"); assertThat...```
+
+* 마지막 파티션에 등록된 ```minId, maxId```를 검증합니다.
+* 예상한대로 결과가 나온다면 ```minId=9```, ```maxId=10```가 됩니다.
+
+위 테스트 코드를 돌려보시면 아래와 같이 의도한대로 gridSize에 맞게 ```ExecutionContext```가 생성된 것을 확인할 수 있습니다.
+
+![test1](./images/test1.png)
+
+이렇게 ```ProductIdRangePartitioner```를 통해 생성된 ```ExecutionContext```에 맞춰 Worker Step들이 생성되어 그들의 Step Executions이 됩니다.  
+  
+실제 스프링 배치 코드에서는 ```ProductIdRangePartitioner```를 다음과 같이 빈 (bean) 등록을 합니다.
 
 ```java
 @Bean(name = JOB_NAME +"_partitioner")
@@ -305,11 +389,15 @@ public ProductIdRangePartitioner partitioner(
 }
 ```
 
-
 #### ItemReader
 
 기존의 경우 ```@Value("#{jobParameters['minId']}") Long minId```와 같이 **JobParameter**를 통해 동적인 값을 받았는데요.  
+  
+바로 위에서 사용된 ```ProductIdRangePartitioner```를 통해  ```stepExecutionContext``` 에 ```minId```와 ```maxId```가 등록 되어있으니, 이 값을 사용합니다.
 
+> 파티셔닝을 사용하면 무조건 ```stepExecutionContext```만 사용해야 하는 것은 아닙니다.  
+> ```jobParameters```와 ```stepExecutionContext``` 등 모두를 사용할 수 있습니다.  
+> 단지 추가로 ```Partitioner``` 인터페이스를 통해 등록된 값들을 더 사용할 수 있을 뿐입니다.
 
 ```java
 @Bean(name = JOB_NAME +"_reader")
@@ -337,10 +425,9 @@ public JpaPagingItemReader<Product> reader(
 }
 ```
 
-
-
-
 ### 3-2. 전체 코드
+
+이렇게 해서 모든 코드들을 조합하게 되면 다음과 같은 스프링 배치 코드가 됩니다.
 
 ```java
 import com.jojoldu.batch.entity.product.Product;
@@ -385,7 +472,7 @@ public class PartitionLocalConfiguration {
 
     private int chunkSize;
 
-    @Value("${chunkSize:1000}")
+    @Value("${chunkSize:100}")
     public void setChunkSize(int chunkSize) {
         this.chunkSize = chunkSize;
     }
@@ -490,17 +577,20 @@ public class PartitionLocalConfiguration {
             @Value("#{stepExecutionContext[maxId]}") Long maxId) {
 
         return items -> {
-            log.info("expectedMinId={}, real minId={}", minId, items.get(0).getOriginId());
-            log.info("expectedMaxId={}, real maxId={}", maxId, items.get(items.size()-1).getOriginId());
             productBackupRepository.saveAll(items);
         };
     }
 }
 ```
 
-
+위 코드가 실제로 잘 작동할 수 있는지 테스트 코드로 검증해봅시다.
 
 ### 3-3. 테스트 코드
+
+스프링 배치 4.1에서 새롭게 추가된 ```@SpringBatchTest``` 을 사용하여 좀 더 심플하게 테스트 코드를 구현합니다.  
+해당 어노테이션을 추가하게되면 자동으로 ApplicationContext 에 테스트에 필요한 여러 유틸 Bean을 등록해줍니다.
+
+> 좀 더 상세한 설명은 [10. Spring Batch 가이드 - Spring Batch 테스트 코드](https://jojoldu.tistory.com/455)을 참고합니다.
 
 ```java
 import com.jojoldu.batch.TestBatchConfig;
@@ -577,6 +667,14 @@ public class PartitionLocalConfigurationTest {
 }
 ```
 
+> Spring Batch **4.3** 부터 ```jobLauncherTestUtils```의 [getUniqueJobParametersBuilder](https://github.com/spring-projects/spring-batch/pull/734) 을 지원합니다.  
+> 즉, 매번 테스트용 유니크 파라미터를 만들기 위해 ```new JobParametersBuilder(jobLauncherTestUtils.getUniqueJobParameters())``` 과 같이 할 필요가 없어졌습니다.
+
+테스트 코드의 흐름은 간단합니다.  
+50개의 대상 데이터를 넣은 뒤, 해당 배치를 돌렸을때 정상적으로 파티셔닝 되어 50개가 다른 테이블로 이관이 잘 되었는지를 보는 것인데요.  
+  
+위 테스트 코드를 수행해보면 다음과 같이 **ItemReader가 파티셔닝**되어 실행되고 있음을 확인할 수 있습니다.
+
 ```sql
 Hibernate: select ... from product product0_ where product0_.id between ? and ? limit ?
 Hibernate: select ... from product product0_ where product0_.id between ? and ? limit ?
@@ -584,6 +682,8 @@ Hibernate: select ... from product product0_ where product0_.id between ? and ? 
 Hibernate: select ... from product product0_ where product0_.id between ? and ? limit ?
 Hibernate: select ... from product product0_ where product0_.id between ? and ? limit ?
 ```
+
+Step 로그 역시 마찬가지로 gridSize(```5```)에 맞게 호출되고 있음을 확인할 수 있습니다.
 
 ```bash
 Step: [partitionLocalBatch_step:partition4] executed in 75ms
@@ -594,9 +694,76 @@ Step: [partitionLocalBatch_step:partition1] executed in 79ms
 Step: [step1.manager] executed in 181ms
 ```
 
-### 원격
+### 3-4. Worker Step의 페이징처리
 
-A: Spring Batch 파티셔닝
-B: Post API
+여기까지 진행하셨다면 다음과 같은 의문이 들 수 있습니다.  
+여러 쓰레드에서 병렬로 Worker Step이 실행된다면, "Worker Step 안에서 다시 페이징 처리와 같이 Chunk단위 처리가 필요하면 어떻게 될 것인가?" 하는 것이죠.  
+  
+첫 소개글에서 말씀드렸다시피, 파티셔닝된 Worker Step은 **그 하나로 독립적인 완전한 Step**입니다.  
+즉, 페이징 처리가 필요하면 다른 Step과 마찬가지로 Worker Step 내부에서 pageSize 단위로 페이징 처리가 됩니다.  
+  
+테스트 코드와 로그를 통해 검증해보겠습니다.  
+  
+기존에 사용된 배치 테스트 코드에 다음의 한줄을 추가하여 **chunkSize와 pageSize를 조절**합니다.  
 
-시나리오: A에서 파티셔닝으로 B 
+> chunkSize와 pageSize를 다르게 둘 경우 LazyInitializationException와 같은 여러 문제들이 발생하기 때문에 보통은 둘을 같은 값으로 둡니다.  
+> 즉, 현재의 배치 코드에서는 chunkSize로 지정된 값이 pageSize가 되도록 설정되어있어, chunkSize만 조절하면 pageSize까지 함께 반영됩니다.
+
+**테스트 코드**
+
+```java
+...
+@SpringBatchTest
+@TestPropertySource(properties = "chunkSize=5") // (1)
+public class PartitionLocalConfigurationPageTest {
+  ....
+}
+```
+
+(1) ```@TestPropertySource(properties = "chunkSize=5")```
+
+* chunkSize는 JobParameter 항목이 아닌 Spring Properties로 받기 때문에 ```TestPropertySource```를 통해 등록합니다.
+* 5를 지정했기 때문에 기존의 테스트 코드라면 각 파티션마다 2번의 페이징이 진행됩니다. (각 파티션마다 조회 대상이 10개이고, 이를 5개씩 페이징 처리)
+
+그리고 페이징 처리때 마다 5개씩만 잘 처리되고 있는지 확인하기 위해 ItemWriter에 로그를 추가해줍니다.  
+  
+**ItemWriter**
+
+```java
+@Bean(name = JOB_NAME +"_writer")
+@StepScope
+public ItemWriter<ProductBackup> writer(
+        @Value("#{stepExecutionContext[minId]}") Long minId,
+        @Value("#{stepExecutionContext[maxId]}") Long maxId) {
+
+    return items -> {
+        log.info("stepExecutionContext minId={}, current minId={}", minId, items.get(0).getOriginId());
+        log.info("stepExecutionContext maxId={}, current maxId={}", maxId, items.get(items.size()-1).getOriginId());
+        productBackupRepository.saveAll(items);
+    };
+}
+```
+
+이제 다시 테스트 코드를 수행해보시면 아래와 같이 페이징 처리가 되어 첫번째 페이지에서는 StepExecution 값의 min/max가 아닌 5개만 조회된 것을 확인할 수 있습니다.
+
+```java
+...
+c.j.b.e.p.PartitionLocalConfiguration    :stepExecutionContext maxId=10, current maxId=5
+c.j.b.e.p.PartitionLocalConfiguration    :stepExecutionContext maxId=20, current maxId=15
+c.j.b.e.p.PartitionLocalConfiguration    :stepExecutionContext maxId=30, current maxId=25
+c.j.b.e.p.PartitionLocalConfiguration    :stepExecutionContext maxId=40, current maxId=35
+c.j.b.e.p.PartitionLocalConfiguration    :stepExecutionContext maxId=50, current maxId=45
+...
+```
+
+## 마무리
+
+파티셔닝을 통한 단일 서버 (로컬) 에서의 배치 성능 향상 방법을 배워보았는데요.  
+기존에 일반적인 스프링 배치 step을 작성했던 코드가 있다면 해당 Step의 코드는 변경 없이 매니저(마스터) Step만 추가하여 깔끔하게 파티셔닝을 적용할 수 있습니다.  
+  
+이외에도 파티셔닝을 통한 다양한 개선을 진행해볼 수 있습니다.  
+
+* 조회 조건이 시작일 ~ 종료일로 한달 정도 기간이 발생한다면 파티셔닝을 통해 Worker Step 에서 하루 혹은 이틀로 분할 처리한다던가
+* 1일 ~ 31일까지 나눠진 csv 파일들을 파티셔닝을 통해 분할 처리한다던가
+
+등등 멀티 쓰레드 방식에 비해 **ItemReader/ItemWriter 에 동적 변수**를 다양하게 할당할 수 있습니다. 

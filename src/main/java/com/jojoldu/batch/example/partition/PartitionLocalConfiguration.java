@@ -147,8 +147,8 @@ public class PartitionLocalConfiguration {
             @Value("#{stepExecutionContext[maxId]}") Long maxId) {
 
         return items -> {
-            log.info("expectedMinId={}, real minId={}", minId, items.get(0).getOriginId());
-            log.info("expectedMaxId={}, real maxId={}", maxId, items.get(items.size()-1).getOriginId());
+            log.info("stepExecutionContext minId={}, current minId={}", minId, items.get(0).getOriginId());
+            log.info("stepExecutionContext maxId={}, current maxId={}", maxId, items.get(items.size()-1).getOriginId());
             productBackupRepository.saveAll(items);
         };
     }
