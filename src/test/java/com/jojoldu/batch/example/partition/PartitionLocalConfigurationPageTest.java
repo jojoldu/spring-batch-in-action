@@ -5,6 +5,7 @@ import com.jojoldu.batch.entity.product.Product;
 import com.jojoldu.batch.entity.product.ProductRepository;
 import com.jojoldu.batch.entity.product.backup.ProductBackup;
 import com.jojoldu.batch.entity.product.backup.ProductBackupRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,7 @@ import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -22,6 +24,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Blog : http://jojoldu.tistory.com
  * Github : http://github.com/jojoldu
  */
+@Slf4j
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {TestBatchConfig.class, PartitionLocalConfiguration.class})
 @SpringBatchTest
@@ -46,6 +50,9 @@ public class PartitionLocalConfigurationPageTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @AfterEach
     public void after() throws Exception {
@@ -77,5 +84,10 @@ public class PartitionLocalConfigurationPageTest {
         assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
         List<ProductBackup> backups = productBackupRepository.findAll();
         assertThat(backups.size()).isEqualTo(expectedCount);
+
+        List<Map<String, Object>> metaTable = jdbcTemplate.queryForList("select step_name, status, commit_count, read_count, write_count from BATCH_STEP_EXECUTION");
+        for (Map<String, Object> step : metaTable) {
+            log.info("meta table row={}", step);
+        }
     }
 }

@@ -618,6 +618,7 @@ import java.util.List;
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Slf4j
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {TestBatchConfig.class, PartitionLocalConfiguration.class})
 @SpringBatchTest
@@ -632,6 +633,9 @@ public class PartitionLocalConfigurationTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @AfterEach
     public void after() throws Exception {
@@ -663,6 +667,12 @@ public class PartitionLocalConfigurationTest {
         assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
         List<ProductBackup> backups = productBackupRepository.findAll();
         assertThat(backups.size()).isEqualTo(expectedCount);
+
+        List<Map<String, Object>> metaTable = jdbcTemplate.queryForList("select step_name, status, commit_count, read_count, write_count from BATCH_STEP_EXECUTION");
+        
+        for (Map<String, Object> step : metaTable) {
+            log.info("meta table row={}", step);
+        }
     }
 }
 ```
@@ -685,13 +695,24 @@ Hibernate: select ... from product product0_ where product0_.id between ? and ? 
 
 Step 로그 역시 마찬가지로 gridSize(```5```)에 맞게 호출되고 있음을 확인할 수 있습니다.
 
-```bash
+```java
 Step: [partitionLocalBatch_step:partition4] executed in 75ms
 Step: [partitionLocalBatch_step:partition2] executed in 75ms
 Step: [partitionLocalBatch_step:partition3] executed in 76ms
 Step: [partitionLocalBatch_step:partition0] executed in 75ms
 Step: [partitionLocalBatch_step:partition1] executed in 79ms
 Step: [step1.manager] executed in 181ms
+```
+
+마지막으로 스프링 배치 메타 테이블인 ```BATCH_STEP_EXECUTION``` 에 step 처리 내역을 확인하는 로그 역시 파티셔닝에 대한 Step과 각 실행된 파티션에 대한 row가 적재되어 있는 것을 확인할 수 있습니다.
+
+```js
+meta table row={STEP_NAME=step1.manager, STATUS=COMPLETED, COMMIT_COUNT=5, READ_COUNT=50, WRITE_COUNT=50}
+meta table row={STEP_NAME=partitionLocalBatch_step:partition4, STATUS=COMPLETED, COMMIT_COUNT=1, READ_COUNT=10, WRITE_COUNT=10}
+meta table row={STEP_NAME=partitionLocalBatch_step:partition3, STATUS=COMPLETED, COMMIT_COUNT=1, READ_COUNT=10, WRITE_COUNT=10}
+meta table row={STEP_NAME=partitionLocalBatch_step:partition0, STATUS=COMPLETED, COMMIT_COUNT=1, READ_COUNT=10, WRITE_COUNT=10}
+meta table row={STEP_NAME=partitionLocalBatch_step:partition1, STATUS=COMPLETED, COMMIT_COUNT=1, READ_COUNT=10, WRITE_COUNT=10}
+meta table row={STEP_NAME=partitionLocalBatch_step:partition2, STATUS=COMPLETED, COMMIT_COUNT=1, READ_COUNT=10, WRITE_COUNT=10}
 ```
 
 ### 3-4. Worker Step의 페이징처리
