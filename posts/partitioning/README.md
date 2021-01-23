@@ -59,7 +59,9 @@
 예를 들어 파티셔닝 (Partitioning) Step에서 백만 개의 데이터를 더 작은 파티션으로 나누어 각 파티션을 Worker Step들이 병렬로 처리합니다.  
   
 각각의 Worker Step은 ItemReader / ItemProcessor / ItemWriter 등을 가지고 동작하는 완전한 Spring Batch Step이기 때문에 기존의 Spring Batch 코드 변경이 거의 없는 채로 병렬 실행 환경을 구성할 수 있습니다.  
-  
+
+[[ad]]
+
 ## 2. 주요 인터페이스 소개
 
 ### Partitioner
@@ -209,6 +211,7 @@ public Step step1() {
 
 * 사용할 ```PartitionHandler``` 를 등록합니다.
 
+[[ad]]
 
 #### partitioner
 
@@ -388,6 +391,8 @@ public ProductIdRangePartitioner partitioner(
     return new ProductIdRangePartitioner(productRepository, startLocalDate, endLocalDate);
 }
 ```
+
+[[ad]]
 
 #### ItemReader
 
@@ -585,6 +590,8 @@ public class PartitionLocalConfiguration {
 
 위 코드가 실제로 잘 작동할 수 있는지 테스트 코드로 검증해봅시다.
 
+[[ad]]
+
 ### 3-3. 테스트 코드
 
 스프링 배치 4.1에서 새롭게 추가된 ```@SpringBatchTest``` 을 사용하여 좀 더 심플하게 테스트 코드를 구현합니다.  
@@ -714,6 +721,8 @@ meta table row={STEP_NAME=partitionLocalBatch_step:partition0, STATUS=COMPLETED,
 meta table row={STEP_NAME=partitionLocalBatch_step:partition1, STATUS=COMPLETED, COMMIT_COUNT=1, READ_COUNT=10, WRITE_COUNT=10}
 meta table row={STEP_NAME=partitionLocalBatch_step:partition2, STATUS=COMPLETED, COMMIT_COUNT=1, READ_COUNT=10, WRITE_COUNT=10}
 ```
+
+[[ad]]
 
 ### 3-4. Worker Step의 페이징처리
 
