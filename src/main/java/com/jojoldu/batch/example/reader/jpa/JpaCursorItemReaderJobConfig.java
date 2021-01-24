@@ -10,16 +10,11 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaCursorItemReader;
 import org.springframework.batch.item.database.builder.JpaCursorItemReaderBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.persistence.EntityManagerFactory;
-
-/**
- * Created by jojoldu@gmail.com on 20/08/2018
- * Blog : http://jojoldu.tistory.com
- * Github : https://github.com/jojoldu
- */
 
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
@@ -29,7 +24,11 @@ public class JpaCursorItemReaderJobConfig {
     private final StepBuilderFactory stepBuilderFactory;
     private final EntityManagerFactory entityManagerFactory;
 
-    private int chunkSize = 10;
+    private int chunkSize;
+    @Value("${chunkSize:5}")
+    public void setChunkSize(int chunkSize) {
+        this.chunkSize = chunkSize;
+    }
 
     @Bean
     public Job jpaCursorItemReaderJob() {
@@ -55,6 +54,7 @@ public class JpaCursorItemReaderJobConfig {
                 .queryString("SELECT p FROM Pay p")
                 .maxItemCount(5)
                 .currentItemCount(2)
+                .saveState(true)
                 .build();
     }
 
@@ -65,5 +65,4 @@ public class JpaCursorItemReaderJobConfig {
             }
         };
     }
-
 }

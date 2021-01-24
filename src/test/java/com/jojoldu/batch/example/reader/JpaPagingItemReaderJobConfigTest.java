@@ -2,37 +2,25 @@ package com.jojoldu.batch.example.reader;
 
 import com.jojoldu.batch.TestBatchConfig;
 import com.jojoldu.batch.entity.pay.Pay;
-import com.jojoldu.batch.entity.pay.Pay2Repository;
 import com.jojoldu.batch.entity.pay.PayRepository;
-import com.jojoldu.batch.entity.student.Student;
-import com.jojoldu.batch.entity.student.Teacher;
-import com.jojoldu.batch.entity.student.TeacherRepository;
 import com.jojoldu.batch.example.reader.jpa.JpaPagingItemReaderJobConfig;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.time.LocalDateTime;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Created by jojoldu@gmail.com on 18/10/2018
- * Blog : http://jojoldu.tistory.com
- * Github : https://github.com/jojoldu
- */
-
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBatchTest
 @SpringBootTest(classes = {JpaPagingItemReaderJobConfig.class, TestBatchConfig.class})
 public class JpaPagingItemReaderJobConfigTest {
@@ -43,14 +31,14 @@ public class JpaPagingItemReaderJobConfigTest {
     @Autowired
     private PayRepository payRepository;
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         payRepository.deleteAllInBatch();
     }
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void JPA_페이징_조회() throws Exception {
+    void JPA_Paging_조회() throws Exception {
         //given
         for (long i = 0; i < 10; i++) {
             payRepository.save(new Pay(i * 1000, String.valueOf(i), LocalDateTime.now()));
@@ -64,7 +52,7 @@ public class JpaPagingItemReaderJobConfigTest {
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
 
         //then
-        assertThat(jobExecution.getStatus(), is(BatchStatus.COMPLETED));
+        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
     }
-
 }
+
