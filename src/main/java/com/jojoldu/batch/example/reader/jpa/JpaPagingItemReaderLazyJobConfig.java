@@ -1,6 +1,6 @@
 package com.jojoldu.batch.example.reader.jpa;
 
-import com.jojoldu.batch.entity.pay.Pay;
+import com.jojoldu.batch.entity.student.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -8,6 +8,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
@@ -26,8 +27,8 @@ import javax.persistence.EntityManagerFactory;
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
-public class JpaPagingItemReaderJobConfig {
-    public static final String JOB_NAME = "jpaPagingItemReaderJob";
+public class JpaPagingItemReaderLazyJobConfig {
+    public static final String JOB_NAME = "jpaPagingItemReaderLazyJob";
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
     private final EntityManagerFactory entityManagerFactory;
@@ -49,27 +50,36 @@ public class JpaPagingItemReaderJobConfig {
     @Bean(name = JOB_NAME +"_step")
     public Step jpaPagingItemReaderStep() {
         return stepBuilderFactory.get("jpaPagingItemReaderStep")
-                .<Pay, Pay>chunk(chunkSize)
-                .reader(jpaPagingItemReader())
-                .writer(jpaPagingItemWriter())
+                .<Teacher, Teacher>chunk(chunkSize)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
                 .build();
     }
 
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
-    public JpaPagingItemReader<Pay> jpaPagingItemReader() {
-        return new JpaPagingItemReaderBuilder<Pay>()
+    public JpaPagingItemReader<Teacher> reader() {
+        return new JpaPagingItemReaderBuilder<Teacher>()
                 .name("jpaPagingItemReader")
                 .entityManagerFactory(entityManagerFactory)
                 .pageSize(chunkSize)
-                .queryString("SELECT p FROM Pay p")
+                .queryString("SELECT t FROM Teacher t")
                 .build();
     }
 
-    private ItemWriter<Pay> jpaPagingItemWriter() {
+    @Bean(name = JOB_NAME +"_processor")
+    public ItemProcessor<Teacher, Teacher> processor() {
+        return teacher -> {
+            log.info("students count={}", teacher.getStudents().size());
+            return teacher;
+        };
+    }
+
+    private ItemWriter<Teacher> writer() {
         return list -> {
-            for (Pay pay: list) {
-                log.info("Current Pay={}", pay);
+            for (Teacher teacher: list) {
+                log.info("Current Teacher={}", teacher);
             }
         };
     }

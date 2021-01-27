@@ -34,14 +34,14 @@ public class JpaCursorItemReaderJobConfig {
         this.chunkSize = chunkSize;
     }
 
-    @Bean
+    @Bean(name = JOB_NAME)
     public Job jpaCursorItemReaderJob() {
         return jobBuilderFactory.get("jpaCursorItemReaderJob")
                 .start(jpaCursorItemReaderStep())
                 .build();
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_step")
     public Step jpaCursorItemReaderStep() {
         return stepBuilderFactory.get("jpaCursorItemReaderStep")
                 .<Pay, Pay>chunk(chunkSize)

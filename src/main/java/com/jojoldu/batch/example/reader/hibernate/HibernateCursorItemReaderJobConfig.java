@@ -41,7 +41,7 @@ public class HibernateCursorItemReaderJobConfig {
                 .build();
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_step")
     public Step hibernateCursorItemReaderStep() {
         return stepBuilderFactory.get("hibernateCursorItemReaderStep")
                 .<Pay, Pay>chunk(chunkSize)

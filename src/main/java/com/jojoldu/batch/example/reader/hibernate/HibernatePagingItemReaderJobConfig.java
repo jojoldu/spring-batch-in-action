@@ -46,12 +46,12 @@ public class HibernatePagingItemReaderJobConfig {
 
     @Bean
     public Job hibernatePagingItemReaderJob() {
-        return jobBuilderFactory.get("hibernatePagingItemReaderJob")
+        return jobBuilderFactory.get(JOB_NAME)
                 .start(hibernatePagingItemReaderStep())
                 .build();
     }
 
-    @Bean
+    @Bean(name = JOB_NAME +"_step")
     public Step hibernatePagingItemReaderStep() {
         return stepBuilderFactory.get("hibernatePagingItemReaderStep")
                 .<Pay, Pay>chunk(chunkSize)

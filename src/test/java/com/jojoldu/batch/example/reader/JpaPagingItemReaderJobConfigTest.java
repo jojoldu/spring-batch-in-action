@@ -45,7 +45,6 @@ public class JpaPagingItemReaderJobConfigTest {
         }
 
         JobParameters jobParameters = jobLauncherTestUtils.getUniqueJobParametersBuilder()
-                .addString("version", "1")
                 .toJobParameters();
 
         //when
