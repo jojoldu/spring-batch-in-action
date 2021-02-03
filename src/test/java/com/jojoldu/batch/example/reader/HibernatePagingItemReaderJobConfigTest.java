@@ -3,7 +3,8 @@ package com.jojoldu.batch.example.reader;
 import com.jojoldu.batch.TestBatchConfig;
 import com.jojoldu.batch.entity.pay.Pay;
 import com.jojoldu.batch.entity.pay.PayRepository;
-import com.jojoldu.batch.example.reader.jpa.JpaCursorItemReaderJobConfig;
+import com.jojoldu.batch.example.reader.hibernate.HibernateCursorItemReaderJobConfig;
+import com.jojoldu.batch.example.reader.hibernate.HibernatePagingItemReaderJobConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,8 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(SpringExtension.class)
 @SpringBatchTest
-@SpringBootTest(classes = {JpaCursorItemReaderJobConfig.class, TestBatchConfig.class})
-public class JpaCursorItemReaderJobConfigTest {
+@SpringBootTest(classes = {HibernatePagingItemReaderJobConfig.class, TestBatchConfig.class})
+public class HibernatePagingItemReaderJobConfigTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -38,7 +39,7 @@ public class JpaCursorItemReaderJobConfigTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    void JPA_Cursor_조회() throws Exception {
+    void Hibernate_Paging_조회() throws Exception {
         //given
         for (long i = 0; i < 10; i++) {
             payRepository.save(new Pay(i * 1000, String.valueOf(i), LocalDateTime.now()));

@@ -1,6 +1,6 @@
 package com.jojoldu.batch.example.reader.hibernate;
 
-import com.jojoldu.batch.entity.pay.Pay;
+import com.jojoldu.batch.entity.student.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.SessionFactory;
@@ -9,6 +9,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.HibernateCursorItemReader;
 import org.springframework.batch.item.database.builder.HibernateCursorItemReaderBuilder;
@@ -34,41 +35,50 @@ public class HibernateCursorItemReaderJobConfig {
         this.chunkSize = chunkSize;
     }
 
-    @Bean
-    public Job hibernateCursorItemReaderJob() {
-        return jobBuilderFactory.get("hibernateCursorItemReaderJob")
-                .start(hibernateCursorItemReaderStep())
+    @Bean(name = JOB_NAME)
+    public Job job() {
+        return jobBuilderFactory.get(JOB_NAME)
+                .start(step())
                 .build();
     }
 
     @Bean(name = JOB_NAME +"_step")
-    public Step hibernateCursorItemReaderStep() {
-        return stepBuilderFactory.get("hibernateCursorItemReaderStep")
-                .<Pay, Pay>chunk(chunkSize)
-                .reader(hibernateCursorItemReader())
-                .writer(hibernateCursorItemWriter())
+    public Step step() {
+        return stepBuilderFactory.get(JOB_NAME +"_step")
+                .<Teacher, Teacher>chunk(chunkSize)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
                 .build();
     }
 
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
-    public HibernateCursorItemReader<Pay> hibernateCursorItemReader() {
+    public HibernateCursorItemReader<Teacher> reader() {
         SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
 
-        return new HibernateCursorItemReaderBuilder<Pay>()
+        return new HibernateCursorItemReaderBuilder<Teacher>()
                 .sessionFactory(sessionFactory)
-                .queryString("SELECT p FROM Pay p")
+                .queryString("SELECT t FROM Teacher t")
                 .name(JOB_NAME +"_reader")
-                .useStatelessSession(false)
+//                .useStatelessSession(false)
                 .fetchSize(1)
                 .maxItemCount(5)
                 .build();
     }
 
-    private ItemWriter<Pay> hibernateCursorItemWriter() {
+    @Bean(name = JOB_NAME +"_processor")
+    public ItemProcessor<Teacher, Teacher> processor() {
+        return teacher -> {
+            log.info("students count={}", teacher.getStudents().size());
+            return teacher;
+        };
+    }
+
+    private ItemWriter<Teacher> writer() {
         return list -> {
-            for (Pay pay: list) {
-                log.info("Current Pay={}", pay);
+            for (Teacher teacher: list) {
+                log.info("Current Teacher={}", teacher);
             }
         };
     }

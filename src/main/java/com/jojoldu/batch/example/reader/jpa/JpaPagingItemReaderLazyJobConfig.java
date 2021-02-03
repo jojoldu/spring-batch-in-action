@@ -1,5 +1,6 @@
 package com.jojoldu.batch.example.reader.jpa;
 
+import com.jojoldu.batch.config.JpaBatchSizePagingItemReader;
 import com.jojoldu.batch.entity.student.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,8 +11,6 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.database.JpaPagingItemReader;
-import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,13 +58,15 @@ public class JpaPagingItemReaderLazyJobConfig {
 
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
-    public JpaPagingItemReader<Teacher> reader() {
-        return new JpaPagingItemReaderBuilder<Teacher>()
-                .name("jpaPagingItemReader")
-                .entityManagerFactory(entityManagerFactory)
-                .pageSize(chunkSize)
-                .queryString("SELECT t FROM Teacher t")
-                .build();
+    public JpaBatchSizePagingItemReader<Teacher> reader() {
+        JpaBatchSizePagingItemReader<Teacher> itemReader = new JpaBatchSizePagingItemReader<>();
+        itemReader.setName(JOB_NAME +"_reader");
+        itemReader.setEntityManagerFactory(entityManagerFactory);
+        itemReader.setPageSize(chunkSize);
+        itemReader.setQueryString("SELECT t FROM Teacher t");
+        itemReader.setTransacted(false);
+
+        return itemReader;
     }
 
     @Bean(name = JOB_NAME +"_processor")
