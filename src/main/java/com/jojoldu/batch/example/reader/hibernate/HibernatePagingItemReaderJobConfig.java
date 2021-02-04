@@ -1,6 +1,5 @@
 package com.jojoldu.batch.example.reader.hibernate;
 
-import com.jojoldu.batch.entity.pay.Pay;
 import com.jojoldu.batch.entity.student.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,9 +11,7 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.database.HibernateCursorItemReader;
 import org.springframework.batch.item.database.HibernatePagingItemReader;
-import org.springframework.batch.item.database.builder.HibernateCursorItemReaderBuilder;
 import org.springframework.batch.item.database.builder.HibernatePagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -43,8 +40,8 @@ public class HibernatePagingItemReaderJobConfig {
         this.chunkSize = chunkSize;
     }
 
-    @Bean
-    public Job hibernatePagingItemReaderJob() {
+    @Bean(name = JOB_NAME)
+    public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
                 .start(step())
                 .build();
@@ -86,5 +83,4 @@ public class HibernatePagingItemReaderJobConfig {
             }
         };
     }
-
 }

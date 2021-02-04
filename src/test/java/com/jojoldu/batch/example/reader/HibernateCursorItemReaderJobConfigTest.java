@@ -42,8 +42,8 @@ public class HibernateCursorItemReaderJobConfigTest {
         for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";
             Teacher teacher = new Teacher(teacherName, "수학");
-            Student student = new Student(teacherName+"의 제자");
-            teacher.addStudent(student);
+            teacher.addStudent(new Student(teacherName+"의 제자1"));
+            teacher.addStudent(new Student(teacherName+"의 제자2"));
             teacherRepository.save(teacher);
         }
 

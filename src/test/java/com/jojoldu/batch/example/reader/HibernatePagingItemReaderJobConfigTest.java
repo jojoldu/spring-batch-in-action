@@ -3,9 +3,13 @@ package com.jojoldu.batch.example.reader;
 import com.jojoldu.batch.TestBatchConfig;
 import com.jojoldu.batch.entity.pay.Pay;
 import com.jojoldu.batch.entity.pay.PayRepository;
+import com.jojoldu.batch.entity.student.Student;
+import com.jojoldu.batch.entity.student.Teacher;
+import com.jojoldu.batch.entity.student.TeacherRepository;
 import com.jojoldu.batch.example.reader.hibernate.HibernateCursorItemReaderJobConfig;
 import com.jojoldu.batch.example.reader.hibernate.HibernatePagingItemReaderJobConfig;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.batch.core.BatchStatus;
@@ -26,28 +30,32 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = {HibernatePagingItemReaderJobConfig.class, TestBatchConfig.class})
 public class HibernatePagingItemReaderJobConfigTest {
 
+
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
 
     @Autowired
-    private PayRepository payRepository;
+    private TeacherRepository teacherRepository;
 
-    @AfterEach
-    public void tearDown() throws Exception {
-        payRepository.deleteAllInBatch();
+    @BeforeEach
+    void setUp() {
+        teacherRepository.deleteAll();
     }
 
     @SuppressWarnings("Duplicates")
     @Test
-    void Hibernate_Paging_조회() throws Exception {
+    public void hibernateCursor테스트() throws Exception {
         //given
-        for (long i = 0; i < 10; i++) {
-            payRepository.save(new Pay(i * 1000, String.valueOf(i), LocalDateTime.now()));
+        for(long i=1;i<=10;i++) {
+            String teacherName = i + "선생님";
+            Teacher teacher = new Teacher(teacherName, "수학");
+            teacher.addStudent(new Student(teacherName+"의 제자1"));
+            teacher.addStudent(new Student(teacherName+"의 제자2"));
+            teacherRepository.save(teacher);
         }
 
         JobParameters jobParameters = jobLauncherTestUtils.getUniqueJobParametersBuilder()
                 .toJobParameters();
-
         //when
         JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
 
