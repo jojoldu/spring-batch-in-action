@@ -17,8 +17,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import javax.persistence.EntityManagerFactory;
-
 @Slf4j // log 사용을 위한 lombok 어노테이션
 @RequiredArgsConstructor // 생성자 DI를 위한 lombok 어노테이션
 @Configuration
@@ -26,7 +24,7 @@ public class HibernateCursorItemReaderJobConfig {
     public static final String JOB_NAME = "hibernateCursorItemReaderJob";
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
-    private final EntityManagerFactory entityManagerFactory;
+    private final SessionFactory sessionFactory;
 
     private int chunkSize;
 
@@ -55,19 +53,14 @@ public class HibernateCursorItemReaderJobConfig {
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
     public HibernateCursorItemReader<Teacher> reader() {
-        SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
-
         return new HibernateCursorItemReaderBuilder<Teacher>()
                 .sessionFactory(sessionFactory)
                 .queryString("SELECT t FROM Teacher t")
                 .name(JOB_NAME +"_reader")
-//                .useStatelessSession(false)
-                .fetchSize(1)
-                .maxItemCount(5)
+                .fetchSize(10)
                 .build();
     }
 
-    @Bean(name = JOB_NAME +"_processor")
     public ItemProcessor<Teacher, Teacher> processor() {
         return teacher -> {
             log.info("students count={}", teacher.getStudents().size());

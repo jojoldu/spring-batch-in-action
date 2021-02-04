@@ -1,6 +1,7 @@
 package com.jojoldu.batch.example.reader.hibernate;
 
 import com.jojoldu.batch.entity.pay.Pay;
+import com.jojoldu.batch.entity.student.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.SessionFactory;
@@ -9,17 +10,15 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.HibernateCursorItemReader;
 import org.springframework.batch.item.database.HibernatePagingItemReader;
-import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.HibernateCursorItemReaderBuilder;
 import org.springframework.batch.item.database.builder.HibernatePagingItemReaderBuilder;
-import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import javax.persistence.EntityManagerFactory;
 
 /**
  * Created by jojoldu@gmail.com on 20/08/2018
@@ -35,7 +34,7 @@ public class HibernatePagingItemReaderJobConfig {
 
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
-    private final EntityManagerFactory entityManagerFactory;
+    private final SessionFactory sessionFactory;
 
     private int chunkSize;
 
@@ -47,38 +46,43 @@ public class HibernatePagingItemReaderJobConfig {
     @Bean
     public Job hibernatePagingItemReaderJob() {
         return jobBuilderFactory.get(JOB_NAME)
-                .start(hibernatePagingItemReaderStep())
+                .start(step())
                 .build();
     }
 
     @Bean(name = JOB_NAME +"_step")
-    public Step hibernatePagingItemReaderStep() {
-        return stepBuilderFactory.get("hibernatePagingItemReaderStep")
-                .<Pay, Pay>chunk(chunkSize)
-                .reader(hibernatePagingItemReader())
-                .writer(hibernatePagingItemWriter())
+    public Step step() {
+        return stepBuilderFactory.get(JOB_NAME +"_step")
+                .<Teacher, Teacher>chunk(chunkSize)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
                 .build();
     }
 
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
-    public HibernatePagingItemReader<Pay> hibernatePagingItemReader() {
-        SessionFactory sessionFactory = entityManagerFactory.unwrap(SessionFactory.class);
-
-        return new HibernatePagingItemReaderBuilder<Pay>()
+    public HibernatePagingItemReader<Teacher> reader() {
+        return new HibernatePagingItemReaderBuilder<Teacher>()
                 .sessionFactory(sessionFactory)
-                .queryString("SELECT p FROM Pay p")
+                .queryString("SELECT t FROM Teacher t")
                 .name(JOB_NAME +"_reader")
-                .useStatelessSession(false)
                 .fetchSize(chunkSize)
                 .pageSize(chunkSize)
                 .build();
     }
 
-    private ItemWriter<Pay> hibernatePagingItemWriter() {
+    public ItemProcessor<Teacher, Teacher> processor() {
+        return teacher -> {
+            log.info("students count={}", teacher.getStudents().size());
+            return teacher;
+        };
+    }
+
+    private ItemWriter<Teacher> writer() {
         return list -> {
-            for (Pay pay: list) {
-                log.info("Current Pay={}", pay);
+            for (Teacher teacher: list) {
+                log.info("Current Teacher={}", teacher);
             }
         };
     }
