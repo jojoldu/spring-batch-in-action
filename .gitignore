@@ -28,3 +28,4 @@ application-real-db.yml
 /dist/
 /nbdist/
 /.nb-gradle/
+/request.http

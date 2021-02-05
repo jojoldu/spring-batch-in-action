@@ -1,14 +1,10 @@
 package com.jojoldu.batch.example.reader;
 
 import com.jojoldu.batch.TestBatchConfig;
-import com.jojoldu.batch.entity.pay.Pay;
-import com.jojoldu.batch.entity.pay.PayRepository;
 import com.jojoldu.batch.entity.student.Student;
 import com.jojoldu.batch.entity.student.Teacher;
 import com.jojoldu.batch.entity.student.TeacherRepository;
-import com.jojoldu.batch.example.reader.hibernate.HibernateCursorItemReaderJobConfig;
 import com.jojoldu.batch.example.reader.hibernate.HibernatePagingItemReaderJobConfig;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,15 +17,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.time.LocalDateTime;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(SpringExtension.class)
 @SpringBatchTest
 @SpringBootTest(classes = {HibernatePagingItemReaderJobConfig.class, TestBatchConfig.class})
 public class HibernatePagingItemReaderJobConfigTest {
-
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -44,7 +37,7 @@ public class HibernatePagingItemReaderJobConfigTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void hibernateCursor테스트() throws Exception {
+    public void hibernate페이징테스트() throws Exception {
         //given
         for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";

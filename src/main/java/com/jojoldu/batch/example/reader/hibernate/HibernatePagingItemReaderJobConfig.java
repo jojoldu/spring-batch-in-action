@@ -66,6 +66,7 @@ public class HibernatePagingItemReaderJobConfig {
                 .name(JOB_NAME +"_reader")
                 .fetchSize(chunkSize)
                 .pageSize(chunkSize)
+                .useStatelessSession(false)
                 .build();
     }
 

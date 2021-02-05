@@ -57,7 +57,8 @@ public class HibernateCursorItemReaderJobConfig {
                 .sessionFactory(sessionFactory)
                 .queryString("SELECT t FROM Teacher t")
                 .name(JOB_NAME +"_reader")
-                .fetchSize(10)
+                .fetchSize(chunkSize)
+                .useStatelessSession(false)
                 .build();
     }
 
