@@ -1,6 +1,6 @@
 package com.jojoldu.batch.example.reader.jpa;
 
-import com.jojoldu.batch.entity.pay.Pay;
+import com.jojoldu.batch.entity.student.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -8,6 +8,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaCursorItemReader;
 import org.springframework.batch.item.database.builder.JpaCursorItemReaderBuilder;
@@ -35,38 +36,43 @@ public class JpaCursorItemReaderJobConfig {
     }
 
     @Bean(name = JOB_NAME)
-    public Job jpaCursorItemReaderJob() {
-        return jobBuilderFactory.get("jpaCursorItemReaderJob")
-                .start(jpaCursorItemReaderStep())
+    public Job job() {
+        return jobBuilderFactory.get(JOB_NAME)
+                .start(step())
                 .build();
     }
 
     @Bean(name = JOB_NAME +"_step")
-    public Step jpaCursorItemReaderStep() {
-        return stepBuilderFactory.get("jpaCursorItemReaderStep")
-                .<Pay, Pay>chunk(chunkSize)
-                .reader(jpaCursorItemReader())
-                .writer(jpaCursorItemWriter())
+    public Step step() {
+        return stepBuilderFactory.get(JOB_NAME +"_step")
+                .<Teacher, Teacher>chunk(chunkSize)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
                 .build();
     }
 
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
-    public JpaCursorItemReader<Pay> jpaCursorItemReader() {
-        return new JpaCursorItemReaderBuilder<Pay>()
-                .name("jpaCursorItemReader")
+    public JpaCursorItemReader<Teacher> reader() {
+        return new JpaCursorItemReaderBuilder<Teacher>()
+                .name(JOB_NAME +"_reader")
                 .entityManagerFactory(entityManagerFactory)
-                .queryString("SELECT p FROM Pay p")
-                .maxItemCount(5)
-                .currentItemCount(2)
-                .saveState(true)
+                .queryString("SELECT t FROM Teacher t")
                 .build();
     }
 
-    private ItemWriter<Pay> jpaCursorItemWriter() {
+    public ItemProcessor<Teacher, Teacher> processor() {
+        return teacher -> {
+            log.info("students count={}", teacher.getStudents().size());
+            return teacher;
+        };
+    }
+
+    private ItemWriter<Teacher> writer() {
         return list -> {
-            for (Pay pay: list) {
-                log.info("Current Pay={}", pay);
+            for (Teacher teacher: list) {
+                log.info("Current Teacher={}", teacher);
             }
         };
     }
