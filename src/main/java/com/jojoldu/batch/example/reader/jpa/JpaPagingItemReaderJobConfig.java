@@ -1,6 +1,6 @@
 package com.jojoldu.batch.example.reader.jpa;
 
-import com.jojoldu.batch.entity.pay.Pay;
+import com.jojoldu.batch.entity.student.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -8,6 +8,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
@@ -40,38 +41,45 @@ public class JpaPagingItemReaderJobConfig {
     }
 
     @Bean(name = JOB_NAME)
-    public Job jpaPagingItemReaderJob() {
+    public Job job() {
         return jobBuilderFactory.get(JOB_NAME)
-                .start(jpaPagingItemReaderStep())
+                .start(step())
                 .build();
     }
 
     @Bean(name = JOB_NAME +"_step")
-    public Step jpaPagingItemReaderStep() {
-        return stepBuilderFactory.get("jpaPagingItemReaderStep")
-                .<Pay, Pay>chunk(chunkSize)
-                .reader(jpaPagingItemReader())
-                .writer(jpaPagingItemWriter())
+    public Step step() {
+        return stepBuilderFactory.get(JOB_NAME +"_step")
+                .<Teacher, Teacher>chunk(chunkSize)
+                .reader(reader())
+                .processor(processor())
+                .writer(writer())
                 .build();
     }
 
     @Bean(name = JOB_NAME +"_reader")
     @StepScope
-    public JpaPagingItemReader<Pay> jpaPagingItemReader() {
-        return new JpaPagingItemReaderBuilder<Pay>()
-                .name("jpaPagingItemReader")
+    public JpaPagingItemReader<Teacher> reader() {
+        return new JpaPagingItemReaderBuilder<Teacher>()
+                .name(JOB_NAME +"_reader")
                 .entityManagerFactory(entityManagerFactory)
                 .pageSize(chunkSize)
-                .queryString("SELECT p FROM Pay p")
+                .queryString("SELECT t FROM Teacher t")
                 .build();
     }
 
-    private ItemWriter<Pay> jpaPagingItemWriter() {
-        return list -> {
-            for (Pay pay: list) {
-                log.info("Current Pay={}", pay);
-            }
+    public ItemProcessor<Teacher, Teacher> processor() {
+        return teacher -> {
+            log.info("students count={}", teacher.getStudents().size());
+            return teacher;
         };
     }
 
+    private ItemWriter<Teacher> writer() {
+        return list -> {
+            for (Teacher teacher: list) {
+                log.info("Current Teacher={}", teacher);
+            }
+        };
+    }
 }
