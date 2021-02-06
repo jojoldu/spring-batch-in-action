@@ -5,7 +5,7 @@ import com.jojoldu.batch.entity.student.Student;
 import com.jojoldu.batch.entity.student.Teacher;
 import com.jojoldu.batch.entity.student.TeacherRepository;
 import com.jojoldu.batch.example.reader.hibernate.HibernateCursorItemReaderJobConfig;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.batch.core.BatchStatus;
@@ -30,8 +30,8 @@ public class HibernateCursorItemReaderJobConfigTest {
     @Autowired
     private TeacherRepository teacherRepository;
 
-    @BeforeEach
-    void setUp() {
+    @AfterEach
+    void tearDown() {
         teacherRepository.deleteAll();
     }
 
