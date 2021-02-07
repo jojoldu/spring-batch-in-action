@@ -10,7 +10,8 @@ spring:
     properties:
       hibernate.dialect: org.hibernate.dialect.MySQL57Dialect
       hibernate.hbm2ddl.import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor
-#      hibernate.default_batch_fetch_size: ${chunkSize:10}
+      hibernate.current_session_context_class: org.springframework.orm.hibernate5.SpringSessionContext
+      hibernate.default_batch_fetch_size: ${chunkSize:10}
 #      hibernate.jdbc.use_scrollable_resultset: true
     open-in-view: false
   batch:

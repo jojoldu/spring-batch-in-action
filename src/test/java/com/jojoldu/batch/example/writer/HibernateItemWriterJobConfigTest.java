@@ -2,7 +2,6 @@ package com.jojoldu.batch.example.writer;
 
 import com.jojoldu.batch.TestBatchConfig;
 import com.jojoldu.batch.entity.student.StudentRepository;
-import com.jojoldu.batch.entity.student.Teacher;
 import com.jojoldu.batch.entity.student.TeacherRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
@@ -19,8 +18,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
 @SpringBatchTest
-@SpringBootTest(classes={JpaItemWriterJobConfig.class, TestBatchConfig.class})
-public class JpaItemWriterJobConfigurationTest {
+@SpringBootTest(classes={HibernateItemWriterJobConfig.class, TestBatchConfig.class})
+public class HibernateItemWriterJobConfigTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -38,15 +37,9 @@ public class JpaItemWriterJobConfigurationTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void JpaItemWriter테스트() throws Exception {
+    public void HibernateItemWriter테스트() throws Exception {
 
         //given
-        for(long i=1;i<=10;i++) {
-            String teacherName = i + "선생님";
-            Teacher teacher = new Teacher(teacherName, "수학");
-            teacherRepository.save(teacher);
-        }
-
         JobParameters jobParameters = jobLauncherTestUtils.getUniqueJobParametersBuilder()
                 .toJobParameters();
         //when
@@ -54,7 +47,8 @@ public class JpaItemWriterJobConfigurationTest {
 
         //then
         Assertions.assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
-        Assertions.assertThat(studentRepository.count()).isEqualTo(10);
+        Assertions.assertThat(teacherRepository.count()).isEqualTo(2);
+        Assertions.assertThat(studentRepository.count()).isEqualTo(2);
     }
 
 }

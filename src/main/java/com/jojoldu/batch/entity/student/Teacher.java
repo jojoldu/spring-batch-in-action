@@ -45,5 +45,4 @@ public class Teacher {
         students.add(student);
         student.setTeacher(this);
     }
-
 }

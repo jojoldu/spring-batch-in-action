@@ -4,30 +4,32 @@ import com.jojoldu.batch.entity.student.Student;
 import com.jojoldu.batch.entity.student.Teacher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.SessionFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.database.JpaItemWriter;
-import org.springframework.batch.item.database.builder.JpaItemWriterBuilder;
+import org.springframework.batch.item.database.HibernateItemWriter;
+import org.springframework.batch.item.database.builder.HibernateItemWriterBuilder;
 import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.PlatformTransactionManager;
 
-import javax.persistence.EntityManagerFactory;
 import java.util.Arrays;
 
 @Slf4j
 @RequiredArgsConstructor
 @Configuration
-public class JpaItemWriterJobConfig {
-    public static final String JOB_NAME = "jpaItemWriterJob";
+public class HibernateItemWriterJobConfig {
+    public static final String JOB_NAME = "hibernateItemWriterJob";
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
-    private final EntityManagerFactory entityManagerFactory;
+    private final SessionFactory sessionFactory;
+    private final PlatformTransactionManager transactionManager;
 
     private int chunkSize;
 
@@ -69,9 +71,9 @@ public class JpaItemWriterJobConfig {
         };
     }
 
-    public JpaItemWriter<Teacher> writer() {
-        return new JpaItemWriterBuilder<Teacher>()
-                .entityManagerFactory(entityManagerFactory)
+    public HibernateItemWriter<Teacher> writer() {
+        return new HibernateItemWriterBuilder<Teacher>()
+                .sessionFactory(sessionFactory)
                 .build();
     }
 }
