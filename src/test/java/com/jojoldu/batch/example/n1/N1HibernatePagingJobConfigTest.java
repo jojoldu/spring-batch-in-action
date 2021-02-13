@@ -36,7 +36,7 @@ public class N1HibernatePagingJobConfigTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void Hibernate페이징테스트() throws Exception {
+    public void HibernatePaging_batch_size_테스트() throws Exception {
         //given
         for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";

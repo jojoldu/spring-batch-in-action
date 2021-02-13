@@ -36,7 +36,7 @@ public class N1JpaPagingJobConfigTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void JPA페이징테스트() throws Exception {
+    public void JPAPaging_batch_size_테스트() throws Exception {
         //given
         for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";
