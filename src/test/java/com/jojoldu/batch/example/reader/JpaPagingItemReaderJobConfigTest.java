@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SpringExtension.class)
 @SpringBatchTest
 @SpringBootTest(classes = {JpaPagingItemReaderJobConfig.class, TestBatchConfig.class})
-public class JpaPagingItemReaderJobConfigTest {
+class JpaPagingItemReaderJobConfigTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -37,7 +37,7 @@ public class JpaPagingItemReaderJobConfigTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void JPA페이징테스트() throws Exception {
+    void JPA_paging_test() throws Exception {
         //given
         for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";

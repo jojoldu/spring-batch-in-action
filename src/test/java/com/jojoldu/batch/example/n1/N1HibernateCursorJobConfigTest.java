@@ -6,7 +6,6 @@ import com.jojoldu.batch.entity.student.Teacher;
 import com.jojoldu.batch.entity.student.TeacherRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
@@ -14,14 +13,12 @@ import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ExtendWith(SpringExtension.class)
 @SpringBatchTest
 @SpringBootTest(classes = {N1HibernateCursorJobConfig.class, TestBatchConfig.class})
-public class N1HibernateCursorJobConfigTest {
+class N1HibernateCursorJobConfigTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -36,7 +33,7 @@ public class N1HibernateCursorJobConfigTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void HibernateCursor_batch_size_테스트() throws Exception {
+    void HibernateCursor_batch_size_test() throws Exception {
         //given
         for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";

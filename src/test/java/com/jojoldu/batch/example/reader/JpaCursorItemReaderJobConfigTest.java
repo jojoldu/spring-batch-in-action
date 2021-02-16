@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SpringExtension.class)
 @SpringBatchTest
 @SpringBootTest(classes = {JpaCursorItemReaderJobConfig.class, TestBatchConfig.class})
-public class JpaCursorItemReaderJobConfigTest {
+class JpaCursorItemReaderJobConfigTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -37,7 +37,7 @@ public class JpaCursorItemReaderJobConfigTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void JPA커서테스트() throws Exception {
+    void JPA커서테스트() throws Exception {
         //given
         for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";

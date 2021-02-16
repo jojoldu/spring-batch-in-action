@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(SpringExtension.class)
 @SpringBatchTest
 @SpringBootTest(classes = {HibernatePagingItemReaderJobConfig.class, TestBatchConfig.class})
-public class HibernatePagingItemReaderJobConfigTest {
+class HibernatePagingItemReaderJobConfigTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -37,7 +37,7 @@ public class HibernatePagingItemReaderJobConfigTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    public void hibernate페이징테스트() throws Exception {
+    void hibernate페이징테스트() throws Exception {
         //given
         for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";
