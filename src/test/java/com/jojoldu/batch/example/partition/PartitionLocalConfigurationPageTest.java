@@ -39,7 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = {TestBatchConfig.class, PartitionLocalConfiguration.class})
 @SpringBatchTest
 @TestPropertySource(properties = "chunkSize=5")
-public class PartitionLocalConfigurationPageTest {
+class PartitionLocalConfigurationPageTest {
     public static final DateTimeFormatter FORMATTER = ofPattern("yyyy-MM-dd");
 
     @Autowired
@@ -61,7 +61,7 @@ public class PartitionLocalConfigurationPageTest {
     }
 
     @Test
-    void H2_Product가_ProductBackup으로_이관된다() throws Exception {
+    void h2_product_to_productBackup_test() throws Exception {
         //given
         LocalDate txDate = LocalDate.of(2021,1,12);
 

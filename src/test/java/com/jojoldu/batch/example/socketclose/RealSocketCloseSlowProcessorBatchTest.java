@@ -28,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = {TestBatchConfig.class, SocketCloseSlowProcessorBatch.class})
 @SpringBatchTest
 @ActiveProfiles(profiles = "real")
-public class RealSocketCloseSlowProcessorBatchTest {
+class RealSocketCloseSlowProcessorBatchTest {
 
     @Autowired
     private JobLauncherTestUtils jobLauncherTestUtils;
@@ -42,7 +42,7 @@ public class RealSocketCloseSlowProcessorBatchTest {
     }
 
     @Test
-    public void processor가_waittimeout_보다_길면_실패한다() throws Exception {
+    void processor_is_longer_than_waitTimeout_then_fails() throws Exception {
         //given
         storeRepository.save(new Store("jojoldu"));
 

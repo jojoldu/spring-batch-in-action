@@ -60,7 +60,7 @@ public class PartitionLocalConfigurationTest {
     }
 
     @Test
-    void H2_Product가_ProductBackup으로_이관된다() throws Exception {
+    void h2_product_to_productBackup_test() throws Exception {
         //given
         LocalDate txDate = LocalDate.of(2021,1,12);
 

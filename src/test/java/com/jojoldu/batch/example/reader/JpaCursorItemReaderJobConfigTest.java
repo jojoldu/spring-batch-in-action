@@ -37,7 +37,7 @@ class JpaCursorItemReaderJobConfigTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    void JPA커서테스트() throws Exception {
+    void JPA_cursor_test() throws Exception {
         //given
         for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";

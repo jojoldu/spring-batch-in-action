@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {TestBatchConfig.class, PartitionLocalConfiguration.class})
-public class ProductRepositoryTest {
+class ProductRepositoryTest {
 
     @Autowired
     private ProductRepository productRepository;
@@ -32,7 +32,7 @@ public class ProductRepositoryTest {
     }
 
     @Test
-    void MAX_ID_찾기() throws Exception {
+    void find_max_id_test() throws Exception {
         //given
         LocalDate txDate = LocalDate.of(2020,10,12);
         String name = "a";

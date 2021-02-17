@@ -37,7 +37,7 @@ class HibernatePagingItemReaderJobConfigTest {
 
     @SuppressWarnings("Duplicates")
     @Test
-    void hibernate페이징테스트() throws Exception {
+    void hibernate_paging_test() throws Exception {
         //given
         for(long i=1;i<=10;i++) {
             String teacherName = i + "선생님";

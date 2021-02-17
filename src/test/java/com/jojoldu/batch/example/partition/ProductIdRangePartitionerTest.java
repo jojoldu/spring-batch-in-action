@@ -27,7 +27,7 @@ public class ProductIdRangePartitionerTest {
     private ProductRepository productRepository;
 
     @Test
-    void gridSize에_맞게_id가_분할된다() throws Exception {
+    void gridSize_per_id_divide() throws Exception {
         //given
         Mockito.lenient()
                 .when(productRepository.findMinId(any(LocalDate.class), any(LocalDate.class)))
