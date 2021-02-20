@@ -4,6 +4,7 @@ import com.jojoldu.batch.entity.student.QTeacher;
 import com.jojoldu.batch.entity.student.Teacher;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
@@ -14,6 +15,7 @@ import java.util.List;
  */
 
 @RequiredArgsConstructor
+@Repository
 public class QuerydslSupplierRepository {
     private final JPAQueryFactory queryFactory;
 
