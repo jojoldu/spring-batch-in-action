@@ -55,5 +55,26 @@ class QuerydslSupplierPagingItemReaderJobConfigTest {
         //then
         assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
     }
+
+    @Test
+    void querydsl_requirenew_paging_test() throws Exception {
+        //given
+        String teacherName = "선생님";
+        for(long i=1;i<=10;i++) {
+            Teacher teacher = new Teacher(teacherName, "수학");
+            teacher.addStudent(new Student(teacherName+"의 제자1"));
+            teacher.addStudent(new Student(teacherName+"의 제자2"));
+            teacherRepository.save(teacher);
+        }
+
+        JobParameters jobParameters = jobLauncherTestUtils.getUniqueJobParametersBuilder()
+                .addString("name", teacherName)
+                .toJobParameters();
+        //when
+        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
+
+        //then
+        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+    }
 }
 
