@@ -55,4 +55,22 @@ class JpaCursorItemReaderJobConfigTest {
         //then
         assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
     }
+
+    @SuppressWarnings("Duplicates")
+    @Test
+    void JPA_cursor_test_duplicate() throws Exception {
+        //given
+        for(long i=1;i<=10;i++) {
+            Teacher teacher = new Teacher("선생님", "수학");
+            teacherRepository.save(teacher);
+        }
+
+        JobParameters jobParameters = jobLauncherTestUtils.getUniqueJobParametersBuilder()
+                .toJobParameters();
+        //when
+        JobExecution jobExecution = jobLauncherTestUtils.launchJob(jobParameters);
+
+        //then
+        assertThat(jobExecution.getStatus()).isEqualTo(BatchStatus.COMPLETED);
+    }
 }
