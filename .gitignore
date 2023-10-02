@@ -5,6 +5,7 @@ bin
 generated
 application-real.yml
 application-real-db.yml
+.vscode
 
 ### STS ###
 .apt_generated
